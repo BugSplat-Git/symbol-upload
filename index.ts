@@ -98,5 +98,5 @@ function helpAndExit(missingArg: string = '') {
     }
 
     console.log(help);
-    process.exit();
+    process.exit(1);
 }
