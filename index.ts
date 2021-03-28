@@ -52,30 +52,36 @@ const version = process.argv[process.argv.indexOf(<string>versionArg) + 1];
 const fileSpec = process.argv[process.argv.indexOf(<string>filesArg) + 1];
 const directory = process.argv.indexOf(<string>directoryArg) >= 0 ? process.argv[process.argv.indexOf(<string>directoryArg) + 1] : './';
 
-glob(`${directory}/${fileSpec}`, async (err, files) => {
-    if (err) {
-        throw err;
+const globPattern =`${directory}/${fileSpec}`
+glob(globPattern, async (err, files) => {
+    try {
+        if (err) {
+            throw err;
+        }
+    
+        if (!files.length) {
+            throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
+        }
+    
+        console.log(`Found files:\n ${files}`);
+        console.log(`About to log into BugSplat with user ${email}...`);
+        const client = new BugSplatApiClient(`https://${database}.bugsplat.com`);
+        await client.login(email, password);
+        console.log('Login successful!')
+        console.log(`About to upload symbols for application ${application}-${version} to database ${database}...`);
+        const symbols = new Symbols(
+            database,
+            application,
+            version,
+            files,
+            client
+        );
+        await symbols.post();
+        console.log('Symbols uploaded successfully!');
+    } catch (error) {
+        console.error(error);
+        process.exit(1);
     }
-
-    if (!files.length) {
-        throw new Error('Could not find any files to upload!');
-    }
-
-    console.log(`Found files:\n ${files}`);
-    console.log(`About to log into BugSplat with user ${email}...`);
-    const client = new BugSplatApiClient(`http://${database}.bugsplat.com`); // TODO BG https
-    await client.login(email, password);
-    console.log('Login successful!')
-    console.log(`About to upload symbols for application ${application}-${version} to database ${database}...`);
-    const symbols = new Symbols(
-        database,
-        application,
-        version,
-        files,
-        client
-    );
-    await symbols.post();
-    console.log('Symbols uploaded successfully!');
 });
 
 function helpAndExit(missingArg: string = '') {
