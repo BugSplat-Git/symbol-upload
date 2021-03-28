@@ -4,12 +4,15 @@
   "description": "Cross platform symbol upload tool",
   "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc &&  cp ./{package.json,README.md,LICENSE} ./dist",
+    "publish": "cd ./dist && npm publish --access public"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BugSplat-Git/symbol-upload.git"
   },
+  "private": false,
   "keywords": [
     "symbol",
     "upload",
