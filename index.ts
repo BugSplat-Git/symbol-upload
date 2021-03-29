@@ -38,10 +38,6 @@ if (!versionArg) {
 }
 
 const filesArg = process.argv.find(arg => arg === '-files');
-if (!filesArg) {
-    helpAndExit('files');
-}
-
 const directoryArg = process.argv.find(arg => arg === '-directory');
 
 const email = process.argv[process.argv.indexOf(<string>emailArg) + 1];
@@ -49,7 +45,7 @@ const password = process.argv[process.argv.indexOf(<string>passwordArg) + 1];
 const database = process.argv[process.argv.indexOf(<string>databaseArg) + 1];
 const application = process.argv[process.argv.indexOf(<string>applicationArg) + 1];
 const version = process.argv[process.argv.indexOf(<string>versionArg) + 1];
-const fileSpec = process.argv[process.argv.indexOf(<string>filesArg) + 1];
+const fileSpec = process.argv.indexOf(<string>filesArg) >= 0 ?process.argv[process.argv.indexOf(<string>filesArg) + 1] : '*.js.map';
 const directory = process.argv.indexOf(<string>directoryArg) >= 0 ? process.argv[process.argv.indexOf(<string>directoryArg) + 1] : './';
 
 const globPattern =`${directory}/${fileSpec}`
@@ -88,7 +84,7 @@ function helpAndExit(missingArg: string = '') {
     const help = '\n\n'
         + 'symbol-upload usage:'
         + '\n\n\n'
-        + '\tnode ./symbol-upload -email fred@bugsplat.com -password ****** -database Fred -application my-ts-crasher -version 1.0.0 -files "*.js.map" [ -directory "/path/to/containing/dir" ]'
+        + '\tnode ./symbol-upload -email fred@bugsplat.com -password ****** -database Fred -application my-ts-crasher -version 1.0.0 [ -files "*.js.map" -directory "/path/to/containing/dir" ]'
         + '\n\n\n'
         + '❤️ support@bugsplat.com'
         + '\n';
