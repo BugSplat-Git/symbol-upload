@@ -12,43 +12,43 @@ if (
     helpAndExit();
 }
 
-const emailArg = process.argv.find(arg => arg === '-email');
-if (!emailArg) {
-    helpAndExit('email');
+const databaseFlag = <string>process.argv.find(arg => arg === '-database');
+if (!databaseFlag) {
+    missingArg('database');
 }
 
-const passwordArg = process.argv.find(arg => arg === '-password');
-if (!passwordArg) {
-    helpAndExit('password');
+const applicationFlag = <string>process.argv.find(arg => arg === '-application');
+if (!applicationFlag) {
+    missingArg('application');
 }
 
-const databaseArg = process.argv.find(arg => arg === '-database');
-if (!databaseArg) {
-    helpAndExit('database');
+const versionFlag = <string>process.argv.find(arg => arg === '-version');
+if (!versionFlag) {
+    missingArg('version');
 }
 
-const applicationArg = process.argv.find(arg => arg === '-application');
-if (!applicationArg) {
-    helpAndExit('application');
+const emailFlag = <string>process.argv.find(arg => arg === '-email');
+const email = emailFlag ? process.argv[process.argv.indexOf(emailFlag) + 1] : <string>process.env.SYMBOL_UPLOAD_EMAIL;
+if (!email) {
+    missingArg('email');
 }
 
-const versionArg = process.argv.find(arg => arg === '-version');
-if (!versionArg) {
-    helpAndExit('version');
+const passwordFlag = <string>process.argv.find(arg => arg === '-password');
+const password = passwordFlag ? process.argv[process.argv.indexOf(passwordFlag) + 1] :  <string>process.env.SYMBOL_UPLOAD_PASSWORD;
+if (!password) {
+    missingArg('password');
 }
 
-const filesArg = process.argv.find(arg => arg === '-files');
-const directoryArg = process.argv.find(arg => arg === '-directory');
+const filesFlag = <string>process.argv.find(arg => arg === '-files');
+const directoryFlag = <string>process.argv.find(arg => arg === '-directory');
 
-const email = process.argv[process.argv.indexOf(<string>emailArg) + 1];
-const password = process.argv[process.argv.indexOf(<string>passwordArg) + 1];
-const database = process.argv[process.argv.indexOf(<string>databaseArg) + 1];
-const application = process.argv[process.argv.indexOf(<string>applicationArg) + 1];
-const version = process.argv[process.argv.indexOf(<string>versionArg) + 1];
-const fileSpec = process.argv.indexOf(<string>filesArg) >= 0 ?process.argv[process.argv.indexOf(<string>filesArg) + 1] : '*.js.map';
-const directory = process.argv.indexOf(<string>directoryArg) >= 0 ? process.argv[process.argv.indexOf(<string>directoryArg) + 1] : './';
+const database = process.argv[process.argv.indexOf(databaseFlag) + 1];
+const application = process.argv[process.argv.indexOf(applicationFlag) + 1];
+const version = process.argv[process.argv.indexOf(versionFlag) + 1];
+const files = process.argv.indexOf(filesFlag) >= 0 ?process.argv[process.argv.indexOf(filesFlag) + 1] : '*.js.map';
+const directory = process.argv.indexOf(directoryFlag) >= 0 ? process.argv[process.argv.indexOf(directoryFlag) + 1] : '.';
 
-const globPattern =`${directory}/${fileSpec}`
+const globPattern =`${directory}/${files}`;
 glob(globPattern, async (err, files) => {
     try {
         if (err) {
@@ -80,19 +80,25 @@ glob(globPattern, async (err, files) => {
     }
 });
 
-function helpAndExit(missingArg: string = '') {
-    const help = '\n\n'
-        + 'symbol-upload usage:'
+function helpAndExit() {
+    const help = '\n'
+        + '@bugsplat/symbol-upload contains a command line utility and set of libraries to help you upload symbols to BugSplat.'
         + '\n\n\n'
-        + '\tnode ./symbol-upload -email fred@bugsplat.com -password ****** -database Fred -application my-ts-crasher -version 1.0.0 [ -files "*.js.map" -directory "/path/to/containing/dir" ]'
+        + 'symbol-upload command line usage:'
         + '\n\n\n'
-        + '❤️ support@bugsplat.com'
-        + '\n';
-
-    if (missingArg) {
-        console.log(`\nMissing argument: -${missingArg}`)
-    }
+        + '\tnode ./symbol-upload -database Fred -application my-ts-crasher -version 1.0.0 [ -email fred@bugsplat.com -password ****** -files "*.js.map" -directory "/path/to/containing/dir" ]' 
+        + '\n\n\n'
+        + 'The -email and -password arguments are optional if you set the environment variables SYMBOL_UPLOAD_EMAIL and SYMBOL_UPLOAD_PASSWORD respectively. '
+        + '\n\n'
+        + 'The -files and -directory arguments are optional and will default to "*.js.map" and "." respectively.'
+        + '\n\n\n'
+        + '❤️ support@bugsplat.com';
 
     console.log(help);
+    process.exit(1);
+}
+
+function missingArg(arg: string) {
+    console.log(`\nMissing argument: -${arg}\n`);
     process.exit(1);
 }

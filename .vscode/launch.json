@@ -20,14 +20,8 @@
                 "my-ts-crasher",
                 "-version",
                 "1.0.0",
-                "-files",
-                "**/*.js.map",
                 "-directory",
                 "./dist",
-                "-email",
-                "bobby+sendpdbs@bugsplat.com",
-                "-password",
-                "******"
             ],
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
