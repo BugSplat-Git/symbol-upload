@@ -15,10 +15,9 @@ export class Symbols {
         readonly applicaton: string,
         readonly version: string,
         readonly files: Array<string>,
-        private readonly _client: BugSplatApiClient
     ) { }
 
-    async post(): Promise<any> {
+    async post(client: BugSplatApiClient): Promise<any> {
         const promises = this.files
             .map(async (file) => {
                 if (!exists(file)) {
@@ -35,7 +34,7 @@ export class Symbols {
                     this.version,
                     size,
                     name,
-                    this._client
+                    client
                 );
 
                 const s3Client = new S3ApiClient();
