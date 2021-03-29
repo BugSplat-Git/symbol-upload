@@ -1,6 +1,7 @@
+#! /usr/bin/env node
 import { glob } from 'glob';
-import { BugSplatApiClient } from './src/bugsplat-api-client';
-import { Symbols } from './src/symbols';
+import { BugSplatApiClient } from '../lib/bugsplat-api-client';
+import { Symbols } from '../lib/symbols';
 
 if (
     process.argv.some(arg => arg === '-h')
@@ -60,19 +61,20 @@ glob(globPattern, async (err, files) => {
         }
     
         console.log(`Found files:\n ${files}`);
+
         console.log(`About to log into BugSplat with user ${email}...`);
         const client = new BugSplatApiClient('https://app.bugsplat.com');
         await client.login(email, password);
         console.log('Login successful!')
+
         console.log(`About to upload symbols for application ${application}-${version} to database ${database}...`);
         const symbols = new Symbols(
             database,
             application,
             version,
-            files,
-            client
+            files
         );
-        await symbols.post();
+        await symbols.post(client);
         console.log('Symbols uploaded successfully!');
     } catch (error) {
         console.error(error);

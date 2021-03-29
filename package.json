@@ -2,7 +2,10 @@
   "name": "@bugsplat/symbol-upload",
   "version": "1.0.1",
   "description": "Cross platform symbol upload tool",
-  "main": "index.ts",
+  "main": "lib/index.ts",
+  "bin": {
+    "symbol-upload": "bin/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rm -rf ./dist && tsc &&  cp ./{package.json,README.md,LICENSE} ./dist",
