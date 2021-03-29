@@ -65,7 +65,7 @@ glob(globPattern, async (err, files) => {
     
         console.log(`Found files:\n ${files}`);
         console.log(`About to log into BugSplat with user ${email}...`);
-        const client = new BugSplatApiClient(`https://${database}.bugsplat.com`);
+        const client = new BugSplatApiClient('https://app.bugsplat.com');
         await client.login(email, password);
         console.log('Login successful!')
         console.log(`About to upload symbols for application ${application}-${version} to database ${database}...`);
