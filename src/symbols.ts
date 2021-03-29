@@ -69,6 +69,10 @@ export class Symbols {
         }
 
         const json = await response.json();
+        if (json.Status === 'Failed') {
+            throw new Error(json.Error);
+        }
+
         return json.url;
     }
 }
