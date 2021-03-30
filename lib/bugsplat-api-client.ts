@@ -5,7 +5,7 @@ export class BugSplatApiClient {
     private _cookie: string = '';
     private _xsrfToken: string = '';
 
-    constructor(private _host: string) { }
+    constructor(private _host: string = 'https://app.bugsplat.com') { }
 
     async get(route: string): Promise<Response> {
         const url = new URL(route, this._host);
@@ -30,11 +30,11 @@ export class BugSplatApiClient {
         return response;
     }
 
-    async login(username: string, password: string): Promise<any> {
+    async login(email: string, password: string): Promise<any> {
         try {
             const url = new URL('/api/authenticatev3.php', this._host);
             const formData: any = new FormData();
-            formData.append('email', username);
+            formData.append('email', email);
             formData.append('password', password);
             formData.append('Login', 'Login');
             
@@ -51,7 +51,7 @@ export class BugSplatApiClient {
     
             return response.json();
         } catch (error) {
-            throw new Error(`Could not login with username ${username}!`);
+            throw new Error(`Could not login with username ${email}!`);
         }
     }
 
