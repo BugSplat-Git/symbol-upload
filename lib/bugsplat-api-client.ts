@@ -63,8 +63,8 @@ export class BugSplatApiClient {
     private parseXsrfToken(cookie: string): string {
         const regex = new RegExp(/xsrf-token=[^;]*/g);
         const matches = Array.from(cookie.matchAll(regex));
-        const nonDeletedXsrfCookie = matches[1][0];
-        const xsrfToken = nonDeletedXsrfCookie.split('=')[1];
+        const xsrfCookie = matches[0][0];
+        const xsrfToken = xsrfCookie.split('=')[1];
         return xsrfToken;
     }
 }
