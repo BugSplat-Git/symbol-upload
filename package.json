@@ -27,7 +27,7 @@
     "bugsplat"
   ],
   "author": "@bobbyg603",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/BugSplat-Git/symbol-upload/issues"
   },
