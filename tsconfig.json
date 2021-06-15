@@ -9,6 +9,10 @@
     "noImplicitAny": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  }
+    "forceConsistentCasingInFileNames": true,
+  },
+  "files": [
+    "./index.ts",
+    "./bin/index.ts"
+  ]
 }
