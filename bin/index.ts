@@ -1,7 +1,6 @@
 #! /usr/bin/env node
 import { glob } from 'glob';
-import { BugSplatApiClient } from '../lib/bugsplat-api-client';
-import { Symbols } from '../lib/symbols';
+import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
 
 if (
     process.argv.some(arg => arg === '-h')
@@ -61,20 +60,22 @@ glob(globPattern, async (err, files) => {
         }
     
         console.log(`Found files:\n ${files}`);
-
         console.log(`About to log into BugSplat with user ${email}...`);
-        const client = new BugSplatApiClient('https://app.bugsplat.com');
-        await client.login(email, password);
-        console.log('Login successful!')
 
-        console.log(`About to upload symbols for application ${application}-${version} to database ${database}...`);
-        const symbols = new Symbols(
+        const bugsplat = new BugSplatApiClient('https://app.bugsplat.com');
+        await bugsplat.login(email, password);
+
+        console.log('Login successful!');
+        console.log(`About to upload symbols for ${database}-${application}-${version}...`);
+
+        const symbolsApiClient = new SymbolsApiClient(bugsplat)
+        await symbolsApiClient.post(
             database,
             application,
             version,
             files
         );
-        await symbols.post(client);
+
         console.log('Symbols uploaded successfully!');
     } catch (error) {
         console.error(error);
@@ -84,7 +85,7 @@ glob(globPattern, async (err, files) => {
 
 function helpAndExit() {
     const help = '\n'
-        + '@bugsplat/symbol-upload contains a command line utility and set of libraries to help you upload symbols to BugSplat.'
+        + '@bugsplat/symbol-upload is a command line utility to help you upload symbols to BugSplat.'
         + '\n\n\n'
         + 'symbol-upload command line usage:'
         + '\n\n\n'
