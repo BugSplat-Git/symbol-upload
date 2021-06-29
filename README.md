@@ -1,7 +1,7 @@
 [![BugSplat](https://s3.amazonaws.com/bugsplat-public/npm/header.png)](https://www.bugsplat.com)
 
 # symbol-upload
-This is a simple utility for uploading symbol files or source maps to [BugSplat](https://www.bugsplat.com). This utility is designed to be used in your build process to automatically upload symbols to BugSplat for each production build. This package can be used as a library or a command line utility.
+This is a simple Node.js utility and set of libraries for uploading symbol files or source maps to [BugSplat](https://www.bugsplat.com). This utility is designed to be used in your build process to automatically upload symbols to BugSplat for each production build. This package can be used as a library or a command line utility.
 
 ## Command Line
 1. Install this package globally `npm i -g @bugsplat/symbol-upload`
