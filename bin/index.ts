@@ -49,7 +49,7 @@ import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
         try {
             console.log(`About to log into BugSplat with user ${email}...`);
     
-            const bugsplat = new BugSplatApiClient('https://app.bugsplat.com');
+            const bugsplat = new BugSplatApiClient();
             await bugsplat.login(email, password);
     
             console.log('Login successful!');
@@ -87,7 +87,7 @@ import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
         console.log(`Found files:\n ${files}`);
         console.log(`About to log into BugSplat with user ${email}...`);
 
-        const bugsplat = new BugSplatApiClient('https://app.bugsplat.com');
+        const bugsplat = new BugSplatApiClient();
         await bugsplat.login(email, password);
 
         console.log('Login successful!');
