@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/index.ts",
+            "program": "${workspaceFolder}/bin/index.ts",
             "preLaunchTask": "tsc: build - tsconfig.json",
             "args": [
                 "-database",

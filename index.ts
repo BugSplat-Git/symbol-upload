@@ -1,2 +1,1 @@
-export { BugSplatApiClient } from './lib/bugsplat-api-client';
-export { Symbols } from './lib/symbols'
+export { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
