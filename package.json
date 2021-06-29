@@ -37,6 +37,7 @@
     "@types/node": "^14.14.37"
   },
   "dependencies": {
+    "@bugsplat/js-api-client": "^0.0.8",
     "form-data": "^4.0.0",
     "glob": "^7.1.6",
     "glob-promise": "^4.2.0",
