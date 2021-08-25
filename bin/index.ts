@@ -1,6 +1,8 @@
 #! /usr/bin/env node
-import glob from 'glob-promise';
 import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
+import fs from 'fs';
+import glob from 'glob-promise';
+import { basename } from 'path';
 
 (async () => {
     if (
@@ -78,13 +80,13 @@ import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
     const globPattern = `${directory}/${files}`;
 
     try {
-        const files = await glob(globPattern);
+        const paths = await glob(globPattern);
 
-        if (!files.length) {
+        if (!paths.length) {
             throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
         }
 
-        console.log(`Found files:\n ${files}`);
+        console.log(`Found files:\n ${paths}`);
         console.log(`About to log into BugSplat with user ${email}...`);
 
         const bugsplat = new BugSplatApiClient();
@@ -92,6 +94,17 @@ import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
 
         console.log('Login successful!');
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
+
+        const files = paths.map(path => {
+            const stat = fs.statSync(path);
+            const size = stat.size;
+            const name = basename(path);
+            return {
+                name,
+                size,
+                file: fs.createReadStream(path)
+            };
+        });
 
         const symbolsApiClient = new SymbolsApiClient(bugsplat);
         await symbolsApiClient.post(
