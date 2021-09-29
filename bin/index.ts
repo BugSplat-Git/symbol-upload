@@ -51,8 +51,7 @@ import { basename } from 'path';
         try {
             console.log(`About to log into BugSplat with user ${email}...`);
     
-            const bugsplat = new BugSplatApiClient();
-            await bugsplat.login(email, password);
+            const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email, password);
     
             console.log('Login successful!');
             console.log(`About to delete symbols for ${database}-${application}-${version}...`);
@@ -89,8 +88,7 @@ import { basename } from 'path';
         console.log(`Found files:\n ${paths}`);
         console.log(`About to log into BugSplat with user ${email}...`);
 
-        const bugsplat = new BugSplatApiClient();
-        await bugsplat.login(email, password);
+        const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email, password);
 
         console.log('Login successful!');
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
@@ -99,10 +97,11 @@ import { basename } from 'path';
             const stat = fs.statSync(path);
             const size = stat.size;
             const name = basename(path);
+            const file = fs.createReadStream(path);
             return {
                 name,
                 size,
-                file: fs.createReadStream(path)
+                file
             };
         });
 
