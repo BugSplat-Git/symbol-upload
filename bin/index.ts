@@ -126,7 +126,7 @@ function helpAndExit() {
         + '\n\n\n'
         + 'symbol-upload command line usage:'
         + '\n\n\n'
-        + '\tnode ./symbol-upload -database Fred -application my-ts-crasher -version 1.0.0 [ -email fred@bugsplat.com -password ****** -files "*.js.map" -directory "/path/to/containing/dir" ]'
+        + '\tsymbol-upload -database {your-bugsplat-database} -application {your-application-name} -version {your-version} [ -email {your-email-login} -password {your-password} -files "*.js.map" -directory "/path/to/containing/dir" ]'
         + '\n\n\n'
         + 'The -email and -password arguments are optional if you set the environment variables SYMBOL_UPLOAD_EMAIL and SYMBOL_UPLOAD_PASSWORD respectively. '
         + '\n\n'

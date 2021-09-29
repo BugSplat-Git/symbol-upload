@@ -15,7 +15,7 @@ bobby@BugSplat % ~ % symbol-upload -h
 symbol-upload command line usage:
 
 
-        symbol-upload -database Fred -application my-ts-crasher -version 1.0.0 [ -email fred@bugsplat.com -password ****** -files "*.js.map" -directory "/path/to/containing/dir" ]
+        symbol-upload -database {your-bugsplat-database} -application {your-application-name} -version {your-version} [ -email {your-email-login} -password {your-password} -files "*.js.map" -directory "/path/to/containing/dir" ]
 
 
 The -email and -password arguments are optional if you set the environment variables SYMBOL_UPLOAD_EMAIL and SYMBOL_UPLOAD_PASSWORD respectively. 
@@ -74,7 +74,6 @@ await symbolsApiClient.postSymbols(
         files
 );
 ```
-
 
 If you've done everything correctly your symbols should now be shown on the [Symbols](https://app.bugsplat.com/v2/symbols) page.
 
