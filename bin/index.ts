@@ -58,7 +58,7 @@ import { basename } from 'path';
             console.log(`About to delete symbols for ${database}-${application}-${version}...`);
 
             const symbolsApiClient = new SymbolsApiClient(bugsplat);
-            await symbolsApiClient.delete(
+            await symbolsApiClient.deleteSymbols(
                 database,
                 application,
                 version
@@ -107,7 +107,7 @@ import { basename } from 'path';
         });
 
         const symbolsApiClient = new SymbolsApiClient(bugsplat);
-        await symbolsApiClient.post(
+        await symbolsApiClient.postSymbols(
             database,
             application,
             version,
