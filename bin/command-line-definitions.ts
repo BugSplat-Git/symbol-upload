@@ -46,20 +46,6 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         description: 'The password for your BugSplat account. Can also be provided via the SYMBOL_UPLOAD_PASSWORD environment variable. If provided --user must also be provided.',
     },
     {
-        name: 'clientId',
-        alias: 'i',
-        type: String,
-        typeLabel: '{underline string} (optional)',
-        description: 'An OAuth2 Client Credentials Client ID for the specified database. Can also be provided via the SYMBOL_UPLOAD_CLIENT_ID environment variable. If provided --clientSecret must also be provided.',
-    },
-    {
-        name: 'clientSecret',
-        alias: 's',
-        type: String,
-        typeLabel: '{underline string} (optional)',
-        description: 'An OAuth2 Client Credentials Client Secret for the specified database. Can also be provided via the SYMBOL_UPLOAD_CLIENT_SECRET environment variable. If provided --clientId must also be provided.',
-    },
-    {
         name: 'remove',
         alias: 'r',
         type: Boolean,
@@ -90,14 +76,14 @@ export const usageDefinitions: Array<Section> = [
     },
     {
         header: 'Usage',
-        content: 'symbol-upload -b {your-bugsplat-database} -a {your-application-name} -v {your-version} [ -f "*.js.map" -d "/path/to/containing/dir" [ -u {your-bugsplat-email} -p {your-bugsplat-password} ] OR [ -i {your-client-id} -s {your-client-secret} ] ]',
+        content: 'symbol-upload -b {your-bugsplat-database} -a {your-application-name} -v {your-version} [ -f "*.js.map" -d "/path/to/containing/dir" -u {your-bugsplat-email} -p {your-bugsplat-password} ]',
         optionList: argDefinitions
     },
     {
-        content: 'The -u and -p arguments are optional if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD, or provide a Client ID and Client Secret pair.'
+        content: 'The -u and -p arguments are optional if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD.'
     },
     {
-        content: 'The -i and -s arguments are optional if you set the environment variables SYMBOL_UPLOAD_CLIENT_ID and SYMBOL_UPLOAD_CLIENT_SECRET, or provide a user and password.'
+        content: 'The -i and -s arguments are optional if you set the environment variables SYMBOL_UPLOAD_CLIENT_ID and SYMBOL_UPLOAD_CLIENT_SECRET.'
     },
     {
         content: '{underline https://github.com/BugSplat-Git/symbol-upload}'

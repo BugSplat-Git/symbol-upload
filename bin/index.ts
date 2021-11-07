@@ -1,5 +1,5 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import fs from 'fs';
@@ -14,8 +14,6 @@ let {
     version,
     user,
     password,
-    clientId,
-    clientSecret,
     remove,
     files,
     directory
@@ -39,15 +37,11 @@ if (!version) {
 
 user = user ?? process.env.SYMBOL_UPLOAD_USER;
 password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
-clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
-clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
 
 if (
     !validAuthenticationArguments({
         user,
-        password,
-        clientId,
-        clientSecret
+        password
     })
 ) {
     logMissingAuthAndExit();
@@ -59,9 +53,7 @@ if (
 
     const bugsplat = await createBugSplatClient({
         user,
-        password,
-        clientId,
-        clientSecret
+        password
     });
 
     console.log('Authentication success!');
@@ -127,19 +119,9 @@ if (
 
 async function createBugSplatClient({
     user,
-    password,
-    clientId,
-    clientSecret
+    password
 }: AuthenticationArgs): Promise<ApiClient> {
-    let client;
-
-    if (user && password) {
-        client = await BugSplatApiClient.createAuthenticatedClientForNode(user, password);
-    } else {
-        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
-    }
-
-    return client;
+    return BugSplatApiClient.createAuthenticatedClientForNode(user, password);
 }
 
 function logHelpAndExit() {
@@ -154,22 +136,18 @@ function logMissingArgAndExit(arg: string): void {
 }
 
 function logMissingAuthAndExit(): void {
-    console.log('\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n');
+    console.log('\nInvalid authentication arguments: please provide a user and password\n');
     process.exit(1);
 }
 
 function validAuthenticationArguments({
     user,
-    password,
-    clientId,
-    clientSecret
+    password
 }: AuthenticationArgs): boolean {
-    return !!(user && password) || !!(clientId && clientSecret);
+    return !!(user && password);
 }
 
 interface AuthenticationArgs {
     user: string,
-    password: string,
-    clientId: string,
-    clientSecret: string
+    password: string
 }
