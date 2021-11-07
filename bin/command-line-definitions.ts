@@ -83,9 +83,6 @@ export const usageDefinitions: Array<Section> = [
         content: 'The -u and -p arguments are optional if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD.'
     },
     {
-        content: 'The -i and -s arguments are optional if you set the environment variables SYMBOL_UPLOAD_CLIENT_ID and SYMBOL_UPLOAD_CLIENT_SECRET.'
-    },
-    {
         content: '{underline https://github.com/BugSplat-Git/symbol-upload}'
     },
     {
