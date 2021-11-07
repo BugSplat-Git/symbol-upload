@@ -1,1 +1,6 @@
-export { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
+export {
+    BugSplatApiClient,
+    SymbolsApiClient,
+    OAuthClientCredentialsClient,
+    UploadableFile
+} from '@bugsplat/js-api-client';
