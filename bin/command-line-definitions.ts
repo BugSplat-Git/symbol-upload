@@ -72,20 +72,29 @@ export const argDefinitions: Array<CommandLineDefinition> = [
 export const usageDefinitions: Array<Section> = [
     {
         header: '@bugsplat/symbol-upload',
-        content: '@bugsplat/symbol-upload contains a command line utility and set of libraries to help you upload symbols to BugSplat.',
+        content: 'symbol-upload contains a command line utility and set of libraries to help you upload symbols to BugSplat.',
     },
     {
         header: 'Usage',
-        content: 'symbol-upload -b {your-bugsplat-database} -a {your-application-name} -v {your-version} [ -f "*.js.map" -d "/path/to/containing/dir" -u {your-bugsplat-email} -p {your-bugsplat-password} ]',
         optionList: argDefinitions
     },
     {
-        content: 'The -u and -p arguments are optional if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD.'
+        header: 'Example',
+        content: [
+            'symbol-upload -b {italic your-bugsplat-database} -a {italic your-application-name} -v {italic your-version} [ -f "*.js.map" -d "/path/to/containing/dir" -u {italic your-bugsplat-email} -p {italic your-bugsplat-password} ]',
+            '',
+            'The -u and -p arguments are optional if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD.'
+        ]
     },
     {
-        content: '{underline https://github.com/BugSplat-Git/symbol-upload}'
-    },
-    {
-        content: '❤️ support@bugsplat.com'
+        header: 'Links',
+        content: 
+        [
+            '🐛 {underline https://bugsplat.com}',
+            '',
+            '💻 {underline https://github.com/BugSplat-Git/symbol-upload}',
+            '',
+            '💌 {underline support@bugsplat.com}'
+        ]
     }
 ];
