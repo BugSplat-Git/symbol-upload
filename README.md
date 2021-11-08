@@ -68,16 +68,20 @@ Links
 ## API
 
 1. Install this package locally `npm i @bugsplat/symbol-upload`.
-2. Import `BugSplatApiClient` and `SymbolsApiClient` from @bugsplat/symbol-upload.
+2. Import `BugSplatApiClient` and `SymbolsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuth2ClientCredentialsApiClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
 
 ```ts
-import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/symbol-upload';
+import { BugSplatApiClient, OAuth2ClientCredentialsApiClient, SymbolsApiClient } from '@bugsplat/symbol-upload';
 ```
 
-3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function.
+3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuth2ClientCredentialsApiClient` using the `createAuthenticatedClient` async factory function.
 
 ```ts
 const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email, password);
+```
+
+```ts
+const bugsplat = await OAuth2ClientCredentialsApiClient.createAuthenticatedClient(clientId, clientSecret);
 ```
 
 4. Create an `UploadableFile` object for each symbol file path.
