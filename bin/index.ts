@@ -1,62 +1,69 @@
 #! /usr/bin/env node
-import { BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, SymbolsApiClient } from '@bugsplat/js-api-client';
+import commandLineArgs from 'command-line-args';
+import commandLineUsage from 'command-line-usage';
 import fs from 'fs';
 import glob from 'glob-promise';
 import { basename } from 'path';
+import { argDefinitions, usageDefinitions } from './command-line-definitions';
+
+let {
+    help,
+    database,
+    application,
+    version,
+    user,
+    password,
+    remove,
+    files,
+    directory
+} = commandLineArgs(argDefinitions);
+
+if (help) {
+    logHelpAndExit();    
+}
+
+if (!database) {
+    logMissingArgAndExit('database');
+}
+
+if (!application) {
+    logMissingArgAndExit('application');
+}
+
+if (!version) {
+    logMissingArgAndExit('version');
+}
+
+user = user ?? process.env.SYMBOL_UPLOAD_USER;
+password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
+
+if (
+    !validAuthenticationArguments({
+        user,
+        password
+    })
+) {
+    logMissingAuthAndExit();
+}
 
 (async () => {
-    if (
-        process.argv.some(arg => arg === '-h')
-        || process.argv.some(arg => arg === '/h')
-        || process.argv.some(arg => arg === '-help')
-        || process.argv.some(arg => arg === '/help')
-        || process.argv.length <= 1
-    ) {
-        helpAndExit();
-    }
 
-    const databaseFlag = <string>process.argv.find(arg => arg === '-database');
-    if (!databaseFlag) {
-        missingArg('database');
-    }
+    console.log('About to authenticate...')
 
-    const applicationFlag = <string>process.argv.find(arg => arg === '-application');
-    if (!applicationFlag) {
-        missingArg('application');
-    }
+    const bugsplat = await createBugSplatClient({
+        user,
+        password
+    });
 
-    const versionFlag = <string>process.argv.find(arg => arg === '-version');
-    if (!versionFlag) {
-        missingArg('version');
-    }
+    console.log('Authentication success!');
 
-    const emailFlag = <string>process.argv.find(arg => arg === '-email');
-    const email = emailFlag ? process.argv[process.argv.indexOf(emailFlag) + 1] : <string>process.env.SYMBOL_UPLOAD_EMAIL;
-    if (!email) {
-        missingArg('email');
-    }
+    const symbolsApiClient = new SymbolsApiClient(bugsplat);
 
-    const passwordFlag = <string>process.argv.find(arg => arg === '-password');
-    const password = passwordFlag ? process.argv[process.argv.indexOf(passwordFlag) + 1] : <string>process.env.SYMBOL_UPLOAD_PASSWORD;
-    if (!password) {
-        missingArg('password');
-    }
-
-    const database = process.argv[process.argv.indexOf(databaseFlag) + 1];
-    const application = process.argv[process.argv.indexOf(applicationFlag) + 1];
-    const version = process.argv[process.argv.indexOf(versionFlag) + 1];
-
-    const deleteFlag = <string>process.argv.find(arg => arg === '-delete');
-    if (deleteFlag) {
+    if (remove) {
         try {
-            console.log(`About to log into BugSplat with user ${email}...`);
-    
-            const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email, password);
-    
-            console.log('Login successful!');
             console.log(`About to delete symbols for ${database}-${application}-${version}...`);
 
-            const symbolsApiClient = new SymbolsApiClient(bugsplat);
             await symbolsApiClient.deleteSymbols(
                 database,
                 application,
@@ -72,10 +79,6 @@ import { basename } from 'path';
         }
     }
 
-    const filesFlag = <string>process.argv.find(arg => arg === '-files');
-    const directoryFlag = <string>process.argv.find(arg => arg === '-directory');
-    const files = process.argv.indexOf(filesFlag) >= 0 ? process.argv[process.argv.indexOf(filesFlag) + 1] : '*.js.map';
-    const directory = process.argv.indexOf(directoryFlag) >= 0 ? process.argv[process.argv.indexOf(directoryFlag) + 1] : '.';
     const globPattern = `${directory}/${files}`;
 
     try {
@@ -86,11 +89,6 @@ import { basename } from 'path';
         }
 
         console.log(`Found files:\n ${paths}`);
-        console.log(`About to log into BugSplat with user ${email}...`);
-
-        const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email, password);
-
-        console.log('Login successful!');
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
         const files = paths.map(path => {
@@ -105,7 +103,6 @@ import { basename } from 'path';
             };
         });
 
-        const symbolsApiClient = new SymbolsApiClient(bugsplat);
         await symbolsApiClient.postSymbols(
             database,
             application,
@@ -120,25 +117,37 @@ import { basename } from 'path';
     }
 })();
 
-function helpAndExit() {
-    const help = '\n'
-        + '@bugsplat/symbol-upload contains a command line utility and set of libraries to help you upload symbols to BugSplat.'
-        + '\n\n\n'
-        + 'symbol-upload command line usage:'
-        + '\n\n\n'
-        + '\tsymbol-upload -database {your-bugsplat-database} -application {your-application-name} -version {your-version} [ -email {your-email-login} -password {your-password} -files "*.js.map" -directory "/path/to/containing/dir" ]'
-        + '\n\n\n'
-        + 'The -email and -password arguments are optional if you set the environment variables SYMBOL_UPLOAD_EMAIL and SYMBOL_UPLOAD_PASSWORD respectively. '
-        + '\n\n'
-        + 'The -files and -directory arguments are optional and will default to "*.js.map" and "." respectively.'
-        + '\n\n\n'
-        + '❤️ support@bugsplat.com';
+async function createBugSplatClient({
+    user,
+    password
+}: AuthenticationArgs): Promise<ApiClient> {
+    return BugSplatApiClient.createAuthenticatedClientForNode(user, password);
+}
 
+function logHelpAndExit() {
+    const help = commandLineUsage(usageDefinitions);
     console.log(help);
     process.exit(1);
 }
 
-function missingArg(arg: string) {
+function logMissingArgAndExit(arg: string): void {
     console.log(`\nMissing argument: -${arg}\n`);
     process.exit(1);
+}
+
+function logMissingAuthAndExit(): void {
+    console.log('\nInvalid authentication arguments: please provide a user and password\n');
+    process.exit(1);
+}
+
+function validAuthenticationArguments({
+    user,
+    password
+}: AuthenticationArgs): boolean {
+    return !!(user && password);
+}
+
+interface AuthenticationArgs {
+    user: string,
+    password: string
 }
