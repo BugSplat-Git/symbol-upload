@@ -10,7 +10,7 @@
     "dist"
   ],
   "scripts": {
-    "start": "ts-node ./bin/index.ts -database fred -application test -version 1.0 -directory ./dist",
+    "start": "ts-node ./bin/index.ts -b fred -a test -v 1.0 -d ./dist",
     "build": "rm -rf ./dist && tsc",
     "release": "npm run build && npm publish --access public"
   },
