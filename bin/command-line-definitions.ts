@@ -79,11 +79,12 @@ export const usageDefinitions: Array<Section> = [
         optionList: argDefinitions
     },
     {
+        content: 'The -u and -p arguments are optional if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD.'
+    },
+    {
         header: 'Example',
         content: [
             'symbol-upload -b {italic your-bugsplat-database} -a {italic your-application-name} -v {italic your-version} [ -f "*.js.map" -d "/path/to/containing/dir" -u {italic your-bugsplat-email} -p {italic your-bugsplat-password} ]',
-            '',
-            'The -u and -p arguments are optional if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD.'
         ]
     },
     {
