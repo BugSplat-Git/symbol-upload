@@ -46,6 +46,20 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         description: 'The password for your BugSplat account. If provided --user must also be provided. This value can also be provided via the SYMBOL_UPLOAD_PASSWORD environment variable.',
     },
     {
+        name: 'clientId',
+        alias: 'i',
+        type: String,
+        typeLabel: '{underline string} (optional)',
+        description: 'An OAuth2 Client Credentials Client ID for the specified database. If provided --clientSecret must also be provided. This value can also be provided via the SYMBOL_UPLOAD_CLIENT_ID environment variable.',
+    },
+    {
+        name: 'clientSecret',
+        alias: 's',
+        type: String,
+        typeLabel: '{underline string} (optional)',
+        description: 'An OAuth2 Client Credentials Client Secret for the specified database. If provided --clientId must also be provided. This value can also be provided via the SYMBOL_UPLOAD_CLIENT_SECRET environment variable.',
+    },
+    {
         name: 'remove',
         alias: 'r',
         type: Boolean,
@@ -79,12 +93,16 @@ export const usageDefinitions: Array<Section> = [
         optionList: argDefinitions
     },
     {
-        content: 'The -u and -p arguments are not required if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD.'
+        content: [
+            'The -u and -p arguments are not required if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD, or provide a clientId and clientSecret.',
+            '',
+            'The -i and -s arguments are not required if you set the environment variables SYMBOL_UPLOAD_CLIENT_ID and SYMBOL_UPLOAD_CLIENT_SECRET, or provide a user and password.'
+        ]
     },
     {
         header: 'Example',
         content: [
-            'symbol-upload -b {italic your-bugsplat-database} -a {italic your-application-name} -v {italic your-version} [ -f "*.js.map" -d "/path/to/containing/dir" -u {italic your-bugsplat-email} -p {italic your-bugsplat-password} ]',
+            'symbol-upload -b {italic your-bugsplat-database} -a {italic your-application-name} -v {italic your-version} [ -f "*.js.map" -d "/path/to/containing/dir" [ -u {italic your-bugsplat-email} -p {italic your-bugsplat-password} ] OR [ -i {italic your-client-id} -s {italic your-client-secret}] ]',
         ]
     },
     {
