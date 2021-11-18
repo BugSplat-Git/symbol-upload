@@ -5,27 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "name": "Launch via NPM",
             "request": "launch",
-            "name": "Launch Program",
+            "runtimeArgs": [
+                "run-script",
+                "start"
+            ],
+            "runtimeExecutable": "npm",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/bin/index.ts",
-            "preLaunchTask": "tsc: build - tsconfig.json",
-            "args": [
-                "-database",
-                "fred",
-                "-application",
-                "my-ts-crasher",
-                "-version",
-                "1.0.0",
-                "-directory",
-                "./dist",
-            ],
-            "outFiles": [
-                "${workspaceFolder}/dist/**/*.js"
-            ]
-        }
+            "type": "pwa-node"
+        },
     ]
 }
