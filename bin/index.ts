@@ -27,7 +27,7 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         logHelpAndExit();    
     }
 
-    database = database ?? process.env.SYMBOL_UPLOAD_DATABASE;
+    database = database ?? process.env.BUGSPLAT_DATABASE;
     user = user ?? process.env.SYMBOL_UPLOAD_USER;
     password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
     clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
@@ -100,17 +100,18 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         console.log(`Found files:\n ${paths}`);
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
-        const files = paths.map(path => {
-            const stat = fs.statSync(path);
-            const size = stat.size;
-            const name = basename(path);
-            const file = fs.createReadStream(path);
-            return {
-                name,
-                size,
-                file
-            };
-        });
+        const files = await Promise.all(
+            paths.map(async (path) => {
+                const size = (await stat(path)).size;
+                const name = basename(path);
+                const file = fs.createReadStream(path);
+                return {
+                    name,
+                    size,
+                    file
+                };
+            })
+        );
 
         await symbolsApiClient.postSymbols(
             database,

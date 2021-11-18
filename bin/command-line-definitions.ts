@@ -15,7 +15,7 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         alias: 'b',
         type: String,
         typeLabel: '{underline string}',
-        description: 'Your BugSplat database name.'
+        description: 'Your BugSplat database name. The value of database must match the value used to post crash reports. This value can also be provided via the BUGSPLAT_DATABASE environment variable.'
     },
     {
         name: 'application',
