@@ -1,59 +1,60 @@
 #! /usr/bin/env node
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient } from '@bugsplat/js-api-client';
-import commandLineArgs from 'command-line-args';
+import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import fs from 'fs';
+import { readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename } from 'path';
-import { argDefinitions, usageDefinitions } from './command-line-definitions';
+import { argDefinitions, CommandLineDefinition, usageDefinitions } from './command-line-definitions';
 
-let {
-    help,
-    database,
-    application,
-    version,
-    user,
-    password,
-    clientId,
-    clientSecret,
-    remove,
-    files,
-    directory
-} = commandLineArgs(argDefinitions);
-
-if (help) {
-    logHelpAndExit();    
-}
-
-if (!database) {
-    logMissingArgAndExit('database');
-}
-
-if (!application) {
-    logMissingArgAndExit('application');
-}
-
-if (!version) {
-    logMissingArgAndExit('version');
-}
-
-user = user ?? process.env.SYMBOL_UPLOAD_USER;
-password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
-clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
-clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
-
-if (
-    !validAuthenticationArguments({
+(async () => {
+    let {
+        help,
+        database,
+        application,
+        version,
         user,
         password,
         clientId,
-        clientSecret
-    })
-) {
-    logMissingAuthAndExit();
-}
+        clientSecret,
+        remove,
+        files,
+        directory
+    } = await getCommandLineOptions(argDefinitions);
+    
+    if (help) {
+        logHelpAndExit();    
+    }
 
-(async () => {
+    database = database ?? process.env.SYMBOL_UPLOAD_DATABASE;
+    user = user ?? process.env.SYMBOL_UPLOAD_USER;
+    password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
+    clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
+    clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
+    
+    if (!database) {
+        logMissingArgAndExit('database');
+    }
+    
+    if (!application) {
+        logMissingArgAndExit('application');
+    }
+    
+    if (!version) {
+        logMissingArgAndExit('version');
+    }
+    
+    if (
+        !validAuthenticationArguments({
+            user,
+            password,
+            clientId,
+            clientSecret
+        })
+    ) {
+        logMissingAuthAndExit();
+    }
 
     console.log('About to authenticate...')
 
@@ -140,6 +141,39 @@ async function createBugSplatClient({
     }
 
     return client;
+}
+
+async function fileExists(path: string): Promise<boolean> {
+    try {
+        return !!(await stat(path));
+    } catch {
+        return false;
+    }
+}
+
+async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition>): Promise<CommandLineOptions> {
+    const options = commandLineArgs(argDefinitions);
+    let { application, version } = options;
+    let packageJson;
+    
+    if (!application || !version) {
+        const packageJsonPath = './package.json';
+        packageJson = await fileExists(packageJsonPath) ? JSON.parse((await readFile(packageJsonPath)).toString()) : null;
+    }
+
+    if (!application && packageJson) {
+        application = packageJson.name;
+    }
+
+    if (!version && packageJson) {
+        version = packageJson.version;
+    }
+
+    return {
+        ...options,
+        application,
+        version
+    }
 }
 
 function logHelpAndExit() {

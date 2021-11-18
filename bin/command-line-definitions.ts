@@ -22,14 +22,14 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         alias: 'a',
         type: String,
         typeLabel: '{underline string}',
-        description: 'The name of your application. The value of application must match the value used to post crash reports.',
+        description: 'The name of your application. The value of application must match the value used to post crash reports. If not provided symbol-upload will attempt to use the value of the name field in package.json if it exists in the current working directory.',
     },
     {
         name: 'version',
         alias: 'v',
         type: String,
         typeLabel: '{underline string}',
-        description: 'Your application\'s version. The value of version must match the value used to post crash reports.',
+        description: 'Your application\'s version. The value of version must match the value used to post crash reports. If not provided symbol-upload will attempt to use the value of the version field in package.json if it exists in the current working directory.',
     },
     {
         name: 'user',
