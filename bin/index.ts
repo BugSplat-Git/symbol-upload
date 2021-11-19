@@ -1,8 +1,8 @@
 #! /usr/bin/env node
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient } from '@bugsplat/js-api-client';
+import AdmZip from 'adm-zip';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
-import fs from 'fs';
 import { readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename } from 'path';
@@ -102,9 +102,13 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
 
         const files = await Promise.all(
             paths.map(async (path) => {
-                const size = (await stat(path)).size;
-                const name = basename(path);
-                const file = fs.createReadStream(path);
+                const zip = new AdmZip(); 
+                zip.addLocalFile(path);
+                
+                const timestamp = new Date().getTime() / 1000;
+                const name = `${basename(path)}-${timestamp}.zip`;
+                const file = zip.toBuffer();
+                const size = file.length;
                 return {
                     name,
                     size,
