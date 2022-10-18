@@ -113,8 +113,7 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
                 
                 if (isSymFile) {
                     const debugId = await getSymFileDebugId(path);
-                    console.log(debugId);
-                    name = `${fileName}-${timestamp}-${debugId}-bsv1.zip`;
+                    name = `${fileName}-${debugId}-${timestamp}-bsv1.zip`;
                 }
 
                 const file = zip.toBuffer();
