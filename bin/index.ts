@@ -1,11 +1,12 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, UploadableFile, VersionsApiClient } from '@bugsplat/js-api-client';
 import AdmZip from 'adm-zip';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
+import firstline from 'firstline';
 import { readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
-import { basename } from 'path';
+import { basename, extname } from 'path';
 import { argDefinitions, CommandLineDefinition, usageDefinitions } from './command-line-definitions';
 
 (async () => {
@@ -105,15 +106,23 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
                 const zip = new AdmZip(); 
                 zip.addLocalFile(path);
                 
-                const timestamp = Math.round(new Date().getTime() / 1000);
-                const name = `${basename(path)}-${timestamp}.zip`;
+                const fileName = basename(path);
+                const timestamp = Math.round(new Date().getTime() / 1000);   
+                const isSymFile = extname(path).toLowerCase().includes('.sym');
+                let name = `${fileName}-${timestamp}.zip`;
+                
+                if (isSymFile) {
+                    const debugId = await getSymFileDebugId(path);
+                    name = `${fileName}-${debugId}-${timestamp}-bsv1.zip`;
+                }
+
                 const file = zip.toBuffer();
                 const size = file.length;
                 return {
                     name,
                     size,
                     file
-                };
+                } as UploadableFile;
             })
         );
 
@@ -178,6 +187,18 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
         ...options,
         application,
         version
+    }
+}
+
+async function getSymFileDebugId(path: string): Promise<string> {
+    try {
+        const uuidRegex = /[0-9a-fA-F]{33}/gm
+        const firstLine = await firstline(path);
+        const matches = firstLine.match(uuidRegex);
+        return matches?.[0] ?? '';
+    } catch {
+        console.log(`Could not get debugId for ${path}, skipping...`);
+        return '';
     }
 }
 
