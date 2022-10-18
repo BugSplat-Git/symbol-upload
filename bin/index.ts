@@ -1,5 +1,5 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import AdmZip from 'adm-zip';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
@@ -67,7 +67,7 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
 
     console.log('Authentication success!');
 
-    const symbolsApiClient = new SymbolsApiClient(bugsplat);
+    const symbolsApiClient = new VersionsApiClient(bugsplat);
 
     if (remove) {
         try {
@@ -105,7 +105,7 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
                 const zip = new AdmZip(); 
                 zip.addLocalFile(path);
                 
-                const timestamp = new Date().getTime() / 1000;
+                const timestamp = Math.round(new Date().getTime() / 1000);
                 const name = `${basename(path)}-${timestamp}.zip`;
                 const file = zip.toBuffer();
                 const size = file.length;

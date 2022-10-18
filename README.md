@@ -1,11 +1,27 @@
-[![BugSplat](https://s3.amazonaws.com/bugsplat-public/npm/header.png)](https://www.bugsplat.com)
+[![bugsplat-github-banner-basic-outline](https://user-images.githubusercontent.com/20464226/149019306-3186103c-5315-4dad-a499-4fd1df408475.png)](https://bugsplat.com)
+<br/>
+# <div align="center">BugSplat</div> 
+### **<div align="center">Crash and error reporting built for busy developers.</div>**
+<div align="center">
+    <a href="https://twitter.com/BugSplatCo">
+        <img alt="Follow @bugsplatco on Twitter" src="https://img.shields.io/twitter/follow/bugsplatco?label=Follow%20BugSplat&style=social">
+    </a>
+    <a href="https://discord.gg/bugsplat">
+        <img alt="Join BugSplat on Discord" src="https://img.shields.io/discord/664965194799251487?label=Join%20Discord&logo=Discord&style=social">
+    </a>
+</div>
+
+<br/>
 
 # symbol-upload
+
 This is a simple Node.js utility and set of libraries for uploading symbol files or source maps to [BugSplat](https://www.bugsplat.com). This utility is designed to be used in your build process to automatically upload symbols to BugSplat for each production build. This package can be used as a library or a command line utility.
 
 ## Command Line
+
 1. Install this package globally `npm i -g @bugsplat/symbol-upload`
 2. Run symbol-upload with `-h` to see the latest usage information:
+
 ```bash
 bobby@BugSplat % ~ % symbol-upload -h
 
@@ -73,10 +89,10 @@ Links
 ## API
 
 1. Install this package locally `npm i @bugsplat/symbol-upload`.
-2. Import `BugSplatApiClient` and `SymbolsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuth2ClientCredentialsApiClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
+2. Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuth2ClientCredentialsApiClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
 
 ```ts
-import { BugSplatApiClient, OAuth2ClientCredentialsApiClient, SymbolsApiClient } from '@bugsplat/symbol-upload';
+import { BugSplatApiClient, OAuth2ClientCredentialsApiClient, VersionsApiClient } from '@bugsplat/symbol-upload';
 ```
 
 3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuth2ClientCredentialsApiClient` using the `createAuthenticatedClient` async factory function.
@@ -105,16 +121,16 @@ const files = paths.map(path => {
 });
 ```
 
-5. Create an instance of `SymbolsApiClient` passing it an instance of `BugSplatApiClient`.
+5. Create an instance of `VersionsApiClient` passing it an instance of `BugSplatApiClient`.
 
 ```ts
-const symbolsApiClient = new SymbolsApiClient(bugsplat);
+const versionsApiClient = new VersionsApiClient(bugsplat);
 ```
 
 6. Await the call to `postSymbols` passing it the name of your BugSplat `database`, `application`, `version` and an array of `files`. These values need to match the values you used to initialize BugSplat on whichever [platform](https://docs.bugsplat.com/introduction/getting-started/integrations) you've integrated with.
 
 ```ts
-await symbolsApiClient.postSymbols(
+await versionsApiClient.postSymbols(
   database,
   application,
   version,
@@ -122,8 +138,8 @@ await symbolsApiClient.postSymbols(
 );
 ```
 
-If you've done everything correctly your symbols should now be shown on the [Symbols](https://app.bugsplat.com/v2/symbols) page.
+If you've done everything correctly your symbols should now be shown on the [Versions](https://app.bugsplat.com/v2/versions) page.
 
-![Symbols](https://bugsplat-public.s3.amazonaws.com/npm/symbol-upload/symbols.png)
+![Versions](https://bugsplat-public.s3.amazonaws.com/npm/symbol-upload/versions.png)
 
 Thanks for using BugSplat!
