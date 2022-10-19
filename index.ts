@@ -1,6 +1,6 @@
 export {
     BugSplatApiClient,
-    SymbolsApiClient,
+    VersionsApiClient,
     OAuthClientCredentialsClient,
     UploadableFile
 } from '@bugsplat/js-api-client';
