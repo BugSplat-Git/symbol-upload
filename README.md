@@ -89,20 +89,20 @@ Links
 ## API
 
 1. Install this package locally `npm i @bugsplat/symbol-upload`.
-2. Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsApiClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
+2. Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
 
 ```ts
-import { BugSplatApiClient, OAuthClientCredentialsApiClient, VersionsApiClient } from '@bugsplat/symbol-upload';
+import { BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/symbol-upload';
 ```
 
-3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuthClientCredentialsApiClient` using the `createAuthenticatedClient` async factory function.
+3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuthClientCredentialsClient` using the `createAuthenticatedClient` async factory function.
 
 ```ts
 const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email, password);
 ```
 
 ```ts
-const bugsplat = await OAuthClientCredentialsApiClient.createAuthenticatedClient(clientId, clientSecret);
+const bugsplat = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
 ```
 
 4. Create an `UploadableFile` object for each symbol file path.
