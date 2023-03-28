@@ -173,7 +173,7 @@ async function createBugSplatClient({
     if (user && password) {
         client = await BugSplatApiClient.createAuthenticatedClientForNode(user, password);
     } else {
-        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret, `https://octomore.bugsplat.com`); // TODO BG remove
+        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
     }
 
     return client;
