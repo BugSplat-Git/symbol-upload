@@ -4,10 +4,12 @@ import AdmZip from 'adm-zip';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
+import { createReadStream, existsSync } from 'fs';
 import { readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, extname } from 'path';
 import { argDefinitions, CommandLineDefinition, usageDefinitions } from './command-line-definitions';
+import { FormDataFile, postAndroidBinary } from './post-android-binary';
 
 (async () => {
     let {
@@ -23,9 +25,9 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         files,
         directory
     } = await getCommandLineOptions(argDefinitions);
-    
+
     if (help) {
-        logHelpAndExit();    
+        logHelpAndExit();
     }
 
     database = database ?? process.env.BUGSPLAT_DATABASE;
@@ -33,19 +35,19 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
     password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
     clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
     clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
-    
+
     if (!database) {
         logMissingArgAndExit('database');
     }
-    
+
     if (!application) {
         logMissingArgAndExit('application');
     }
-    
+
     if (!version) {
         logMissingArgAndExit('version');
     }
-    
+
     if (
         !validAuthenticationArguments({
             user,
@@ -68,13 +70,13 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
 
     console.log('Authentication success!');
 
-    const symbolsApiClient = new VersionsApiClient(bugsplat);
+    const versionsApiClient = new VersionsApiClient(bugsplat);
 
     if (remove) {
         try {
             console.log(`About to delete symbols for ${database}-${application}-${version}...`);
 
-            await symbolsApiClient.deleteSymbols(
+            await versionsApiClient.deleteSymbols(
                 database,
                 application,
                 version
@@ -101,16 +103,19 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         console.log(`Found files:\n ${paths}`);
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
-        const files = await Promise.all(
-            paths.map(async (path) => {
-                const zip = new AdmZip(); 
+        // Android binaries are posted to a separate endpoint where BugSplat transforms them into sym files
+        const isAndroidBinary = path => path.toLowerCase().endsWith('.so');
+        const nonAndroidPaths = paths.filter(path => !isAndroidBinary(path));
+        const nonAndroidSymbols = await Promise.all(
+            nonAndroidPaths.map(async (path) => {
+                const zip = new AdmZip();
                 zip.addLocalFile(path);
-                
+
                 const fileName = basename(path);
-                const timestamp = Math.round(new Date().getTime() / 1000);   
+                const timestamp = Math.round(new Date().getTime() / 1000);
                 const isSymFile = extname(path).toLowerCase().includes('.sym');
                 let name = `${fileName}-${timestamp}.zip`;
-                
+
                 if (isSymFile) {
                     const debugId = await getSymFileDebugId(path);
                     name = `${fileName}-${debugId}-${timestamp}-bsv1.zip`;
@@ -126,12 +131,29 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
             })
         );
 
-        await symbolsApiClient.postSymbols(
+        await versionsApiClient.postSymbols(
             database,
             application,
             version,
-            files
+            nonAndroidSymbols
         );
+
+        const androidPaths = paths.filter(path => isAndroidBinary(path));
+        const androidBinaryFiles = await Promise.all(
+            androidPaths.map(async path => {
+                const name = basename(path);
+                const file = new Blob([await readFile(path)]);
+                const { size } = await stat(path);
+                return {
+                    name,
+                    file,
+                    path,
+                    size,
+                } as FormDataFile;
+            })
+        );
+
+        await postAndroidBinary(database, application, version, androidBinaryFiles, bugsplat);
 
         console.log('Symbols uploaded successfully!');
     } catch (error) {
@@ -151,28 +173,20 @@ async function createBugSplatClient({
     if (user && password) {
         client = await BugSplatApiClient.createAuthenticatedClientForNode(user, password);
     } else {
-        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
+        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret, `https://octomore.bugsplat.com`); // TODO BG remove
     }
 
     return client;
-}
-
-async function fileExists(path: string): Promise<boolean> {
-    try {
-        return !!(await stat(path));
-    } catch {
-        return false;
-    }
 }
 
 async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition>): Promise<CommandLineOptions> {
     const options = commandLineArgs(argDefinitions);
     let { application, version } = options;
     let packageJson;
-    
+
     if (!application || !version) {
         const packageJsonPath = './package.json';
-        packageJson = await fileExists(packageJsonPath) ? JSON.parse((await readFile(packageJsonPath)).toString()) : null;
+        packageJson = existsSync(packageJsonPath) ? JSON.parse((await readFile(packageJsonPath)).toString()) : null;
     }
 
     if (!application && packageJson) {
@@ -187,9 +201,8 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
         ...options,
         application,
         version
-    }
+    };
 }
-
 async function getSymFileDebugId(path: string): Promise<string> {
     try {
         const uuidRegex = /[0-9a-fA-F]{33}/gm
