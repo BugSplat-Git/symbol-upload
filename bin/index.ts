@@ -153,7 +153,19 @@ import { FormDataFile, postAndroidBinary } from './post-android-binary';
             })
         );
 
-        await postAndroidBinary(database, application, version, androidBinaryFiles, bugsplat);
+        // Authenticate against app backend
+        const androidUploadApiClient = await createBugSplatClient({
+            user,
+            password,
+            clientId,
+            clientSecret
+        });
+
+        // Post binary to processing fleet
+        // Don't try this at home kids!
+        (androidUploadApiClient as any)._host = `https://${database}.bugsplat.com`;
+        
+        await postAndroidBinary(database, application, version, androidBinaryFiles, androidUploadApiClient);
 
         console.log('Symbols uploaded successfully!');
     } catch (error) {
@@ -166,14 +178,15 @@ async function createBugSplatClient({
     user,
     password,
     clientId,
-    clientSecret
+    clientSecret,
+    host
 }: AuthenticationArgs): Promise<ApiClient> {
     let client;
 
     if (user && password) {
-        client = await BugSplatApiClient.createAuthenticatedClientForNode(user, password);
+        client = await BugSplatApiClient.createAuthenticatedClientForNode(user, password, host);
     } else {
-        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
+        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret, host);
     }
 
     return client;
@@ -244,5 +257,6 @@ interface AuthenticationArgs {
     user: string,
     password: string,
     clientId: string,
-    clientSecret: string
+    clientSecret: string,
+    host?: string
 }

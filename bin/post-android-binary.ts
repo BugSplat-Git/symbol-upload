@@ -21,10 +21,10 @@ export async function postAndroidBinary(
                 duplex: 'half'
             } as any
         );
-        const json = await response.json();
         if (response.status !== 202) {
-            throw new Error(`Failed to upload Android binary ${file.name}`);
+            throw new Error(`Failed to upload Android binary ${file.name} error code ${response.status}`);
         }
+        const json = await response.json();
         console.log((json as SuccessResponse).message);
     });
 
