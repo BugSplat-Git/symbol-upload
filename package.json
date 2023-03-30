@@ -18,7 +18,7 @@
     "prerelease": "npm run build",
     "release": "npm publish --access public",
     "prepkg": "npm run build",
-    "pkg": "npx pkg ./dist/bin/index.js -C -o ./pkg/bugsplat-symbol-upload"
+    "pkg": "npx pkg -C -o ./pkg/symbol-upload -t node18-macos-x64,node18-linux-x64,node18-win-x64 ./dist/bin/index.js"
   },
   "repository": {
     "type": "git",
