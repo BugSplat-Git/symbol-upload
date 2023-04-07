@@ -4,7 +4,7 @@ import AdmZip from 'adm-zip';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
-import { readFile, stat } from 'fs/promises';
+import { lstat, readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, extname } from 'path';
 import { argDefinitions, CommandLineDefinition, usageDefinitions } from './command-line-definitions';
@@ -104,7 +104,13 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         const files = await Promise.all(
             paths.map(async (path) => {
                 const zip = new AdmZip(); 
-                zip.addLocalFile(path);
+                const isDirectory = (await lstat(path)).isDirectory();
+
+                if (isDirectory) {
+                    zip.addLocalFolder(path);
+                } else {
+                    zip.addLocalFile(path);
+                }
                 
                 const fileName = basename(path);
                 const timestamp = Math.round(new Date().getTime() / 1000);   
