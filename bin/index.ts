@@ -7,7 +7,8 @@ import firstline from 'firstline';
 import { lstat, readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, extname } from 'path';
-import { argDefinitions, CommandLineDefinition, usageDefinitions } from './command-line-definitions';
+import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
+import { createWorkersFromSymbolFiles } from './worker';
 
 (async () => {
     let {
@@ -21,7 +22,8 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         clientSecret,
         remove,
         files,
-        directory
+        directory,
+        threads
     } = await getCommandLineOptions(argDefinitions);
     
     if (help) {
@@ -132,12 +134,9 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
             })
         );
 
-        await symbolsApiClient.postSymbols(
-            database,
-            application,
-            version,
-            files
-        );
+        const workers = createWorkersFromSymbolFiles(symbolsApiClient, files, threads);
+        const uploads = workers.map((worker) => worker.upload(database, application, version));
+        await Promise.all(uploads);
 
         console.log('Symbols uploaded successfully!');
     } catch (error) {
