@@ -10,7 +10,7 @@
     "dist"
   ],
   "scripts": {
-    "start": "ts-node -r dotenv/config ./bin/index.ts -d ./ -f \"**/*.js.map\" -t 4",
+    "start": "ts-node -r dotenv/config ./bin/index.ts -d ./ -f \"**/*.js.map\" -t 8",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",

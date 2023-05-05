@@ -4,9 +4,11 @@ import AdmZip from 'adm-zip';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
-import { lstat, readFile, stat } from 'fs/promises';
+import { createReadStream, existsSync } from 'fs';
+import { lstat, readFile, stat, unlink } from 'fs/promises';
 import glob from 'glob-promise';
-import { basename, extname } from 'path';
+import { basename, extname, join, relative, dirname } from 'path';
+import { promisify } from 'util';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
 import { createWorkersFromSymbolFiles } from './worker';
 
@@ -99,60 +101,70 @@ import { createWorkersFromSymbolFiles } from './worker';
     directory = normalizeDirectory(directory);
     const globPattern = `${directory}/${files}`;
 
+    let uploadableFiles = [] as Array<UploadableFileEntry>;
+    let returnCode = 0;
     try {
-        const paths = await glob(globPattern);
+        const symbolFilePaths = await glob(globPattern);
 
-        if (!paths.length) {
+        if (!symbolFilePaths.length) {
             throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
         }
 
-        console.log(`Found files:\n ${paths.join('\n')}`);
+        console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
-        const files = await Promise.all(
-            paths.map(async (path) => {
+        uploadableFiles = await Promise.all(
+            symbolFilePaths.map(async (symbolFilePath) => {
                 const zip = new AdmZip(); 
-                const isDirectory = (await lstat(path)).isDirectory();
+                const isDirectory = (await lstat(symbolFilePath)).isDirectory();
 
                 if (isDirectory) {
-                    zip.addLocalFolder(path);
+                    zip.addLocalFolder(symbolFilePath);
                 } else {
-                    zip.addLocalFile(path);
+                    zip.addLocalFile(symbolFilePath);
                 }
                 
-                const fileName = basename(path);
+                const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '/');
+                const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
                 const timestamp = Math.round(new Date().getTime() / 1000);   
-                const isSymFile = extname(path).toLowerCase().includes('.sym');
-                let name = `${fileName}-${timestamp}.zip`;
+
+                const isSymFile = extname(symbolFilePath).toLowerCase().includes('.sym');
+                let tmpZipName = join(__dirname, 'tmp', `${fileName}-${timestamp}.zip`);
                 
                 if (isSymFile) {
-                    const debugId = await getSymFileDebugId(path);
-                    name = `${fileName}-${debugId}-${timestamp}-bsv1.zip`;
+                    const debugId = await getSymFileDebugId(symbolFilePath);
+                    tmpZipName = `${fileName}-${debugId}-${timestamp}-bsv1.zip`;
                 }
 
-                console.log(`Zipping file ${name}...`);
-
-                // TODO BG oof, when we developed this we were only handling source maps
-                // Now that we're using this to upload Unreal symbols we really should write the zip to disk
-                const file = zip.toBuffer();
-                const size = file.length;
+                console.log(`Zipping file ${tmpZipName}...`);
+                await promisify(zip.writeZip)(tmpZipName);
+                
+                const path = tmpZipName;
+                const name = basename(tmpZipName);
+                const file = createReadStream(tmpZipName);
+                const size = (await stat(tmpZipName)).size;
                 return {
+                    path,
                     name,
                     size,
                     file
-                } as UploadableFile;
+                } as UploadableFileEntry;
             })
         );
 
-        const workers = createWorkersFromSymbolFiles(symbolsApiClient, files, threads);
+        const workers = createWorkersFromSymbolFiles(symbolsApiClient, uploadableFiles, threads);
         const uploads = workers.map((worker) => worker.upload(database, application, version));
         await Promise.all(uploads);
 
         console.log('Symbols uploaded successfully!');
     } catch (error) {
         console.error(error);
-        process.exit(1);
+        returnCode = 1;
+    } finally {
+        await safeRemoveFiles(uploadableFiles);
     }
+
+    process.exit(returnCode);
 })();
 
 async function createBugSplatClient({
@@ -237,6 +249,20 @@ function normalizeDirectory(directory: string): string {
     return directory.replace(/\\/g, '/');
 }
 
+async function safeRemoveFiles(files: Array<UploadableFileEntry>): Promise<void> {
+    await Promise.all(
+        files.map(async (uploadableFile) => {
+            try {
+                if (existsSync(uploadableFile.path)) {
+                    return unlink(uploadableFile.path);
+                }
+            } catch (error) {
+                console.error(`Could not delete ${uploadableFile.name}!`, error);
+            }
+        })
+    );
+}
+
 function validAuthenticationArguments({
     user,
     password,
@@ -244,6 +270,10 @@ function validAuthenticationArguments({
     clientSecret
 }: AuthenticationArgs): boolean {
     return !!(user && password) || !!(clientId && clientSecret);
+}
+
+interface UploadableFileEntry extends UploadableFile {
+    path: string;
 }
 
 interface AuthenticationArgs {
