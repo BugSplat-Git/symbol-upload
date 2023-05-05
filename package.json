@@ -13,7 +13,7 @@
     "start": "ts-node -r dotenv/config ./bin/index.ts -d ./ -f \"**/*.js.map\" -t 4",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
-    "clean": "rm -rf ./dist",
+    "clean": "rimraf ./dist",
     "prebuild": "npm run clean",
     "build": "tsc",
     "prerelease": "npm run build",
@@ -50,6 +50,7 @@
     "dotenv": "^10.0.0",
     "jasmine": "^4.6.0",
     "pkg": "^5.8.1",
+    "rimraf": "^5.0.0",
     "ts-node": "^10.2.1",
     "typescript": "^4.3.2"
   },
