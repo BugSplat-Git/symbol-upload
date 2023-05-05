@@ -7,7 +7,8 @@ export function createWorkersFromSymbolFiles(versionsClient: VersionsApiClient, 
         return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, versionsClient, [symbolFile]));
     }
 
-    const symbolFilesChunks = splitToChunks(symbolFiles, workerCount);
+    const sorted = symbolFiles.sort((a, b) => a.size - b.size);
+    const symbolFilesChunks = splitToChunks(sorted, workerCount);
     return symbolFilesChunks.map((chunk, i) => new UploadWorker(i + 1, versionsClient, chunk));
 }
 
@@ -15,7 +16,7 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
     const copy = [...array];
     const result = [] as Array<Array<T>>;
     for (let i = parts; i > 0; i--) {
-        result.push(copy.splice(0, Math.ceil(array.length / i)));
+        result.push(copy.splice(0, Math.ceil(array.length / parts)));
     }
     return result;
 }
@@ -31,8 +32,13 @@ export class UploadWorker {
     
     async upload(database: string, application: string, version: string) {
         console.log(`Worker ${this.id} uploading ${this.symbolFiles.length} symbol files...`);
+
         for (const symbolFile of this.symbolFiles) {
+            console.log(`Worker ${this.id} uploading ${symbolFile.name}...`);
+
             await this.versionsClient.postSymbols(database, application, version, [symbolFile]).then(() => this.wait(10));
+
+            console.log(`Worker ${this.id} uploaded ${symbolFile.name}!`);
         }
     }
 }
