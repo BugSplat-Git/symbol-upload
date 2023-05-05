@@ -22,8 +22,6 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
 }
 
 export class UploadWorker {
-    public wait = wait;
-
     constructor(
         private id: number,
         private versionsClient: VersionsApiClient,
@@ -36,13 +34,9 @@ export class UploadWorker {
         for (const symbolFile of this.symbolFiles) {
             console.log(`Worker ${this.id} uploading ${symbolFile.name}...`);
 
-            await this.versionsClient.postSymbols(database, application, version, [symbolFile]).then(() => this.wait(10));
+            await this.versionsClient.postSymbols(database, application, version, [symbolFile]);
 
             console.log(`Worker ${this.id} uploaded ${symbolFile.name}!`);
         }
     }
-}
-
-function wait(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }

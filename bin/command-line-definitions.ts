@@ -3,7 +3,8 @@ import { OptionDefinition as UsageDefinition, Section } from "command-line-usage
 
 export type CommandLineDefinition = ArgDefinition & UsageDefinition;
 
-export const maxParallelThreads = 8;
+const defaultParallelThreads = 8;
+export const maxParallelThreads = 16;
 
 export const argDefinitions: Array<CommandLineDefinition> = [
     {
@@ -87,9 +88,9 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         name: 'threads', 
         alias: 't',
         type: Number,
-        defaultValue: 1,
+        defaultValue: defaultParallelThreads,
         typeLabel: '{underline number} (optional)',
-        description: `The maximum number of parallel uploads. Defaults to 1 (non-parallel upload) and max is ${maxParallelThreads}.`,
+        description: `The maximum number of parallel uploads. Defaults to ${defaultParallelThreads} and max is ${maxParallelThreads}.`,
     }
 ];
 
