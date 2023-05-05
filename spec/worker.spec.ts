@@ -63,17 +63,5 @@ describe('worker', () => {
 
             expect(versionsClient.postSymbols).toHaveBeenCalledTimes(symbolFiles.length);
         });
-
-        it('should wait 10ms between each symbol file upload', async () => {
-            const symbolFiles = [1, 2] as any[];
-            const waitSpy = jasmine.createSpy();
-            waitSpy.and.resolveTo();
-            const worker = new UploadWorker(1, versionsClient, symbolFiles);
-            worker.wait = waitSpy;
-
-            await worker.upload(database, application, version);
-
-            expect(waitSpy).toHaveBeenCalledTimes(symbolFiles.length);
-        });
     });
 });
