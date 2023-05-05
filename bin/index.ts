@@ -7,7 +7,8 @@ import firstline from 'firstline';
 import { lstat, readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, extname } from 'path';
-import { argDefinitions, CommandLineDefinition, usageDefinitions } from './command-line-definitions';
+import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
+import { createWorkersFromSymbolFiles } from './worker';
 
 (async () => {
     let {
@@ -21,7 +22,8 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         clientSecret,
         remove,
         files,
-        directory
+        directory,
+        threads
     } = await getCommandLineOptions(argDefinitions);
     
     if (help) {
@@ -57,6 +59,11 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         logMissingAuthAndExit();
     }
 
+    if (threads > maxParallelThreads) {
+        console.log(`Maximum number of upload threads is ${maxParallelThreads}, using ${maxParallelThreads} instead...`);
+        threads = maxParallelThreads;
+    }
+
     console.log('About to authenticate...')
 
     const bugsplat = await createBugSplatClient({
@@ -89,6 +96,7 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
         }
     }
 
+    directory = normalizeDirectory(directory);
     const globPattern = `${directory}/${files}`;
 
     try {
@@ -98,7 +106,7 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
             throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
         }
 
-        console.log(`Found files:\n ${paths}`);
+        console.log(`Found files:\n ${paths.join('\n')}`);
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
         const files = await Promise.all(
@@ -122,6 +130,10 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
                     name = `${fileName}-${debugId}-${timestamp}-bsv1.zip`;
                 }
 
+                console.log(`Zipping file ${name}...`);
+
+                // TODO BG oof, when we developed this we were only handling source maps
+                // Now that we're using this to upload Unreal symbols we really should write the zip to disk
                 const file = zip.toBuffer();
                 const size = file.length;
                 return {
@@ -132,12 +144,9 @@ import { argDefinitions, CommandLineDefinition, usageDefinitions } from './comma
             })
         );
 
-        await symbolsApiClient.postSymbols(
-            database,
-            application,
-            version,
-            files
-        );
+        const workers = createWorkersFromSymbolFiles(symbolsApiClient, files, threads);
+        const uploads = workers.map((worker) => worker.upload(database, application, version));
+        await Promise.all(uploads);
 
         console.log('Symbols uploaded successfully!');
     } catch (error) {
@@ -222,6 +231,10 @@ function logMissingArgAndExit(arg: string): void {
 function logMissingAuthAndExit(): void {
     console.log('\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n');
     process.exit(1);
+}
+
+function normalizeDirectory(directory: string): string {
+    return directory.replace(/\\/g, '/');
 }
 
 function validAuthenticationArguments({
