@@ -129,11 +129,12 @@ import { createWorkersFromSymbolFiles } from './worker';
                 const timestamp = Math.round(new Date().getTime() / 1000);   
 
                 const isSymFile = extname(symbolFilePath).toLowerCase().includes('.sym');
-                let tmpZipName = join(__dirname, 'tmp', `${fileName}-${timestamp}.zip`);
+                const currentDirectory = process ? process.cwd() : __dirname;
+                let tmpZipName = join(currentDirectory, 'tmp', `${fileName}-${timestamp}.zip`);
                 
                 if (isSymFile) {
                     const debugId = await getSymFileDebugId(symbolFilePath);
-                    tmpZipName = `${fileName}-${debugId}-${timestamp}-bsv1.zip`;
+                    tmpZipName = join(currentDirectory, 'tmp', `${fileName}-${debugId}-${timestamp}-bsv1.zip`);
                 }
 
                 console.log(`Zipping file ${tmpZipName}...`);
