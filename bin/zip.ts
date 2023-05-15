@@ -33,9 +33,10 @@ export class Zip {
     }
 
     async write(path: string): Promise<void> {
+        const output = createWriteStream(path);
+        
         return new Promise<void>((resolve, reject) => {
             const zip = archiver('zip');
-            const output = createWriteStream(path);
             
             zip.pipe(output);
             zip.on('error', reject);
@@ -48,7 +49,8 @@ export class Zip {
             directories.forEach(directory => zip.directory(directory.path, basename(directory.path)));
 
             zip.finalize();
-        });
+        })
+        .finally(() => output.close());
     }
 }
 

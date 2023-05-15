@@ -1,5 +1,6 @@
 node_modules
 dist
 pkg
+tmp
 .env
 .DS_Store
