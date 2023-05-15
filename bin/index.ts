@@ -1,16 +1,19 @@
 #! /usr/bin/env node
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, UploadableFile, VersionsApiClient } from '@bugsplat/js-api-client';
-import AdmZip from 'adm-zip';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
 import { createReadStream, existsSync } from 'fs';
-import { lstat, readFile, stat, unlink } from 'fs/promises';
+import { lstat, mkdir, readFile, rm, rmdir, stat, unlink } from 'fs/promises';
 import glob from 'glob-promise';
-import { basename, extname, join, relative, dirname } from 'path';
-import { promisify } from 'util';
+import { basename, dirname, extname, join, relative } from 'path';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
 import { createWorkersFromSymbolFiles } from './worker';
+import { Zip } from './zip';
+import { pathIsDirectory } from './util';
+
+const currentDirectory = process ? process.cwd() : __dirname;
+const tmpDir = join(currentDirectory, 'tmp');
 
 (async () => {
     let {
@@ -101,7 +104,6 @@ import { createWorkersFromSymbolFiles } from './worker';
     directory = normalizeDirectory(directory);
     const globPattern = `${directory}/${files}`;
 
-    let uploadableFiles = [] as Array<UploadableFileEntry>;
     let returnCode = 0;
     try {
         const symbolFilePaths = await glob(globPattern);
@@ -113,32 +115,17 @@ import { createWorkersFromSymbolFiles } from './worker';
         console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
         console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
-        uploadableFiles = await Promise.all(
+        if (!existsSync(tmpDir)) {
+            await mkdir(tmpDir);
+        }
+
+        const uploadableFiles = await Promise.all(
             symbolFilePaths.map(async (symbolFilePath) => {
-                const zip = new AdmZip(); 
-                const isDirectory = (await lstat(symbolFilePath)).isDirectory();
-
-                if (isDirectory) {
-                    zip.addLocalFolder(symbolFilePath);
-                } else {
-                    zip.addLocalFile(symbolFilePath);
-                }
+                const zip = new Zip();
                 
-                const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '/');
-                const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
-                const timestamp = Math.round(new Date().getTime() / 1000);   
-
-                const isSymFile = extname(symbolFilePath).toLowerCase().includes('.sym');
-                const currentDirectory = process ? process.cwd() : __dirname;
-                let tmpZipName = join(currentDirectory, 'tmp', `${fileName}-${timestamp}.zip`);
-                
-                if (isSymFile) {
-                    const debugId = await getSymFileDebugId(symbolFilePath);
-                    tmpZipName = join(currentDirectory, 'tmp', `${fileName}-${debugId}-${timestamp}-bsv1.zip`);
-                }
-
-                console.log(`Zipping file ${tmpZipName}...`);
-                await promisify(zip.writeZip)(tmpZipName);
+                const tmpZipName = await getTempZipFileName(directory, symbolFilePath);  
+                await zip.addEntry(symbolFilePath);
+                await zip.write(tmpZipName);
                 
                 const path = tmpZipName;
                 const name = basename(tmpZipName);
@@ -162,11 +149,28 @@ import { createWorkersFromSymbolFiles } from './worker';
         console.error(error);
         returnCode = 1;
     } finally {
-        await safeRemoveFiles(uploadableFiles);
+        await safeRemoveTmp();
     }
 
     process.exit(returnCode);
 })();
+
+async function getTempZipFileName(directory: any, symbolFilePath: string) {
+    const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '/');
+    const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
+    const timestamp = Math.round(new Date().getTime() / 1000);
+
+    const isSymFile = extname(symbolFilePath).toLowerCase().includes('.sym');
+
+    let tmpZipName = join(tmpDir, `${fileName}-${timestamp}.zip`);
+
+    if (isSymFile) {
+        const debugId = await getSymFileDebugId(symbolFilePath);
+        tmpZipName = join(tmpDir, `${fileName}-${debugId}-${timestamp}-bsv1.zip`);
+    }
+
+    return tmpZipName;
+}
 
 async function createBugSplatClient({
     user,
@@ -250,18 +254,12 @@ function normalizeDirectory(directory: string): string {
     return directory.replace(/\\/g, '/');
 }
 
-async function safeRemoveFiles(files: Array<UploadableFileEntry>): Promise<void> {
-    await Promise.all(
-        files.map(async (uploadableFile) => {
-            try {
-                if (existsSync(uploadableFile.path)) {
-                    return unlink(uploadableFile.path);
-                }
-            } catch (error) {
-                console.error(`Could not delete ${uploadableFile.name}!`, error);
-            }
-        })
-    );
+async function safeRemoveTmp(): Promise<void> {
+    try {
+        await rm(tmpDir, { recursive: true, force: true });
+    } catch (error) {
+        console.error(`Could not delete ${tmpDir}!`, error);
+    }
 }
 
 function validAuthenticationArguments({
