@@ -156,7 +156,7 @@ const tmpDir = join(currentDirectory, 'tmp');
 })();
 
 async function getTempZipFileName(directory: any, symbolFilePath: string) {
-    const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '/');
+    const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '-');
     const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
     const timestamp = Math.round(new Date().getTime() / 1000);
 
