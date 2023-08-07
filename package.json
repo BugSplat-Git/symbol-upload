@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "start": "ts-node -r dotenv/config ./bin/index.ts -d ./dist -f \"**/*.js.map\"",
+    "start:sym": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.sym\"",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",

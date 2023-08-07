@@ -1,6 +1,6 @@
-import { UploadableFile, VersionsApiClient } from "@bugsplat/js-api-client";
+import { SymbolFile, VersionsApiClient } from "@bugsplat/js-api-client";
 
-export function createWorkersFromSymbolFiles(versionsClient: VersionsApiClient, symbolFiles: UploadableFile[], workerCount: number): Array<UploadWorker> {
+export function createWorkersFromSymbolFiles(versionsClient: VersionsApiClient, symbolFiles: SymbolFile[], workerCount: number): Array<UploadWorker> {
     const numberOfSymbols = symbolFiles.length;
     
     if (workerCount >= numberOfSymbols) {
@@ -25,7 +25,7 @@ export class UploadWorker {
     constructor(
         private id: number,
         private versionsClient: VersionsApiClient,
-        private symbolFiles: UploadableFile[]
+        private symbolFiles: SymbolFile[]
     ) { }
     
     async upload(database: string, application: string, version: string) {
