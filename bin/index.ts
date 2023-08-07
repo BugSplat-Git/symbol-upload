@@ -161,12 +161,10 @@ async function createSymbolFile(directory: string, symbolFilePath: string): Prom
     await zip.addEntry(symbolFilePath);
     await zip.write(tmpZipName);
 
-    const path = tmpZipName;
     const name = basename(tmpZipName);
     const file = createReadStream(tmpZipName);
     const size = (await stat(tmpZipName)).size;
     return {
-        path,
         name,
         size,
         file,
@@ -269,10 +267,6 @@ function validAuthenticationArguments({
     clientSecret
 }: AuthenticationArgs): boolean {
     return !!(user && password) || !!(clientId && clientSecret);
-}
-
-interface UploadableFileEntry extends SymbolFile {
-    path: string;
 }
 
 interface AuthenticationArgs {
