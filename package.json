@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "start": "ts-node -r dotenv/config ./bin/index.ts -d ./dist -f \"**/*.js.map\"",
+    "start:sym": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.sym\"",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",
@@ -55,7 +56,7 @@
     "typescript": "^4.3.2"
   },
   "dependencies": {
-    "@bugsplat/js-api-client": "^6.0.1",
+    "@bugsplat/js-api-client": "^7.3.1",
     "archiver": "^5.3.1",
     "command-line-args": "^5.2.0",
     "command-line-usage": "^6.1.1",

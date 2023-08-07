@@ -1,16 +1,15 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, UploadableFile, VersionsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolFile, UploadableFile, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
 import { createReadStream, existsSync } from 'fs';
-import { lstat, mkdir, readFile, rm, rmdir, stat, unlink } from 'fs/promises';
+import { mkdir, readFile, rm, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, dirname, extname, join, relative } from 'path';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
 import { createWorkersFromSymbolFiles } from './worker';
 import { Zip } from './zip';
-import { pathIsDirectory } from './util';
 
 const currentDirectory = process ? process.cwd() : __dirname;
 const tmpDir = join(currentDirectory, 'tmp');
@@ -119,28 +118,8 @@ const tmpDir = join(currentDirectory, 'tmp');
             await mkdir(tmpDir);
         }
 
-        const uploadableFiles = await Promise.all(
-            symbolFilePaths.map(async (symbolFilePath) => {
-                const zip = new Zip();
-                
-                const tmpZipName = await getTempZipFileName(directory, symbolFilePath);  
-                await zip.addEntry(symbolFilePath);
-                await zip.write(tmpZipName);
-                
-                const path = tmpZipName;
-                const name = basename(tmpZipName);
-                const file = createReadStream(tmpZipName);
-                const size = (await stat(tmpZipName)).size;
-                return {
-                    path,
-                    name,
-                    size,
-                    file
-                } as UploadableFileEntry;
-            })
-        );
-
-        const workers = createWorkersFromSymbolFiles(symbolsApiClient, uploadableFiles, threads);
+        const symbolFiles = await Promise.all(symbolFilePaths.map(async (symbolFilePath) => await createSymbolFile(directory, symbolFilePath)));
+        const workers = createWorkersFromSymbolFiles(symbolsApiClient, symbolFiles, threads);
         const uploads = workers.map((worker) => worker.upload(database, application, version));
         await Promise.all(uploads);
 
@@ -155,21 +134,42 @@ const tmpDir = join(currentDirectory, 'tmp');
     process.exit(returnCode);
 })();
 
-async function getTempZipFileName(directory: any, symbolFilePath: string) {
+async function createSymbolFile(directory: string, symbolFilePath: string): Promise<SymbolFile> {
+    const zip = new Zip();
+
     const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '-');
     const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
     const timestamp = Math.round(new Date().getTime() / 1000);
 
     const isSymFile = extname(symbolFilePath).toLowerCase().includes('.sym');
 
+    let additionalParams = {};
     let tmpZipName = join(tmpDir, `${fileName}-${timestamp}.zip`);
 
     if (isSymFile) {
-        const debugId = await getSymFileDebugId(symbolFilePath);
-        tmpZipName = join(tmpDir, `${fileName}-${debugId}-${timestamp}-bsv1.zip`);
+        const dbgId = await getSymFileDebugId(symbolFilePath);
+        const moduleName = basename(symbolFilePath);
+        const lastModified = timestamp;
+        tmpZipName = join(tmpDir, `${fileName}-${dbgId}-${timestamp}-bsv1.zip`);
+        additionalParams = {
+            dbgId,
+            moduleName,
+            lastModified
+        };
     }
 
-    return tmpZipName;
+    await zip.addEntry(symbolFilePath);
+    await zip.write(tmpZipName);
+
+    const name = basename(tmpZipName);
+    const file = createReadStream(tmpZipName);
+    const size = (await stat(tmpZipName)).size;
+    return {
+        name,
+        size,
+        file,
+        ...additionalParams
+    } as SymbolFile;
 }
 
 async function createBugSplatClient({
@@ -178,15 +178,13 @@ async function createBugSplatClient({
     clientId,
     clientSecret
 }: AuthenticationArgs): Promise<ApiClient> {
-    let client;
+    const host = process.env.BUGSPLAT_HOST;
 
     if (user && password) {
-        client = await BugSplatApiClient.createAuthenticatedClientForNode(user, password);
-    } else {
-        client = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
+        return BugSplatApiClient.createAuthenticatedClientForNode(user, password, host);
     }
 
-    return client;
+    return OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret, host);
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -269,10 +267,6 @@ function validAuthenticationArguments({
     clientSecret
 }: AuthenticationArgs): boolean {
     return !!(user && password) || !!(clientId && clientSecret);
-}
-
-interface UploadableFileEntry extends UploadableFile {
-    path: string;
 }
 
 interface AuthenticationArgs {
