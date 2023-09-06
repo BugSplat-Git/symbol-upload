@@ -47,9 +47,6 @@ runs:
   steps:
     - name: Setup node
       uses: actions/setup-node@v3
-    - name: Locate npm
-      shell: bash
-      run: find / -maxdepth 5 -name npm -print
     - name: Install symbol-upload
       shell: bash
       run: npm i -g ${{ github.action_path }}
