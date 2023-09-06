@@ -49,7 +49,7 @@ runs:
       uses: actions/setup-node@v3
     - name: Install symbol-upload
       shell: bash
-      run: npm i -g .
+      run: npm i -g
       working-directory: "${{ github.action_path }}"
         
     - name: Run symbol-upload
