@@ -48,8 +48,10 @@ runs:
     - name: Setup node
       uses: actions/setup-node@v3
     - name: Install symbol-upload
+      shell: bash
       run: npm i -g ${{ github.action_path }}
     - name: Run symbol-upload
+      shell: bash
       run: >-
         symbol-upload
         -b "${{ inputs.database }}"
