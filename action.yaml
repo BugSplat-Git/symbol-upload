@@ -49,10 +49,9 @@ runs:
       uses: actions/setup-node@v3
     - name: Install symbol-upload
       shell: bash
-      run: |
-        symbol_upload_path="${{ github.action_path }}"
-        # Even on Windows, npm apparently needs forward slashes
-        npm i -g "${symbol_upload_path//\\//}"
+      run: npm i -g .
+      working-directory: "${{ github.action_path }}"
+        
     - name: Run symbol-upload
       shell: bash
       run: >-
