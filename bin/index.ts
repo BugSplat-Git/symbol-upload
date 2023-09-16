@@ -10,6 +10,7 @@ import { basename, dirname, extname, join, relative } from 'path';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
 import { createWorkersFromSymbolFiles } from './worker';
 import { Zip } from './zip';
+import { PdbFile, PeFile } from 'pdb-guid';
 
 const currentDirectory = process ? process.cwd() : __dirname;
 const tmpDir = join(currentDirectory, 'tmp');
@@ -29,9 +30,9 @@ const tmpDir = join(currentDirectory, 'tmp');
         directory,
         threads
     } = await getCommandLineOptions(argDefinitions);
-    
+
     if (help) {
-        logHelpAndExit();    
+        logHelpAndExit();
     }
 
     database = database ?? process.env.BUGSPLAT_DATABASE;
@@ -39,19 +40,19 @@ const tmpDir = join(currentDirectory, 'tmp');
     password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
     clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
     clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
-    
+
     if (!database) {
         logMissingArgAndExit('database');
     }
-    
+
     if (!application) {
         logMissingArgAndExit('application');
     }
-    
+
     if (!version) {
         logMissingArgAndExit('version');
     }
-    
+
     if (
         !validAuthenticationArguments({
             user,
@@ -142,12 +143,28 @@ async function createSymbolFile(directory: string, symbolFilePath: string): Prom
     const timestamp = Math.round(new Date().getTime() / 1000);
 
     const isSymFile = extname(symbolFilePath).toLowerCase().includes('.sym');
+    const isPdbFile = extname(symbolFilePath).toLowerCase().includes('.pdb');
+    const isPeFile = extname(symbolFilePath).toLowerCase().includes('.exe') || extname(symbolFilePath).toLowerCase().includes('.dll');
 
     let additionalParams = {};
     let tmpZipName = join(tmpDir, `${fileName}-${timestamp}.zip`);
+    let dbgId = '';
+
+    if (isPdbFile) {
+        const pdbFile = await PdbFile.createFromFile(symbolFilePath);
+        dbgId = `${pdbFile.guid}`;
+    }
+
+    if (isPeFile) {
+        const peFile = await PeFile.createFromFile(symbolFilePath);
+        dbgId = `${peFile.guid}`;
+    }
 
     if (isSymFile) {
-        const dbgId = await getSymFileDebugId(symbolFilePath);
+        dbgId = await getSymFileDebugId(symbolFilePath);
+    }
+
+    if (dbgId) {
         const moduleName = basename(symbolFilePath);
         const lastModified = timestamp;
         tmpZipName = join(tmpDir, `${fileName}-${dbgId}-${timestamp}-bsv1.zip`);
@@ -199,7 +216,7 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
     const options = commandLineArgs(argDefinitions);
     let { application, version } = options;
     let packageJson;
-    
+
     if (!application || !version) {
         const packageJsonPath = './package.json';
         packageJson = await fileExists(packageJsonPath) ? JSON.parse((await readFile(packageJsonPath)).toString()) : null;

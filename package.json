@@ -12,6 +12,7 @@
   "scripts": {
     "start": "ts-node -r dotenv/config ./bin/index.ts -d ./dist -f \"**/*.js.map\"",
     "start:sym": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.sym\"",
+    "start:pdb": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.+(exe|dll|pdb)\"",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",
@@ -63,6 +64,7 @@
     "firstline": "^2.0.2",
     "glob": "^8.0.3",
     "glob-promise": "^5.0.0",
+    "pdb-guid": "^1.0.3",
     "rxjs": "^6.6.6"
   }
 }
