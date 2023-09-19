@@ -142,9 +142,10 @@ async function createSymbolFile(directory: string, symbolFilePath: string): Prom
     const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
     const timestamp = Math.round(new Date().getTime() / 1000);
 
-    const isSymFile = extname(symbolFilePath).toLowerCase().includes('.sym');
-    const isPdbFile = extname(symbolFilePath).toLowerCase().includes('.pdb');
-    const isPeFile = extname(symbolFilePath).toLowerCase().includes('.exe') || extname(symbolFilePath).toLowerCase().includes('.dll');
+    const extLowerCase = extname(symbolFilePath).toLowerCase();
+    const isSymFile = extLowerCase.includes('.sym');
+    const isPdbFile = extLowerCase.includes('.pdb');
+    const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll');
 
     let additionalParams = {};
     let tmpZipName = join(tmpDir, `${fileName}-${timestamp}.zip`);
