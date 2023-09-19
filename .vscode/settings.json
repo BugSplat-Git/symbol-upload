@@ -1,0 +1,6 @@
+{
+    "jasmineExplorer.nodeArgv": [
+        "-r",
+        "ts-node/register"
+    ]  
+}

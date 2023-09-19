@@ -18,6 +18,20 @@
             "type": "node"
         },
         {
+            "name": "Start: Pdb",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:pdb",
+                "--trace-warnings"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Test",
             "request": "launch",
             "runtimeArgs": [
