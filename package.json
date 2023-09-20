@@ -21,7 +21,7 @@
     "prerelease": "npm run build",
     "release": "npm publish --access public",
     "prepkg": "npm run build",
-    "pkg": "npx pkg -C -o ./pkg/symbol-upload -t node18-macos-x64,node18-linux-x64,node18-win-x64 ./dist/bin/index.js"
+    "pkg": "npx pkg -C -o ./pkg/symbol-upload -t node18-macos-arm64,node18-linux-x64,node18-win-x64 ./dist/bin/index.js"
   },
   "repository": {
     "type": "git",
@@ -58,6 +58,7 @@
   },
   "dependencies": {
     "@bugsplat/js-api-client": "^7.3.1",
+    "@bugsplat/node-zstd": "^2.0.1",
     "archiver": "^5.3.1",
     "command-line-args": "^5.2.0",
     "command-line-usage": "^6.1.1",

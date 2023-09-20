@@ -1,5 +1,6 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolFile, UploadableFile, VersionsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolFile, VersionsApiClient } from '@bugsplat/js-api-client';
+import { compressSync, decompressSync } from '@bugsplat/node-zstd';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
@@ -7,10 +8,10 @@ import { createReadStream, existsSync } from 'fs';
 import { mkdir, readFile, rm, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, dirname, extname, join, relative } from 'path';
+import { PdbFile, PeFile } from 'pdb-guid';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
 import { createWorkersFromSymbolFiles } from './worker';
 import { Zip } from './zip';
-import { PdbFile, PeFile } from 'pdb-guid';
 
 const currentDirectory = process ? process.cwd() : __dirname;
 const tmpDir = join(currentDirectory, 'tmp');
@@ -34,6 +35,12 @@ const tmpDir = join(currentDirectory, 'tmp');
     if (help) {
         logHelpAndExit();
     }
+
+    const buff = Buffer.from('Hello World');
+    const compressed = compressSync(buff);
+    const decompressed = decompressSync(compressed);
+    const hello = decompressed.toString();
+    console.log(hello);
 
     database = database ?? process.env.BUGSPLAT_DATABASE;
     user = user ?? process.env.SYMBOL_UPLOAD_USER;
@@ -70,7 +77,7 @@ const tmpDir = join(currentDirectory, 'tmp');
     }
 
     console.log('About to authenticate...')
-
+    
     const bugsplat = await createBugSplatClient({
         user,
         password,
