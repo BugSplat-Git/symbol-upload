@@ -23,7 +23,7 @@ You can use the `symbol-upload` action in your [GitHub Actions](https://github.c
 
 ```yml
 - name: Symbols 📦
-    uses: BugSplat-Git/symbol-upload
+    uses: BugSplat-Git/symbol-upload@main
     with:
       clientId: "${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}"
       clientSecret: "${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}"
