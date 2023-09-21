@@ -1,5 +1,5 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolFile, UploadableFile, VersionsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolFile, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
@@ -8,9 +8,9 @@ import { mkdir, readFile, rm, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, dirname, extname, join, relative } from 'path';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
+import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
 import { createWorkersFromSymbolFiles } from './worker';
 import { Zip } from './zip';
-import { PdbFile, PeFile } from 'pdb-guid';
 
 const currentDirectory = process ? process.cwd() : __dirname;
 const tmpDir = join(currentDirectory, 'tmp');
@@ -152,13 +152,11 @@ async function createSymbolFile(directory: string, symbolFilePath: string): Prom
     let dbgId = '';
 
     if (isPdbFile) {
-        const pdbFile = await PdbFile.createFromFile(symbolFilePath);
-        dbgId = `${pdbFile.guid}`;
+        dbgId = await tryGetPdbGuid(symbolFilePath);
     }
 
     if (isPeFile) {
-        const peFile = await PeFile.createFromFile(symbolFilePath);
-        dbgId = `${peFile.guid}`;
+        dbgId = await tryGetPeGuid(symbolFilePath);
     }
 
     if (isSymFile) {
