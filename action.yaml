@@ -1,0 +1,66 @@
+name: symbol-upload
+description:
+  Post symbol files to BugSplat
+
+inputs:
+  # Either username & password must be provided, or clientId & clientSecret.
+  username:
+    description: "BugSplat account username"
+    type: string
+    required: false
+  password:
+    description: "BugSplat account password"
+    type: string
+    required: false
+  clientId:
+    description: "OAuth2 Client Credentials Client ID"
+    type: string
+    required: false
+  clientSecret:
+    description: "OAuth2 Client Credentials Client Secret"
+    type: string
+    required: false
+  database:
+    description: "BugSplat crash database"
+    type: string
+    required: true
+  application:
+    description: "Application name"
+    type: string
+    required: true
+  version:
+    description: "Application version"
+    type: string
+    required: true
+  files:
+    # npm glob: https://www.npmjs.com/package/glob#glob-primer
+    description: "Files to upload (glob pattern)"
+    type: string
+    required: true
+  directory:
+    description: "Base directory for files"
+    type: string
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Setup node
+      uses: actions/setup-node@v3
+    - name: Install symbol-upload
+      shell: bash
+      run: npm i -g @bugsplat/symbol-upload
+        
+    - name: Run symbol-upload
+      shell: bash
+      run: >-
+        symbol-upload
+        -b "${{ inputs.database }}"
+        -a "${{ inputs.application }}"
+        -v "${{ inputs.version }}"
+        -u "${{ inputs.username }}"
+        -p "${{ inputs.password }}"
+        -i "${{ inputs.clientId }}"
+        -s "${{ inputs.clientSecret }}"
+        -f "${{ inputs.files }}"
+        -d "${{ inputs.directory }}"
