@@ -15,7 +15,26 @@
 
 # symbol-upload
 
-This is a simple Node.js utility and set of libraries for uploading symbol files or source maps to [BugSplat](https://www.bugsplat.com). This utility is designed to be used in your build process to automatically upload symbols to BugSplat for each production build. This package can be used as a library or a command line utility.
+This is a simple Node.js utility and set of libraries for uploading symbol files or source maps to [BugSplat](https://www.bugsplat.com). This utility is designed to be used in your build process to upload symbols to BugSplat for each production build automatically. This package can be used as a library or a command line utility.
+
+## Action
+
+You can use the `symbol-upload` action in your [GitHub Actions](https://github.com/features/actions) workflow by modifying the following snippet.
+
+```yml
+- name: Symbols 📦
+    uses: BugSplat-Git/symbol-upload@main
+    with:
+      clientId: "${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}"
+      clientSecret: "${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}"
+      database:"${{ secrets.BUGSPLAT_DATABASE }}"
+      application: "your-application"
+      version: "your-version"
+      files: "**/*.{pdb,exe,dll}"
+      directory: "your-build-directory"
+```
+
+Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) so that you don't expose the values for `clientId`, `clientSecret`, and `database`.
 
 ## Command Line
 
