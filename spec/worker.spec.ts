@@ -22,12 +22,12 @@ describe('worker', () => {
         });
 
         it('should spread symbol files evenly across workers', () => {
-            const symbolFiles = [1, 2, 3, 4, 5] as any[];
+            const symbolFiles = [1, 2, 3, 4, 5].map(createFakeSymbolFileInfo);
             const workerCount = 2;
 
             const workers = createWorkersFromSymbolFiles({} as any, symbolFiles, workerCount);
-            const worker1SymbolFiles = (workers[0] as any).symbolFiles;
-            const worker2SymbolFiles = (workers[1] as any).symbolFiles;
+            const worker1SymbolFiles = workers[0].symbolFileInfos;
+            const worker2SymbolFiles = workers[1].symbolFileInfos;
 
             expect(worker1SymbolFiles.length).toEqual(Math.ceil(symbolFiles.length / workerCount));
             expect(worker2SymbolFiles.length).toEqual(Math.floor(symbolFiles.length / workerCount));
@@ -46,8 +46,8 @@ describe('worker', () => {
         });
 
         it('should call versionsClient.postSymbols with database, application, version, and symbol files', async () => {
-            const symbolFiles = [1, 2] as any[];
-            const worker = new UploadWorker(1, versionsClient, symbolFiles);
+            const symbolFiles = [1, 2].map(createFakeSymbolFileInfo);
+            const worker = createUploadWorkerWithFakeReadStream(1, versionsClient, symbolFiles);
 
             await worker.upload(database, application, version);
 
@@ -56,8 +56,8 @@ describe('worker', () => {
         });
 
         it('should call versionsClient.postSymbols for each symbol file', async () => {
-            const symbolFiles = [1, 2] as any[];
-            const worker = new UploadWorker(1, versionsClient, symbolFiles);
+            const symbolFiles = [1, 2].map(createFakeSymbolFileInfo);
+            const worker = createUploadWorkerWithFakeReadStream(1, versionsClient, symbolFiles);
 
             await worker.upload(database, application, version);
 
@@ -65,3 +65,17 @@ describe('worker', () => {
         });
     });
 });
+
+function createFakeSymbolFileInfo(path: any) {
+    return {
+        name: path,
+        file: path,
+        size: 0
+    };
+}
+
+function createUploadWorkerWithFakeReadStream(id: number, versionsClient: VersionsApiClient, symbolFileInfos: any[]) {
+    const worker = new UploadWorker(id, symbolFileInfos, versionsClient);
+    (worker as any).createReadStream = jasmine.createSpy().and.callFake(file => file);
+    return worker;
+}
