@@ -1,15 +1,17 @@
-import { SymbolFile, VersionsApiClient } from "@bugsplat/js-api-client";
+import { VersionsApiClient } from '@bugsplat/js-api-client';
+import { createReadStream } from 'fs';
+import { SymbolFileInfo } from './symbol-file-info';
 
-export function createWorkersFromSymbolFiles(versionsClient: VersionsApiClient, symbolFiles: SymbolFile[], workerCount: number): Array<UploadWorker> {
+export function createWorkersFromSymbolFiles(versionsClient: VersionsApiClient, symbolFiles: SymbolFileInfo[], workerCount: number): Array<UploadWorker> {
     const numberOfSymbols = symbolFiles.length;
     
     if (workerCount >= numberOfSymbols) {
-        return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, versionsClient, [symbolFile]));
+        return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, [symbolFile], versionsClient));
     }
 
     const sorted = symbolFiles.sort((a, b) => a.size - b.size);
     const symbolFilesChunks = splitToChunks(sorted, workerCount);
-    return symbolFilesChunks.map((chunk, i) => new UploadWorker(i + 1, versionsClient, chunk));
+    return symbolFilesChunks.map((chunk, i) => new UploadWorker(i + 1, chunk, versionsClient));
 }
 
 function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
@@ -22,21 +24,29 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
 }
 
 export class UploadWorker {
+    private createReadStream = createReadStream;
+
     constructor(
-        private id: number,
+        public readonly id: number,
+        public readonly symbolFileInfos: SymbolFileInfo[],
         private versionsClient: VersionsApiClient,
-        private symbolFiles: SymbolFile[]
     ) { }
     
     async upload(database: string, application: string, version: string) {
-        console.log(`Worker ${this.id} uploading ${this.symbolFiles.length} symbol files...`);
+        console.log(`Worker ${this.id} uploading ${this.symbolFileInfos.length} symbol files...`);
 
-        for (const symbolFile of this.symbolFiles) {
-            console.log(`Worker ${this.id} uploading ${symbolFile.name}...`);
+        for (const symbolFileInfo of this.symbolFileInfos) {
+            console.log(`Worker ${this.id} uploading ${symbolFileInfo.name}...`);
 
-            await this.versionsClient.postSymbols(database, application, version, [symbolFile]);
+            const file = this.createReadStream(symbolFileInfo.file);
+            const symbolFile = { ...symbolFileInfo, file };
+            await this.versionsClient.postSymbols(database, application, version, [symbolFile])
+                .catch(error => {
+                    symbolFile.file.destroy();
+                    throw error;
+                });
 
-            console.log(`Worker ${this.id} uploaded ${symbolFile.name}!`);
+            console.log(`Worker ${this.id} uploaded ${symbolFileInfo.name}!`);
         }
     }
 }

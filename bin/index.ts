@@ -1,19 +1,18 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolFile, VersionsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
-import { createReadStream, existsSync } from 'fs';
-import { mkdir, readFile, rm, stat } from 'fs/promises';
+import { existsSync } from 'fs';
+import { mkdir, readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
 import { basename, dirname, extname, join, relative } from 'path';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
 import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
+import { SymbolFileInfo } from './symbol-file-info';
+import { safeRemoveTmp, tmpDir } from './tmp';
 import { createWorkersFromSymbolFiles } from './worker';
 import { Zip } from './zip';
-
-const currentDirectory = process ? process.cwd() : __dirname;
-const tmpDir = join(currentDirectory, 'tmp');
 
 (async () => {
     let {
@@ -119,7 +118,7 @@ const tmpDir = join(currentDirectory, 'tmp');
             await mkdir(tmpDir);
         }
 
-        const symbolFiles = await Promise.all(symbolFilePaths.map(async (symbolFilePath) => await createSymbolFile(directory, symbolFilePath)));
+        const symbolFiles = await Promise.all(symbolFilePaths.map(async (symbolFilePath) => await createSymbolFileInfo(directory, symbolFilePath)));
         const workers = createWorkersFromSymbolFiles(symbolsApiClient, symbolFiles, threads);
         const uploads = workers.map((worker) => worker.upload(database, application, version));
         await Promise.all(uploads);
@@ -135,7 +134,7 @@ const tmpDir = join(currentDirectory, 'tmp');
     process.exit(returnCode);
 })();
 
-async function createSymbolFile(directory: string, symbolFilePath: string): Promise<SymbolFile> {
+async function createSymbolFileInfo(directory: string, symbolFilePath: string): Promise<SymbolFileInfo> {
     const zip = new Zip();
 
     const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '-');
@@ -178,14 +177,14 @@ async function createSymbolFile(directory: string, symbolFilePath: string): Prom
     await zip.write(tmpZipName);
 
     const name = basename(tmpZipName);
-    const file = createReadStream(tmpZipName);
     const size = (await stat(tmpZipName)).size;
+    const file = tmpZipName;
     return {
         name,
         size,
         file,
         ...additionalParams
-    } as SymbolFile;
+    } as SymbolFileInfo;
 }
 
 async function createBugSplatClient({
@@ -266,14 +265,6 @@ function logMissingAuthAndExit(): void {
 
 function normalizeDirectory(directory: string): string {
     return directory.replace(/\\/g, '/');
-}
-
-async function safeRemoveTmp(): Promise<void> {
-    try {
-        await rm(tmpDir, { recursive: true, force: true });
-    } catch (error) {
-        console.error(`Could not delete ${tmpDir}!`, error);
-    }
 }
 
 function validAuthenticationArguments({
