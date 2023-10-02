@@ -1,5 +1,6 @@
 import { VersionsApiClient } from '@bugsplat/js-api-client';
 import { UploadWorker, createWorkersFromSymbolFiles } from '../bin/worker';
+import retryPromise from 'promise-retry';
 
 describe('worker', () => {
     describe('createWorkersFromSymbolFiles', () => {
@@ -62,6 +63,34 @@ describe('worker', () => {
             await worker.upload(database, application, version);
 
             expect(versionsClient.postSymbols).toHaveBeenCalledTimes(symbolFiles.length);
+        });
+
+        it('should retry failed uploads', async () => {
+            const retries = 3;
+            const retrier = (func) => retryPromise(func, { retries, minTimeout: 0, maxTimeout: 0, factor: 1 });
+            const symbolFiles = [1].map(createFakeSymbolFileInfo);
+            const uploadSingle = jasmine.createSpy().and.callFake(() => Promise.reject(new Error('Failed to upload!')));
+            const worker = new UploadWorker(1, symbolFiles, versionsClient);
+            (worker as any).uploadSingle = uploadSingle;
+            (worker as any).retryPromise = retrier;
+
+            await worker.upload(database, application, version).catch(() => null);
+
+            expect(uploadSingle).toHaveBeenCalledTimes(retries * symbolFiles.length + 1);
+        });
+
+        it('should destroy file stream on error', async () => {
+            const readStream = jasmine.createSpyObj('ReadStream', ['destroy']);
+            const retrier = (func) => retryPromise(func, { retries: 0 });
+            const symbolFiles = [1].map(createFakeSymbolFileInfo);
+            const worker = new UploadWorker(1, symbolFiles, versionsClient);
+            versionsClient.postSymbols.and.rejectWith(new Error('Failed to upload!'));
+            (worker as any).createReadStream = () => readStream;
+            (worker as any).retryPromise = retrier;
+
+            await worker.upload(database, application, version).catch(() => null);
+
+            expect(readStream.destroy).toHaveBeenCalled();
         });
     });
 });
