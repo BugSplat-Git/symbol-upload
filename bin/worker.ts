@@ -27,6 +27,7 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
 export class UploadWorker {
     private createReadStream = createReadStream;
     private retryPromise = retryPromise;
+    private toWeb = ReadStream.toWeb;
 
     constructor(
         public readonly id: number,
@@ -49,7 +50,7 @@ export class UploadWorker {
         console.log(`Worker ${this.id} uploading ${symbolFileInfo.name}...`);
 
         const symFileReadStream = this.createReadStream(symbolFileInfo.file);
-        const file = ReadStream.toWeb(symFileReadStream);
+        const file = this.toWeb(symFileReadStream);
         const symbolFile = { ...symbolFileInfo, file };
         const client = symbolFileInfo.type === SymbolFileType.symserv ? this.symbolsClient : this.versionsClient;
         await client.postSymbols(database, application, version, [symbolFile])
