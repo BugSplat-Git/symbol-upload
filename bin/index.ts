@@ -1,18 +1,19 @@
 #! /usr/bin/env node
-import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import firstline from 'firstline';
-import { existsSync } from 'fs';
-import { mkdir, readFile, stat } from 'fs/promises';
 import glob from 'glob-promise';
-import { basename, dirname, extname, join, relative } from 'path';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, stat } from 'node:fs/promises';
+import { basename, dirname, extname, join, relative } from 'node:path';
 import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
+import { createGzipFile } from './gzip';
 import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
-import { SymbolFileInfo } from './symbol-file-info';
+import { SymbolFileInfo, SymbolFileType } from './symbol-file-info';
 import { safeRemoveTmp, tmpDir } from './tmp';
 import { createWorkersFromSymbolFiles } from './worker';
-import { Zip } from './zip';
+import { createZipFile } from './zip';
 
 (async () => {
     let {
@@ -79,13 +80,14 @@ import { Zip } from './zip';
 
     console.log('Authentication success!');
 
-    const symbolsApiClient = new VersionsApiClient(bugsplat);
+    const versionsApiClient = new VersionsApiClient(bugsplat);
+    const symbolsApiClient = new SymbolsApiClient(bugsplat);
 
     if (remove) {
         try {
             console.log(`About to delete symbols for ${database}-${application}-${version}...`);
 
-            await symbolsApiClient.deleteSymbols(
+            await versionsApiClient.deleteSymbols(
                 database,
                 application,
                 version
@@ -119,7 +121,7 @@ import { Zip } from './zip';
         }
 
         const symbolFiles = await Promise.all(symbolFilePaths.map(async (symbolFilePath) => await createSymbolFileInfo(directory, symbolFilePath)));
-        const workers = createWorkersFromSymbolFiles(symbolsApiClient, symbolFiles, threads);
+        const workers = createWorkersFromSymbolFiles(symbolFiles, threads,[symbolsApiClient, versionsApiClient]);
         const uploads = workers.map((worker) => worker.upload(database, application, version));
         await Promise.all(uploads);
 
@@ -135,20 +137,19 @@ import { Zip } from './zip';
 })();
 
 async function createSymbolFileInfo(directory: string, symbolFilePath: string): Promise<SymbolFileInfo> {
-    const zip = new Zip();
 
     const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '-');
     const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
-    const timestamp = Math.round(new Date().getTime() / 1000);
-
+    const stats = await stat(symbolFilePath);
     const extLowerCase = extname(symbolFilePath).toLowerCase();
     const isSymFile = extLowerCase.includes('.sym');
     const isPdbFile = extLowerCase.includes('.pdb');
     const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll');
 
-    let additionalParams = {};
-    let tmpZipName = join(tmpDir, `${fileName}-${timestamp}.zip`);
+    const timestamp = Math.round(new Date().getTime() / 1000);
     let dbgId = '';
+    let tmpFileName = '';
+    let type = SymbolFileType.legacy;
 
     if (isPdbFile) {
         dbgId = await tryGetPdbGuid(symbolFilePath);
@@ -158,32 +159,37 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
         dbgId = await tryGetPeGuid(symbolFilePath);
     }
 
-    if (isSymFile) {
-        dbgId = await getSymFileDebugId(symbolFilePath);
+    // TODO BG support Unreal .sym file format
+    // TODO BG wait until symserv supports .sym files
+    // if (isSymFile) {
+    //     dbgId = await getSymFileDebugId(symbolFilePath);
+    // }
+
+    if (dbgId) {  
+        tmpFileName = join(tmpDir, `${fileName}.gz`);
+        type = SymbolFileType.symserv;
+        await createGzipFile(symbolFilePath, tmpFileName);
+    } else {
+        tmpFileName = join(tmpDir, `${fileName}-${timestamp}.zip`);
+        type = SymbolFileType.legacy;
+        await createZipFile([symbolFilePath], tmpFileName);
     }
 
-    if (dbgId) {
-        const moduleName = basename(symbolFilePath);
-        const lastModified = timestamp;
-        tmpZipName = join(tmpDir, `${fileName}-${dbgId}-${timestamp}-bsv1.zip`);
-        additionalParams = {
-            dbgId,
-            moduleName,
-            lastModified
-        };
-    }
-
-    await zip.addEntry(symbolFilePath);
-    await zip.write(tmpZipName);
-
-    const name = basename(tmpZipName);
-    const size = (await stat(tmpZipName)).size;
-    const file = tmpZipName;
+    const moduleName = basename(symbolFilePath);
+    const lastModified = new Date(stats.mtime);
+    const name = basename(tmpFileName);
+    const uncompressedSize = stats.size;
+    const size = (await stat(tmpFileName)).size;
+    const file = tmpFileName;
     return {
         name,
         size,
+        uncompressedSize,
         file,
-        ...additionalParams
+        dbgId,
+        moduleName,
+        lastModified,
+        type
     } as SymbolFileInfo;
 }
 

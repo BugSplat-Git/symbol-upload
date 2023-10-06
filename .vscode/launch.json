@@ -23,7 +23,6 @@
             "runtimeArgs": [
                 "run-script",
                 "start:pdb",
-                "--trace-warnings"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
