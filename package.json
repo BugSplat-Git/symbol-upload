@@ -65,7 +65,7 @@
     "firstline": "^2.0.2",
     "glob": "^8.0.3",
     "glob-promise": "^5.0.0",
-    "pdb-guid": "^1.0.6",
+    "pdb-guid": "^1.0.7",
     "promise-retry": "^2.0.1",
     "rxjs": "^7.8.1"
   }
