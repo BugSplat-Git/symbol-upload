@@ -159,11 +159,9 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
         dbgId = await tryGetPeGuid(symbolFilePath);
     }
 
-    // TODO BG support Unreal .sym file format
-    // TODO BG wait until symserv supports .sym files
-    // if (isSymFile) {
-    //     dbgId = await getSymFileDebugId(symbolFilePath);
-    // }
+    if (isSymFile) {
+        dbgId = await getSymFileDebugId(symbolFilePath);
+    }
 
     if (dbgId) {  
         tmpFileName = join(tmpDir, `${fileName}.gz`);
