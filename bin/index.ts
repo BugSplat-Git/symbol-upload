@@ -244,7 +244,6 @@ async function getSymFileInfo(path: string): Promise<{ dbgId: string, moduleName
         const firstLine = await firstline(path);
         const dbgId = firstLine.match(/[0-9a-fA-F]{33}/gm)?.[0] || '';
         const moduleName = firstLine.split(' ').at(-1) || '';
-
         return {
             dbgId,
             moduleName
