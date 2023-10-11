@@ -150,6 +150,7 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
     let dbgId = '';
     let tmpFileName = '';
     let type = SymbolFileType.legacy;
+    let moduleName = basename(symbolFilePath);
 
     if (isPdbFile) {
         dbgId = await tryGetPdbGuid(symbolFilePath);
@@ -160,7 +161,7 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
     }
 
     if (isSymFile) {
-        dbgId = await getSymFileDebugId(symbolFilePath);
+        ({ dbgId, moduleName } = await getSymFileInfo(symbolFilePath));
     }
 
     if (dbgId) {  
@@ -173,7 +174,6 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
         await createZipFile([symbolFilePath], tmpFileName);
     }
 
-    const moduleName = basename(symbolFilePath);
     const lastModified = new Date(stats.mtime);
     const name = basename(tmpFileName);
     const uncompressedSize = stats.size;
@@ -239,15 +239,22 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
     }
 }
 
-async function getSymFileDebugId(path: string): Promise<string> {
+async function getSymFileInfo(path: string): Promise<{ dbgId: string, moduleName }> {
     try {
-        const uuidRegex = /[0-9a-fA-F]{33}/gm
         const firstLine = await firstline(path);
-        const matches = firstLine.match(uuidRegex);
-        return matches?.[0] ?? '';
+        const dbgId = firstLine.match(/[0-9a-fA-F]{33}/gm)?.[0] || '';
+        const moduleName = firstLine.split(' ').at(-1) || '';
+
+        return {
+            dbgId,
+            moduleName
+        };
     } catch {
-        console.log(`Could not get debugId for ${path}, skipping...`);
-        return '';
+        console.log(`Could not get first line for ${path}, skipping...`);
+        return {
+            dbgId: '',
+            moduleName: ''
+        };
     }
 }
 
