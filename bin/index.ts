@@ -2,7 +2,6 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
-import firstline from 'firstline';
 import glob from 'glob-promise';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
@@ -14,6 +13,7 @@ import { SymbolFileInfo, SymbolFileType } from './symbol-file-info';
 import { safeRemoveTmp, tmpDir } from './tmp';
 import { createWorkersFromSymbolFiles } from './worker';
 import { createZipFile } from './zip';
+import { getSymFileInfo } from './sym';
 
 (async () => {
     let {
@@ -236,24 +236,6 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
         ...options,
         application,
         version
-    }
-}
-
-async function getSymFileInfo(path: string): Promise<{ dbgId: string, moduleName }> {
-    try {
-        const firstLine = await firstline(path);
-        const dbgId = firstLine.match(/[0-9a-fA-F]{33}/gm)?.[0] || '';
-        const moduleName = firstLine.split(' ').at(-1) || '';
-        return {
-            dbgId,
-            moduleName
-        };
-    } catch {
-        console.log(`Could not get first line for ${path}, skipping...`);
-        return {
-            dbgId: '',
-            moduleName: ''
-        };
     }
 }
 
