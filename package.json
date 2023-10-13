@@ -58,7 +58,7 @@
     "typescript": "^4.3.2"
   },
   "dependencies": {
-    "@bugsplat/js-api-client": "^8.0.0",
+    "@bugsplat/js-api-client": "^8.0.1",
     "archiver": "^5.3.1",
     "command-line-args": "^5.2.0",
     "command-line-usage": "^6.1.1",
