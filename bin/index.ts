@@ -134,7 +134,10 @@ import { createZipFile } from './zip';
     }
 
     process.exit(returnCode);
-})();
+})().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+});
 
 async function createSymbolFileInfo(directory: string, symbolFilePath: string): Promise<SymbolFileInfo> {
 
