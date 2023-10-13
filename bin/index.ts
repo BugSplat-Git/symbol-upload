@@ -148,9 +148,9 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
 
     const timestamp = Math.round(new Date().getTime() / 1000);
     let dbgId = '';
+    let moduleName = '';
     let tmpFileName = '';
     let type = SymbolFileType.legacy;
-    let moduleName = basename(symbolFilePath);
 
     if (isPdbFile) {
         dbgId = await tryGetPdbGuid(symbolFilePath);
