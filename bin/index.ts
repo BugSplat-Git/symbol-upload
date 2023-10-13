@@ -2,7 +2,6 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
-import firstline from 'firstline';
 import glob from 'glob-promise';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
@@ -14,6 +13,7 @@ import { SymbolFileInfo, SymbolFileType } from './symbol-file-info';
 import { safeRemoveTmp, tmpDir } from './tmp';
 import { createWorkersFromSymbolFiles } from './worker';
 import { createZipFile } from './zip';
+import { getSymFileInfo } from './sym';
 
 (async () => {
     let {
@@ -151,6 +151,7 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
 
     const timestamp = Math.round(new Date().getTime() / 1000);
     let dbgId = '';
+    let moduleName = '';
     let tmpFileName = '';
     let type = SymbolFileType.legacy;
 
@@ -162,11 +163,9 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
         dbgId = await tryGetPeGuid(symbolFilePath);
     }
 
-    // TODO BG support Unreal .sym file format
-    // TODO BG wait until symserv supports .sym files
-    // if (isSymFile) {
-    //     dbgId = await getSymFileDebugId(symbolFilePath);
-    // }
+    if (isSymFile) {
+        ({ dbgId, moduleName } = await getSymFileInfo(symbolFilePath));
+    }
 
     if (dbgId) {  
         tmpFileName = join(tmpDir, `${fileName}.gz`);
@@ -178,7 +177,7 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
         await createZipFile([symbolFilePath], tmpFileName);
     }
 
-    const moduleName = basename(symbolFilePath);
+    moduleName = moduleName || basename(symbolFilePath);
     const lastModified = new Date(stats.mtime);
     const name = basename(tmpFileName);
     const uncompressedSize = stats.size;
@@ -241,18 +240,6 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
         ...options,
         application,
         version
-    }
-}
-
-async function getSymFileDebugId(path: string): Promise<string> {
-    try {
-        const uuidRegex = /[0-9a-fA-F]{33}/gm
-        const firstLine = await firstline(path);
-        const matches = firstLine.match(uuidRegex);
-        return matches?.[0] ?? '';
-    } catch {
-        console.log(`Could not get debugId for ${path}, skipping...`);
-        return '';
     }
 }
 
