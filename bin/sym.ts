@@ -1,6 +1,6 @@
 import firstline from "firstline";
 
-export async function getSymFileInfo(path: string): Promise<{ dbgId: string, moduleName }> {
+export async function getSymFileInfo(path: string): Promise<{ dbgId: string, moduleName: string }> {
     try {
         const firstLine = await firstline(path);
         const dbgId = firstLine?.match(/[0-9a-fA-F]{33,34}/gm)?.[0] || '';
