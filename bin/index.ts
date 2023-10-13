@@ -174,6 +174,7 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
         await createZipFile([symbolFilePath], tmpFileName);
     }
 
+    moduleName = moduleName || basename(symbolFilePath);
     const lastModified = new Date(stats.mtime);
     const name = basename(tmpFileName);
     const uncompressedSize = stats.size;
