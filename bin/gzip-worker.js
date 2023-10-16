@@ -13,4 +13,4 @@ async function createGzipFile(inputFilePath, outputFilePath) {
 
 createGzipFile(workerData.inputFilePath, workerData.outputFilePath)
     .then(() => parentPort.postMessage({ type: 'done' }))
-    .catch((error) => parentPort.postMessage({ type: 'error', error: error.message }));
+    .catch((error) => parentPort.postMessage({ type: 'error', error }));

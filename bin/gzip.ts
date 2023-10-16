@@ -3,13 +3,15 @@ import { Worker } from 'node:worker_threads';
 
 const workerScriptPath = join(__dirname, 'gzip-worker.js');
 
+type GzipWorkerMessage = { type: 'error' | 'done', error?: Error };
+
 export async function createGzipFile(inputFilePath: string, outputFilePath: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const worker = new Worker(workerScriptPath, {
             workerData: { inputFilePath, outputFilePath }
         });
 
-        worker.on('message', (message) => {
+        worker.on('message', (message: GzipWorkerMessage) => {
             if (message.type === 'error') {
                 reject(message.error);
             } else if (message.type === 'done') {
