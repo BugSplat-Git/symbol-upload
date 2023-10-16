@@ -168,8 +168,8 @@ async function createSymbolFileInfo(directory: string, symbolFilePath: string): 
     }
 
     if (dbgId) {  
-        tmpFileName = join(tmpDir, `${fileName}.gz`);
-        type = SymbolFileType.symserv;
+        tmpFileName = join(tmpDir, fileName);
+        type = SymbolFileType.symsrv;
         await createGzipFile(symbolFilePath, tmpFileName);
     } else {
         tmpFileName = join(tmpDir, `${fileName}-${timestamp}.zip`);

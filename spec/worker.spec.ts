@@ -77,7 +77,7 @@ describe('worker', () => {
 
             beforeEach(async () => {
                 symbolFiles = createFakeSymbolFileInfos(2);
-                symbolFiles.forEach(symbolFile => symbolFile.type = SymbolFileType.symserv);
+                symbolFiles.forEach(symbolFile => symbolFile.type = SymbolFileType.symsrv);
                 const worker = createUploadWorkerWithFakeReadStream(1, symbolFiles, clients);
                 await worker.upload(database, application, version);
             });
