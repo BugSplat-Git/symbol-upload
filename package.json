@@ -21,7 +21,7 @@
     "prerelease": "npm run build",
     "release": "npm publish --access public",
     "prepkg": "npm run build",
-    "pkg": "npx pkg -C -o ./pkg/symbol-upload -t node18-macos-x64,node18-linux-x64,node18-win-x64 ./dist/bin/index.js"
+    "pkg": "npx pkg package.json"
   },
   "repository": {
     "type": "git",
@@ -41,6 +41,12 @@
     "url": "https://github.com/BugSplat-Git/symbol-upload/issues"
   },
   "homepage": "https://github.com/BugSplat-Git/symbol-upload#readme",
+  "pkg": {
+    "scripts": "./dist/**/*.js",
+    "targets": ["node18-macos-x64", "node18-linux-x64", "node18-win-x64"],
+    "outputPath": "./pkg",
+    "compress": "GZip"
+  },
   "devDependencies": {
     "@types/archiver": "^5.3.2",
     "@types/command-line-args": "^5.2.0",

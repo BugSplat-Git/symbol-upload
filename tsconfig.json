@@ -10,9 +10,11 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "allowJs": true
   },
   "files": [
     "./index.ts",
-    "./bin/index.ts"
+    "./bin/index.ts",
+    "./bin/gzip-worker.js"
   ]
 }
