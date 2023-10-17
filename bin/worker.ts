@@ -36,14 +36,9 @@ export class UploadWorker {
     async upload(database: string, application: string, version: string): Promise<void> {
         console.log(`Worker ${this.id} uploading ${this.symbolFileInfos.length} symbol files...`);
 
-        for (const symbolFileInfo of this.symbolFileInfos) {
-            await this.retryPromise(
-                (retry) => this.uploadSingle(database, application, version, symbolFileInfo)
-                    .catch((error) => {
-                        retry(error) // TODO BG remove
-                    })
-            );
-        }
+        await Promise.all(
+            this.symbolFileInfos.map((symbolFileInfo) => this.uploadSingle(database, application, version, symbolFileInfo))
+        );
     }
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<void> {
@@ -84,12 +79,14 @@ export class UploadWorker {
             moduleName
         };
         
-        await client.postSymbols(database, application, version, [symbolFile])
-            .catch((error: Error) => {
-                symFileReadStream.destroy();
-                console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
-                throw error;
-            });
+        await this.retryPromise((retry) => 
+            client.postSymbols(database, application, version, [symbolFile])
+                .catch((error: Error) => {
+                    symFileReadStream.destroy();
+                    console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
+                    retry(error);
+                })
+        );
 
         console.log(`Worker ${this.id} uploaded ${name}!`);
     }

@@ -118,14 +118,14 @@ describe('worker', () => {
             const retrier = (func) => retryPromise(func, { retries, minTimeout: 0, maxTimeout: 0, factor: 1 });
             const symbolFiles = createFakeSymbolFileInfos(1);
             const workerPool = createFakeWorkerPool();
-            const uploadSingle = jasmine.createSpy().and.callFake(() => Promise.reject(new Error('Failed to upload!')));
+            symbolsClient.postSymbols.and.callFake(() => Promise.reject(new Error('Failed to upload!')));
             const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-            (worker as any).uploadSingle = uploadSingle;
             (worker as any).retryPromise = retrier;
+            (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
 
             await worker.upload(database, application, version).catch(() => null);
 
-            expect(uploadSingle).toHaveBeenCalledTimes(retries * symbolFiles.length + 1);
+            expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(retries * symbolFiles.length + 1);
         });
 
         it('should destroy file stream on error', async () => {
