@@ -3,9 +3,6 @@ import { OptionDefinition as UsageDefinition, Section } from "command-line-usage
 
 export type CommandLineDefinition = ArgDefinition & UsageDefinition;
 
-const defaultParallelThreads = 8;
-export const maxParallelThreads = 16;
-
 export const argDefinitions: Array<CommandLineDefinition> = [
     {
         name: 'help',
@@ -84,14 +81,6 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         typeLabel: '{underline string} (optional)',
         description: 'Path of the base directory used to search for symbol files. This value will be combined with the --files glob. Defaults to \'.\'',
     },
-    {
-        name: 'threads', 
-        alias: 't',
-        type: Number,
-        defaultValue: defaultParallelThreads,
-        typeLabel: '{underline number} (optional)',
-        description: `The maximum number of parallel uploads. Defaults to ${defaultParallelThreads} and max is ${maxParallelThreads}.`,
-    }
 ];
 
 export const usageDefinitions: Array<Section> = [
