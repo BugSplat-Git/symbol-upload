@@ -1,45 +1,49 @@
 import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import retryPromise from 'promise-retry';
-import { SymbolFileInfo, SymbolFileType } from '../bin/symbol-file-info';
+import { SymbolFileInfo } from '../bin/info';
 import { UploadWorker, createWorkersFromSymbolFiles } from '../bin/worker';
+import { cpus } from 'node:os';
+import { WorkerPool } from 'workerpool';
+import { basename } from 'node:path';
+const workerCount = cpus().length;
 
 describe('worker', () => {
-    let symbolsClients: jasmine.SpyObj<SymbolsApiClient>;
+    let symbolsClient: jasmine.SpyObj<SymbolsApiClient>;
     let versionsClient: jasmine.SpyObj<VersionsApiClient>;
     let clients: [SymbolsApiClient, VersionsApiClient];
 
     beforeEach(() => {
-        symbolsClients = jasmine.createSpyObj<SymbolsApiClient>('SymbolsApiClient', ['postSymbols']);
+        symbolsClient = jasmine.createSpyObj<SymbolsApiClient>('SymbolsApiClient', ['postSymbols']);
         versionsClient = jasmine.createSpyObj<VersionsApiClient>('VersionsApiClient', ['postSymbols']);
-        symbolsClients.postSymbols.and.resolveTo();
+        symbolsClient.postSymbols.and.resolveTo();
         versionsClient.postSymbols.and.resolveTo();
-        clients = [symbolsClients, versionsClient];
+        clients = [symbolsClient, versionsClient];
     });
 
     describe('createWorkersFromSymbolFiles', () => {
         it('should create max workers if symbol files exceeds worker count', () => {
-            const symbolFiles = createFakeSymbolFileInfos(2);
-            const workerCount = 1;
+            const workerPool = createFakeWorkerPool();
+            const symbolFiles = createFakeSymbolFileInfos(workerCount + 1);
 
-            const workers = createWorkersFromSymbolFiles(symbolFiles, workerCount, clients);
+            const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, clients);
 
             expect(workers.length).toEqual(workerCount);
         });
 
         it('should create equal worker count to symbol files', () => {
-            const symbolFiles = createFakeSymbolFileInfos(2);
-            const workerCount = 2;
+            const symbolFiles = createFakeSymbolFileInfos(workerCount);
+            const workerPool = createFakeWorkerPool();
 
-            const workers = createWorkersFromSymbolFiles(symbolFiles, workerCount, clients);
+            const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, clients);
 
             expect(workers.length).toEqual(workerCount);
         });
 
         it('should spread symbol files evenly across workers', () => {
-            const symbolFiles = createFakeSymbolFileInfos(5);
-            const workerCount = 2;
+            const symbolFiles = createFakeSymbolFileInfos(workerCount * 2);
+            const workerPool = createFakeWorkerPool();
 
-            const workers = createWorkersFromSymbolFiles(symbolFiles, workerCount, clients);
+            const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, clients);
             const worker1SymbolFiles = workers[0].symbolFileInfos;
             const worker2SymbolFiles = workers[1].symbolFileInfos;
 
@@ -54,41 +58,58 @@ describe('worker', () => {
         const version = 'version';
 
         describe('legacy', () => {
-            let symbolFiles;
+            let symbolFileInfos;
 
             beforeEach(async () => {
-                symbolFiles = createFakeSymbolFileInfos(2);
-                const worker = createUploadWorkerWithFakeReadStream(1, symbolFiles, clients);
+                symbolFileInfos = createFakeSymbolFileInfos(2).map((info) => ({ ...info, dbgId: undefined }));
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
                 await worker.upload(database, application, version);
             });
 
             it('should call versionsClient.postSymbols with database, application, version, and symbol files', () => {
+                const symbolFiles = symbolFileInfos.map(symbolFile => ({
+                    name: symbolFile.path,
+                    dbgId: symbolFile.dbgId,
+                    moduleName: symbolFile.moduleName,
+                    size: 0,
+                    uncompressedSize: 0,
+                    lastModified: 0,
+                    file: jasmine.stringContaining('.zip'),
+                }));
                 expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
                 expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
             });
     
             it('should call versionsClient.postSymbols for each symbol file', () => {
-                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(symbolFiles.length);
+                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(symbolFileInfos.length);
             });
         });
 
         describe('symsrv', () => {
-            let symbolFiles;
+            let symbolFileInfos;
 
             beforeEach(async () => {
-                symbolFiles = createFakeSymbolFileInfos(2);
-                symbolFiles.forEach(symbolFile => symbolFile.type = SymbolFileType.symsrv);
-                const worker = createUploadWorkerWithFakeReadStream(1, symbolFiles, clients);
+                symbolFileInfos = createFakeSymbolFileInfos(2);
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
                 await worker.upload(database, application, version);
             });
 
-            it('should call symbolsClients.postSymbols with database, application, version, and symbol files', () => {
-                expect(symbolsClients.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
-                expect(symbolsClients.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
+            it('should call symbolsClient.postSymbols with database, application, version, and symbol files', () => {
+                const symbolFiles = symbolFileInfos.map(symbolFile => ({
+                    name: symbolFile.path,
+                    dbgId: symbolFile.dbgId,
+                    moduleName: symbolFile.moduleName,
+                    size: 0,
+                    uncompressedSize: 0,
+                    lastModified: 0,
+                    file: jasmine.stringContaining('.gz'),
+                }));
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
             });
     
-            it('should call symbolsClients.postSymbols for each symbol file', () => {
-                expect(symbolsClients.postSymbols).toHaveBeenCalledTimes(symbolFiles.length);
+            it('should call symbolsClient.postSymbols for each symbol file', () => {
+                expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(symbolFileInfos.length);
             });
         });
 
@@ -96,8 +117,9 @@ describe('worker', () => {
             const retries = 3;
             const retrier = (func) => retryPromise(func, { retries, minTimeout: 0, maxTimeout: 0, factor: 1 });
             const symbolFiles = createFakeSymbolFileInfos(1);
+            const workerPool = createFakeWorkerPool();
             const uploadSingle = jasmine.createSpy().and.callFake(() => Promise.reject(new Error('Failed to upload!')));
-            const worker = new UploadWorker(1, symbolFiles, ...clients);
+            const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
             (worker as any).uploadSingle = uploadSingle;
             (worker as any).retryPromise = retrier;
 
@@ -110,11 +132,13 @@ describe('worker', () => {
             const readStream = jasmine.createSpyObj('ReadStream', ['destroy']);
             const retrier = (func) => retryPromise(func, { retries: 0 });
             const symbolFiles = createFakeSymbolFileInfos(1);
-            const worker = new UploadWorker(1, symbolFiles, ...clients);
-            versionsClient.postSymbols.and.rejectWith(new Error('Failed to upload!'));
+            const workerPool = createFakeWorkerPool();
+            const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
+            symbolsClient.postSymbols.and.rejectWith(new Error('Failed to upload!'));
             (worker as any).createReadStream = () => readStream;
-            (worker as any).toWeb = () => readStream;
             (worker as any).retryPromise = retrier;
+            (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
+            (worker as any).toWeb = () => readStream;
 
             await worker.upload(database, application, version).catch(() => null);
 
@@ -126,8 +150,8 @@ describe('worker', () => {
 function createFakeSymbolFileInfos(count: number) {
     return Array.from(Array(count).keys())
         .map((i) => createFakeSymbolFileInfo({
-            name: `name${i}`,
-            file: `file${i}`,
+            path: `path${i}`,
+            relativePath: `relativePath${i}`,
             moduleName: `moduleName${i}`,
             dbgId: `dbgId${i}`
         })
@@ -136,14 +160,10 @@ function createFakeSymbolFileInfos(count: number) {
 
 function createFakeSymbolFileInfo(params: Partial<SymbolFileInfo>): SymbolFileInfo {
     const defaults = {
-        name: 'name',
-        file: 'file',
+        path: 'path',
         moduleName: 'moduleName',
-        size: 10,
-        dbgId: '0',
-        uncompressedSize: 100,
-        lastModified: new Date(),
-        type: SymbolFileType.legacy
+        dbgId: 'dbgId',
+        relativePath: 'relativePath',
     };
     return {
         ...defaults,
@@ -151,8 +171,16 @@ function createFakeSymbolFileInfo(params: Partial<SymbolFileInfo>): SymbolFileIn
     };
 }
 
+function createFakeWorkerPool(): jasmine.SpyObj<WorkerPool> {
+    const fakeWorkerPool = jasmine.createSpyObj('WorkerPool', ['exec']);
+    fakeWorkerPool.exec.and.resolveTo();
+    return fakeWorkerPool;
+}
+
 function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient]) {
-    const worker = new UploadWorker(id, symbolFileInfos, ...clients);
+    const workerPool = createFakeWorkerPool();
+    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients);
+    (worker as any).stat = jasmine.createSpy().and.resolveTo({ size: 0, mtime: 0 });
     (worker as any).createReadStream = jasmine.createSpy().and.callFake(file => file);
     (worker as any).toWeb = jasmine.createSpy().and.callFake(file => file);
     return worker;

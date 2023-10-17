@@ -5,15 +5,17 @@ import commandLineUsage from 'command-line-usage';
 import glob from 'glob-promise';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
-import { basename, dirname, extname, join, relative } from 'node:path';
-import { CommandLineDefinition, argDefinitions, maxParallelThreads, usageDefinitions } from './command-line-definitions';
-import { createGzipFile } from './gzip';
+import { basename, dirname, extname, relative } from 'node:path';
+import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
+import { SymbolFileInfo } from './info';
 import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
-import { SymbolFileInfo, SymbolFileType } from './symbol-file-info';
+import { getSymFileInfo } from './sym';
 import { safeRemoveTmp, tmpDir } from './tmp';
 import { createWorkersFromSymbolFiles } from './worker';
-import { createZipFile } from './zip';
-import { getSymFileInfo } from './sym';
+import { pool } from 'workerpool';
+import { join } from 'node:path';
+
+const workerPool = pool(join(__dirname, 'compression.js'));
 
 (async () => {
     let {
@@ -28,7 +30,6 @@ import { getSymFileInfo } from './sym';
         remove,
         files,
         directory,
-        threads
     } = await getCommandLineOptions(argDefinitions);
 
     if (help) {
@@ -62,11 +63,6 @@ import { getSymFileInfo } from './sym';
         })
     ) {
         logMissingAuthAndExit();
-    }
-
-    if (threads > maxParallelThreads) {
-        console.log(`Maximum number of upload threads is ${maxParallelThreads}, using ${maxParallelThreads} instead...`);
-        threads = maxParallelThreads;
     }
 
     console.log('About to authenticate...')
@@ -121,7 +117,7 @@ import { getSymFileInfo } from './sym';
         }
 
         const symbolFiles = await Promise.all(symbolFilePaths.map(async (symbolFilePath) => await createSymbolFileInfo(directory, symbolFilePath)));
-        const workers = createWorkersFromSymbolFiles(symbolFiles, threads,[symbolsApiClient, versionsApiClient]);
+        const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, [symbolsApiClient, versionsApiClient]);
         const uploads = workers.map((worker) => worker.upload(database, application, version));
         await Promise.all(uploads);
 
@@ -139,59 +135,36 @@ import { getSymFileInfo } from './sym';
     process.exit(1);
 });
 
-async function createSymbolFileInfo(directory: string, symbolFilePath: string): Promise<SymbolFileInfo> {
-
-    const folderPrefix = relative(directory, dirname(symbolFilePath)).replace(/\\/g, '-');
-    const fileName = folderPrefix ? [folderPrefix, basename(symbolFilePath)].join('-') : basename(symbolFilePath);
-    const stats = await stat(symbolFilePath);
-    const extLowerCase = extname(symbolFilePath).toLowerCase();
+async function createSymbolFileInfo(searchDirectory: string, symbolFilePath: string): Promise<SymbolFileInfo> {
+    const path = symbolFilePath;
+    const relativePath = relative(searchDirectory, dirname(path));
+    const extLowerCase = extname(path).toLowerCase();
     const isSymFile = extLowerCase.includes('.sym');
     const isPdbFile = extLowerCase.includes('.pdb');
     const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll');
 
-    const timestamp = Math.round(new Date().getTime() / 1000);
     let dbgId = '';
     let moduleName = '';
-    let tmpFileName = '';
-    let type = SymbolFileType.legacy;
 
     if (isPdbFile) {
-        dbgId = await tryGetPdbGuid(symbolFilePath);
+        dbgId = await tryGetPdbGuid(path);
     }
 
     if (isPeFile) {
-        dbgId = await tryGetPeGuid(symbolFilePath);
+        dbgId = await tryGetPeGuid(path);
     }
 
     if (isSymFile) {
-        ({ dbgId, moduleName } = await getSymFileInfo(symbolFilePath));
+        ({ dbgId, moduleName } = await getSymFileInfo(path));
     }
 
-    if (dbgId) {  
-        tmpFileName = join(tmpDir, fileName);
-        type = SymbolFileType.symsrv;
-        await createGzipFile(symbolFilePath, tmpFileName);
-    } else {
-        tmpFileName = join(tmpDir, `${fileName}-${timestamp}.zip`);
-        type = SymbolFileType.legacy;
-        await createZipFile([symbolFilePath], tmpFileName);
-    }
+    moduleName = moduleName || basename(path);
 
-    moduleName = moduleName || basename(symbolFilePath);
-    const lastModified = new Date(stats.mtime);
-    const name = basename(tmpFileName);
-    const uncompressedSize = stats.size;
-    const size = (await stat(tmpFileName)).size;
-    const file = tmpFileName;
     return {
-        name,
-        size,
-        uncompressedSize,
-        file,
+        path,
         dbgId,
         moduleName,
-        lastModified,
-        type
+        relativePath
     } as SymbolFileInfo;
 }
 
