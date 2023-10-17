@@ -52,7 +52,7 @@ export class UploadWorker {
         const symFileReadStream = this.createReadStream(symbolFileInfo.file);
         const file = this.toWeb(symFileReadStream);
         const symbolFile = { ...symbolFileInfo, file };
-        const client = symbolFileInfo.type === SymbolFileType.symserv ? this.symbolsClient : this.versionsClient;
+        const client = symbolFileInfo.type === SymbolFileType.symsrv ? this.symbolsClient : this.versionsClient;
         await client.postSymbols(database, application, version, [symbolFile])
             .catch((error: Error) => {
                 symFileReadStream.destroy();
