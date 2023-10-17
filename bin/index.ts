@@ -154,10 +154,9 @@ async function createSymbolFileInfo(searchDirectory: string, symbolFilePath: str
         dbgId = await tryGetPeGuid(path);
     }
 
-    // TODO BG re-enable when backend supports symproxy for sym files
-    // if (isSymFile) {
-    //     ({ dbgId, moduleName } = await getSymFileInfo(path));
-    // }
+    if (isSymFile) {
+        ({ dbgId, moduleName } = await getSymFileInfo(path));
+    }
 
     moduleName = moduleName || basename(path);
 
