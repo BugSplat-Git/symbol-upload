@@ -1,7 +1,7 @@
 import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import { ReadStream, createReadStream } from 'fs';
 import { stat } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import retryPromise from 'promise-retry';
 import { WorkerPool, cpus } from 'workerpool';
 import { SymbolFileInfo } from './info';
@@ -48,20 +48,22 @@ export class UploadWorker {
         const fileName = folderPrefix ? [folderPrefix, basename(path)].join('-') : basename(path);
         const uncompressedSize = await this.stat(path).then(stats => stats.size);
         const timestamp = Math.round(new Date().getTime() / 1000);
-        
+        const isZip = extname(path).toLowerCase().includes('.zip');
+
         console.log(`Worker ${this.id} uploading ${name}...`);
         
-        let client: SymbolsApiClient | VersionsApiClient;
+        let client: SymbolsApiClient | VersionsApiClient = this.versionsClient;
         let tmpFileName = '';
 
-        if (dbgId) {  
+        if (dbgId && !isZip) {  
             tmpFileName = join(tmpDir, `${fileName}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
-        } else {
+        } else if (!isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${timestamp}.zip`);
-            client = this.versionsClient;
             await this.pool.exec('createZipFile', [path, tmpFileName]);
+        } else {
+            tmpFileName = path;
         }
 
         const stats = await this.stat(tmpFileName);
