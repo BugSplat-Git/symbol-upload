@@ -25,6 +25,14 @@ describe('getSymFileInfo', () => {
         expect(moduleName).toBe(expected);
     });
 
+    it('should get module name for file with spaces in module name', async () => {
+        const expected = 'Electron Helper (GPU)';
+
+        const { moduleName } = await getSymFileInfo('./spec/support/spaces.sym');
+
+        expect(moduleName).toBe(expected);
+    });
+
     it('should get module name for file with line feeds and carriage returns', async () => {
         const expected = 'windows.pdb';
 
