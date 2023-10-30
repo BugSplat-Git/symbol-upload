@@ -1,4 +1,4 @@
-import { getSymFileInfo } from '../bin/sym';
+import { getSymFileInfo } from '../src/sym';
 
 describe('getSymFileInfo', () => {
     it('should get debug id for file with a 33 character debug id', async () => {

@@ -1,7 +1,7 @@
 import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import retryPromise from 'promise-retry';
-import { SymbolFileInfo } from '../bin/info';
-import { UploadWorker, createWorkersFromSymbolFiles } from '../bin/worker';
+import { SymbolFileInfo } from '../src/info';
+import { UploadWorker, createWorkersFromSymbolFiles } from '../src/worker';
 import { cpus } from 'node:os';
 import { WorkerPool } from 'workerpool';
 import { basename } from 'node:path';

@@ -15,6 +15,6 @@
   "files": [
     "./index.ts",
     "./bin/index.ts",
-    "./bin/compression.js"
+    "src/compression.js"
   ]
 }

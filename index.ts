@@ -6,3 +6,5 @@ export {
     UploadableFile,
     GZippedSymbolFile
 } from '@bugsplat/js-api-client';
+
+export { uploadSymbolFiles } from './src/upload';

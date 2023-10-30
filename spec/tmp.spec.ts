@@ -1,4 +1,4 @@
-import { safeRemoveTmp } from '../bin/tmp';
+import { safeRemoveTmp } from '../src/tmp';
 
 describe('tmp', () => {
     it('should retry removing tmp directory', async () => {
