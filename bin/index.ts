@@ -2,18 +2,17 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
-import glob from 'glob-promise';
+import { glob } from 'glob';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
-import { basename, dirname, extname, relative } from 'node:path';
+import { basename, dirname, extname, join, relative } from 'node:path';
+import { pool } from 'workerpool';
 import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
 import { SymbolFileInfo } from './info';
 import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
 import { getSymFileInfo } from './sym';
 import { safeRemoveTmp, tmpDir } from './tmp';
 import { createWorkersFromSymbolFiles } from './worker';
-import { pool } from 'workerpool';
-import { join } from 'node:path';
 
 const workerPool = pool(join(__dirname, 'compression.js'));
 
