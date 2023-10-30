@@ -124,7 +124,7 @@ const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email,
 const bugsplat = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
 ```
 
-4. Upload your symbol files to bugsplat calling the `uploadSymbolFiles` function.
+4. Upload your symbol files to bugsplat by calling the `uploadSymbolFiles` function.
 
 ```ts
 const directory = '/path/to/symbols/dir';
@@ -132,8 +132,8 @@ const files = '**/*.{pdb,exe,dll}
 await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
 ```
 
-If you've done everything correctly your symbols should now be shown on the [Versions](https://app.bugsplat.com/v2/versions) page.
+If you've done everything correctly, your symbols should be shown by clicking the application link on the [Versions](https://app.bugsplat.com/v2/versions) page.
 
-![Versions](https://bugsplat-public.s3.amazonaws.com/npm/symbol-upload/versions.png)
+<img width="1728" alt="image" src="https://github.com/BugSplat-Git/symbol-upload/assets/2646053/7314bd36-05db-4188-89e4-10f4e7442cec">
 
 Thanks for using BugSplat!
