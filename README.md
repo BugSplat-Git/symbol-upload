@@ -111,7 +111,7 @@ Links
 2. Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
 
 ```ts
-import { BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/symbol-upload';
+import { BugSplatApiClient, OAuthClientCredentialsClient, uploadSymbolFiles } from '@bugsplat/symbol-upload';
 ```
 
 3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuthClientCredentialsClient` using the `createAuthenticatedClient` async factory function.
@@ -124,37 +124,12 @@ const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email,
 const bugsplat = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
 ```
 
-4. Create an `UploadableFile` object for each symbol file path.
+4. Upload your symbol files to bugsplat calling the `uploadSymbolFiles` function.
 
 ```ts
-const files = paths.map(path => {
-  const stat = fs.statSync(path);
-  const size = stat.size;
-  const name = basename(path);
-  const file = fs.createReadStream(path);
-  return {
-          name,
-          size,
-          file
-  };
-});
-```
-
-5. Create an instance of `VersionsApiClient` passing it an instance of `BugSplatApiClient`.
-
-```ts
-const versionsApiClient = new VersionsApiClient(bugsplat);
-```
-
-6. Await the call to `postSymbols` passing it the name of your BugSplat `database`, `application`, `version` and an array of `files`. These values need to match the values you used to initialize BugSplat on whichever [platform](https://docs.bugsplat.com/introduction/getting-started/integrations) you've integrated with.
-
-```ts
-await versionsApiClient.postSymbols(
-  database,
-  application,
-  version,
-  files
-);
+const directory = '/path/to/symbols/dir';
+const files = '**/*.{pdb,exe,dll}
+await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
 ```
 
 If you've done everything correctly your symbols should now be shown on the [Versions](https://app.bugsplat.com/v2/versions) page.
