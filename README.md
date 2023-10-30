@@ -128,7 +128,7 @@ const bugsplat = await OAuthClientCredentialsClient.createAuthenticatedClient(cl
 
 ```ts
 const directory = '/path/to/symbols/dir';
-const files = '**/*.{pdb,exe,dll}
+const files = '**/*.+(exe|dll|pdb)';
 await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
 ```
 
