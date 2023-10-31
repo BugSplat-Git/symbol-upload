@@ -111,7 +111,7 @@ Links
 2. Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
 
 ```ts
-import { BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/symbol-upload';
+import { BugSplatApiClient, OAuthClientCredentialsClient, uploadSymbolFiles } from '@bugsplat/symbol-upload';
 ```
 
 3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuthClientCredentialsClient` using the `createAuthenticatedClient` async factory function.
@@ -124,41 +124,16 @@ const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email,
 const bugsplat = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
 ```
 
-4. Create an `UploadableFile` object for each symbol file path.
+4. Upload your symbol files to bugsplat by calling the `uploadSymbolFiles` function.
 
 ```ts
-const files = paths.map(path => {
-  const stat = fs.statSync(path);
-  const size = stat.size;
-  const name = basename(path);
-  const file = fs.createReadStream(path);
-  return {
-          name,
-          size,
-          file
-  };
-});
+const directory = '/path/to/symbols/dir';
+const files = '**/*.+(exe|dll|pdb)';
+await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
 ```
 
-5. Create an instance of `VersionsApiClient` passing it an instance of `BugSplatApiClient`.
+If you've done everything correctly, your symbols should be shown by clicking the application link on the [Versions](https://app.bugsplat.com/v2/versions) page.
 
-```ts
-const versionsApiClient = new VersionsApiClient(bugsplat);
-```
-
-6. Await the call to `postSymbols` passing it the name of your BugSplat `database`, `application`, `version` and an array of `files`. These values need to match the values you used to initialize BugSplat on whichever [platform](https://docs.bugsplat.com/introduction/getting-started/integrations) you've integrated with.
-
-```ts
-await versionsApiClient.postSymbols(
-  database,
-  application,
-  version,
-  files
-);
-```
-
-If you've done everything correctly your symbols should now be shown on the [Versions](https://app.bugsplat.com/v2/versions) page.
-
-![Versions](https://bugsplat-public.s3.amazonaws.com/npm/symbol-upload/versions.png)
+<img width="1728" alt="image" src="https://github.com/BugSplat-Git/symbol-upload/assets/2646053/7314bd36-05db-4188-89e4-10f4e7442cec">
 
 Thanks for using BugSplat!

@@ -1,4 +1,4 @@
-import { tryGetPdbGuid, tryGetPeGuid } from '../bin/pdb';
+import { tryGetPdbGuid, tryGetPeGuid } from '../src/pdb';
 
 describe('pdb', () => {
     describe('tryGetPdbGuid', () => {
