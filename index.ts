@@ -1,4 +1,5 @@
 export {
+    ApiClient,
     BugSplatApiClient,
     VersionsApiClient,
     SymbolsApiClient,
