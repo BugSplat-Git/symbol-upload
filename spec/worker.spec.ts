@@ -68,7 +68,7 @@ describe('worker', () => {
 
             it('should call versionsClient.postSymbols with database, application, version, and symbol files', () => {
                 const symbolFiles = symbolFileInfos.map(symbolFile => ({
-                    name: symbolFile.path,
+                    name: `${symbolFile.path}.zip`,
                     dbgId: symbolFile.dbgId,
                     moduleName: symbolFile.moduleName,
                     size: 0,

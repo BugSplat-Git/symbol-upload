@@ -43,16 +43,14 @@ export class UploadWorker {
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<void> {
         const { dbgId, path, moduleName, relativePath } = symbolFileInfo;
-        const name = basename(path);
         const folderPrefix = relativePath.replace(/\\/g, '-');
         const fileName = folderPrefix ? [folderPrefix, basename(path)].join('-') : basename(path);
         const uncompressedSize = await this.stat(path).then(stats => stats.size);
         const timestamp = Math.round(new Date().getTime() / 1000);
         const isZip = extname(path).toLowerCase().includes('.zip');
-
-        console.log(`Worker ${this.id} uploading ${name}...`);
         
         let client: SymbolsApiClient | VersionsApiClient = this.versionsClient;
+        let name = basename(path);
         let tmpFileName = '';
 
         if (dbgId && !isZip) {  
@@ -60,6 +58,7 @@ export class UploadWorker {
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
         } else if (!isZip) {
+            name = `${name}.zip`;
             tmpFileName = join(tmpDir, `${fileName}-${timestamp}.zip`);
             await this.pool.exec('createZipFile', [path, tmpFileName]);
         } else {
@@ -80,6 +79,8 @@ export class UploadWorker {
             lastModified,
             moduleName
         };
+
+        console.log(`Worker ${this.id} uploading ${name}...`);
         
         await this.retryPromise((retry) => 
             client.postSymbols(database, application, version, [symbolFile])
