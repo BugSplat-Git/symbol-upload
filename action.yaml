@@ -1,6 +1,9 @@
 name: symbol-upload
 description:
   Post symbol files to BugSplat
+branding:
+  icon: 'upload'
+  color: 'blue'
 
 inputs:
   # Either username & password must be provided, or clientId & clientSecret.
