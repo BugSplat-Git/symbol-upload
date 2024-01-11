@@ -1,7 +1,8 @@
 import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import { ReadStream, createReadStream } from 'fs';
-import { stat } from 'node:fs/promises';
-import { basename, extname, join } from 'node:path';
+import { createMachoFiles } from 'macho-uuid';
+import { mkdir, stat } from 'node:fs/promises';
+import { basename, dirname, extname, join } from 'node:path';
 import retryPromise from 'promise-retry';
 import { WorkerPool, cpus } from 'workerpool';
 import { SymbolFileInfo } from './info';
@@ -10,7 +11,7 @@ const workerCount = cpus;
 
 export function createWorkersFromSymbolFiles(workerPool: WorkerPool, symbolFiles: SymbolFileInfo[], clients: [SymbolsApiClient, VersionsApiClient]): Array<UploadWorker> {
     const numberOfSymbols = symbolFiles.length;
-    
+
     if (workerCount >= numberOfSymbols) {
         return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, [symbolFile], workerPool, ...clients));
     }
@@ -32,7 +33,7 @@ export class UploadWorker {
         private readonly symbolsClient: SymbolsApiClient,
         private readonly versionsClient: VersionsApiClient,
     ) { }
-    
+
     async upload(database: string, application: string, version: string): Promise<void> {
         console.log(`Worker ${this.id} uploading ${this.symbolFileInfos.length} symbol files...`);
 
@@ -42,18 +43,37 @@ export class UploadWorker {
     }
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<void> {
-        const { dbgId, path, moduleName, relativePath } = symbolFileInfo;
+        let { path, relativePath } = symbolFileInfo;
+        const { dbgId, moduleName, fat } = symbolFileInfo;
+
+        if (fat) {
+            const machoDbgIdTuple = await Promise.all(
+                await createMachoFiles(path)
+                    .then(machos =>
+                        machos.map(async macho => ({
+                            dbgId: await macho.getUUID(),
+                            macho
+                        }))
+                    )
+            );
+            const { macho } = machoDbgIdTuple.find(macho => macho.dbgId === dbgId)!;
+            relativePath = join(await macho.getUUID(), moduleName)
+            path = join(tmpDir, relativePath);
+            await mkdir(dirname(path), { recursive: true });
+            await macho.writeFile(path);
+        }
+
         const folderPrefix = relativePath.replace(/\\/g, '-');
         const fileName = folderPrefix ? [folderPrefix, basename(path)].join('-') : basename(path);
         const uncompressedSize = await this.stat(path).then(stats => stats.size);
         const timestamp = Math.round(new Date().getTime() / 1000);
         const isZip = extname(path).toLowerCase().includes('.zip');
-        
+
         let client: SymbolsApiClient | VersionsApiClient = this.versionsClient;
         let name = basename(path);
         let tmpFileName = '';
 
-        if (dbgId && !isZip) {  
+        if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
@@ -81,8 +101,8 @@ export class UploadWorker {
         };
 
         console.log(`Worker ${this.id} uploading ${name}...`);
-        
-        await this.retryPromise((retry) => 
+
+        await this.retryPromise((retry) =>
             client.postSymbols(database, application, version, [symbolFile])
                 .catch((error: Error) => {
                     symFileReadStream.destroy();

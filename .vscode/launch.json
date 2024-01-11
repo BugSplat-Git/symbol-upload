@@ -18,11 +18,37 @@
             "type": "node"
         },
         {
-            "name": "Start: Pdb",
+            "name": "Start: pdb",
             "request": "launch",
             "runtimeArgs": [
                 "run-script",
                 "start:pdb",
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
+            "name": "Start: sym",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:sym",
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
+            "name": "Start: dsym",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:dsym",
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
