@@ -10,7 +10,7 @@
     "dist"
   ],
   "scripts": {
-    "start": "ts-node -r dotenv/config ./bin/index.ts -d ../../Sketchup_Debug_Symbols -f \"*.*\"",
+    "start": "ts-node -r dotenv/config ./bin/index.ts -d ./dist -f \"**/*.js.map\"",
     "start:sym": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.sym\"",
     "start:pdb": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.+(exe|dll|pdb)\"",
     "start:dsym": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.dSYM\" -a BugSplatTester -v \"1.0 (1)\"",
