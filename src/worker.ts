@@ -1,8 +1,7 @@
 import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import { ReadStream, createReadStream } from 'fs';
-import { createMachoFiles } from 'macho-uuid';
-import { mkdir, stat } from 'node:fs/promises';
-import { basename, dirname, extname, join } from 'node:path';
+import { stat } from 'node:fs/promises';
+import { basename, extname, join } from 'node:path';
 import retryPromise from 'promise-retry';
 import { WorkerPool, cpus } from 'workerpool';
 import { SymbolFileInfo } from './info';
@@ -44,25 +43,7 @@ export class UploadWorker {
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<void> {
         let { path, relativePath } = symbolFileInfo;
-        const { dbgId, moduleName, fat } = symbolFileInfo;
-
-        if (fat) {
-            const machoDbgIdTuple = await Promise.all(
-                await createMachoFiles(path)
-                    .then(machos =>
-                        machos.map(async macho => ({
-                            dbgId: await macho.getUUID(),
-                            macho
-                        }))
-                    )
-            );
-            const { macho } = machoDbgIdTuple.find(macho => macho.dbgId === dbgId)!;
-            relativePath = join(await macho.getUUID(), moduleName)
-            path = join(tmpDir, relativePath);
-            await mkdir(dirname(path), { recursive: true });
-            await macho.writeFile(path);
-        }
-
+        const { dbgId, moduleName } = symbolFileInfo;
         const folderPrefix = relativePath.replace(/\\/g, '-');
         const fileName = folderPrefix ? [folderPrefix, basename(path)].join('-') : basename(path);
         const uncompressedSize = await this.stat(path).then(stats => stats.size);

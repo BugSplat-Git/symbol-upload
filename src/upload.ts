@@ -76,12 +76,7 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
     }
 
     if (isDsymFile) {
-        const fileInfos = await getDSymFileInfos(path);
-        return fileInfos.map((fileInfo) => ({
-            ...fileInfo,
-            path,
-            relativePath
-        }));
+        return getDSymFileInfos(path);
     }
 
     const dbgId = '';

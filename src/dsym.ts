@@ -1,7 +1,10 @@
 import { createMachoFiles, FatFile } from 'macho-uuid';
-import { dirname, sep } from 'node:path';
+import { mkdir } from 'node:fs/promises';
+import { dirname, join, sep } from 'node:path';
+import { tmpDir } from './tmp';
+import { SymbolFileInfo } from './info';
 
-export async function getDSymFileInfos(path: string): Promise<{ dbgId: string, moduleName: string, fat: boolean }[]> {
+export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> {
     try {
         const machoFiles = await createMachoFiles(path);
 
@@ -10,23 +13,23 @@ export async function getDSymFileInfos(path: string): Promise<{ dbgId: string, m
         }
 
         return Promise.all(
-            machoFiles.map(async (machoFile) => {
-                const fat = await FatFile.isFat(machoFile.path);
-                const dbgId = await machoFile.getUUID();
-                const moduleName = dirname(machoFile.path).split(sep).find(part => part.toLowerCase().includes('.dsym'))!;
+            machoFiles.map(async (macho) => {
+                const dbgId = await macho.getUUID();
+                const moduleName = dirname(macho.path).split(sep).find(part => part.toLowerCase().includes('.dsym'))!;
+                const relativePath = join(await macho.getUUID(), moduleName)
+                const path = join(tmpDir, relativePath);
+                await mkdir(dirname(path), { recursive: true });
+                await macho.writeFile(path);
                 return {
+                    path,
+                    relativePath,
                     dbgId,
                     moduleName,
-                    fat
                 }
             })
         );
     } catch {
         console.log(`Could not create macho files for ${path}, skipping...`);
-        return [{
-            dbgId: '',
-            moduleName: '',
-            fat: false
-        }];
+        return [];
     }
 }
