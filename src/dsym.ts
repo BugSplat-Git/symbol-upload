@@ -15,7 +15,7 @@ export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> 
         return Promise.all(
             machoFiles.map(async (macho) => {
                 const dbgId = await macho.getUUID();
-                const moduleName = dirname(macho.path).split(sep).find(part => part.toLowerCase().includes('.dsym'))!;
+                const moduleName = normalizeModuleName(dirname(macho.path).split(sep).find(part => part.toLowerCase().includes('.dsym'))!);
                 const relativePath = join(await macho.getUUID(), moduleName)
                 const path = join(tmpDir, relativePath);
                 await mkdir(dirname(path), { recursive: true });
@@ -32,4 +32,8 @@ export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> 
         console.log(`Could not create macho files for ${path}, skipping...`);
         return [];
     }
+}
+
+function normalizeModuleName(moduleName: string): string {
+    return moduleName.split('.')[0];
 }
