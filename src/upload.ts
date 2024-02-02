@@ -75,9 +75,10 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
         } as SymbolFileInfo];
     }
 
-    if (isDsymFile) {
-        return getDSymFileInfos(path);
-    }
+    // TODO BG enable when the backend is ready
+    // if (isDsymFile) {
+    //     return getDSymFileInfos(path);
+    // }
 
     const dbgId = '';
     const moduleName = basename(path);
