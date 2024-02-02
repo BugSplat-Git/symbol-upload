@@ -2,9 +2,11 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
-import { readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, stat } from 'node:fs/promises';
 import { uploadSymbolFiles } from '../src/upload';
 import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
+import { safeRemoveTmp, tmpDir } from '../src/tmp';
+import { existsSync } from 'node:fs';
 
 (async () => {
     let {
@@ -88,13 +90,19 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
 
     directory = normalizeDirectory(directory);
 
+    if (!existsSync(tmpDir)) {
+        await mkdir(tmpDir);
+    }
+
     await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
 
     process.exit(0);
 })().catch((error) => {
     console.error(error.message);
     process.exit(1);
-});
+}).finally(async () => {
+    await safeRemoveTmp();
+})
 
 async function createBugSplatClient({
     user,
