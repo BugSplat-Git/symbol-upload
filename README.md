@@ -103,7 +103,7 @@ Links
                                                    
   💌 support@bugsplat.com   
 ```
-3. Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`
+3. Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`. Multiple file types can be specified in curly brackets separated by a comma, and wildcards can be used to search directories recursively. For example, `**/*.{pdb,exe,dll}` will search for all `.pdb`, `.exe`, and `.dll` files in the current directory and all subdirectories. 
 
 ## API
 
