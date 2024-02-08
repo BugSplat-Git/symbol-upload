@@ -39,12 +39,12 @@ Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/usin
 ## Command Line
 
 1. Install this package globally `npm i -g @bugsplat/symbol-upload`
-2. Run symbol-upload with `-h` to see the latest usage information:
+2. Run symbol-upload with `-h` to see the latest usage information and package version:
 
 ```bash
 bobby@BugSplat % ~ % symbol-upload -h
 
-@bugsplat/symbol-upload
+@bugsplat/symbol-upload v7.2.2
 
   symbol-upload contains a command line utility and a set of libraries to help  
   you upload symbol files to BugSplat.                                          
