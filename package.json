@@ -21,7 +21,7 @@
     "build": "tsc",
     "prerelease": "npm run build",
     "release": "npm publish --access public",
-    "prepkg": "npm run build",
+    "prepkg": "npm run build && copyfiles ./package.json ./dist",
     "pkg": "npx pkg package.json"
   },
   "repository": {
@@ -62,6 +62,7 @@
     "@types/node": "^18.15.10",
     "@types/promise-retry": "^1.1.4",
     "@types/workerpool": "^6.4.4",
+    "copyfiles": "^2.4.1",
     "dotenv": "^10.0.0",
     "extract-zip": "^2.0.1",
     "jasmine": "^4.6.0",

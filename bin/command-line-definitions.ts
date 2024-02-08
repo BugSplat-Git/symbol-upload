@@ -1,5 +1,6 @@
 import { OptionDefinition as ArgDefinition } from "command-line-args";
 import { OptionDefinition as UsageDefinition, Section } from "command-line-usage";
+const packageJson = require('../package.json');
 
 export type CommandLineDefinition = ArgDefinition & UsageDefinition;
 
@@ -85,7 +86,7 @@ export const argDefinitions: Array<CommandLineDefinition> = [
 
 export const usageDefinitions: Array<Section> = [
     {
-        header: '@bugsplat/symbol-upload',
+        header: `@bugsplat/symbol-upload v${packageJson.version}`,
         content: 'symbol-upload contains a command line utility and a set of libraries to help you upload symbol files to BugSplat.',
     },
     {
