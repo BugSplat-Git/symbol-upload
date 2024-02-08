@@ -3,6 +3,7 @@ import { glob } from "glob";
 import { basename, dirname, extname, join, relative } from "node:path";
 import { pool } from "workerpool";
 import { getDSymFileInfos } from './dsym';
+import { tryGetElfUUID } from './elf';
 import { SymbolFileInfo } from './info';
 import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
 import { getSymFileInfo } from './sym';
@@ -41,6 +42,7 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
     const isSymFile = extLowerCase.includes('.sym');
     const isPdbFile = extLowerCase.includes('.pdb');
     const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll');
+    const isElfFile = extLowerCase.includes('.elf') || extLowerCase.includes('.self');
     const isDsymFile = extLowerCase.includes('.dsym');
 
     if (isPdbFile) {
@@ -77,6 +79,17 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
 
     if (isDsymFile) {
         return getDSymFileInfos(path);
+    }
+
+    if (isElfFile) {
+        const dbgId = await tryGetElfUUID(path);
+        const moduleName = basename(path);
+        return [{
+            path,
+            dbgId,
+            moduleName,
+            relativePath
+        } as SymbolFileInfo];
     }
 
     const dbgId = '';
