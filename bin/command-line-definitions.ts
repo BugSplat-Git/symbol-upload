@@ -1,6 +1,7 @@
 import { OptionDefinition as ArgDefinition } from "command-line-args";
 import { Section, OptionDefinition as UsageDefinition } from "command-line-usage";
 import { existsSync, readFileSync } from "fs";
+import { join } from "node:path";
 
 const packageVersion = getPackageVersion();
 
@@ -123,9 +124,9 @@ export const usageDefinitions: Array<Section> = [
 
 function getPackageVersion(): string {
     const path = [
-        'package.json',
-        '../package.json',
-        '../../package.json',
+        join(__dirname, 'package.json'),
+        join(__dirname, '../package.json'),
+        join(__dirname, '../../package.json'),
     ].find((path) => existsSync(path));
 
     if (!path) {
