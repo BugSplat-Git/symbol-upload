@@ -50,7 +50,7 @@ runs:
   steps:
     - name: Install symbol-upload
       shell: bash
-      run: npm i -g @bugsplat/symbol-upload
+      run: npm i -g @bugsplat/symbol-upload@7.2.3
         
     - name: Run symbol-upload
       shell: bash
