@@ -1,6 +1,8 @@
 import { OptionDefinition as ArgDefinition } from "command-line-args";
-import { OptionDefinition as UsageDefinition, Section } from "command-line-usage";
-const packageJson = require('../package.json');
+import { Section, OptionDefinition as UsageDefinition } from "command-line-usage";
+import { existsSync, readFileSync } from "fs";
+
+const packageVersion = getPackageVersion();
 
 export type CommandLineDefinition = ArgDefinition & UsageDefinition;
 
@@ -86,7 +88,7 @@ export const argDefinitions: Array<CommandLineDefinition> = [
 
 export const usageDefinitions: Array<Section> = [
     {
-        header: `@bugsplat/symbol-upload v${packageJson.version}`,
+        header: `@bugsplat/symbol-upload v${packageVersion}`,
         content: 'symbol-upload contains a command line utility and a set of libraries to help you upload symbol files to BugSplat.',
     },
     {
@@ -118,3 +120,23 @@ export const usageDefinitions: Array<Section> = [
             ]
     }
 ];
+
+function getPackageVersion(): string {
+    const path = [
+        'package.json',
+        '../package.json',
+        '../../package.json',
+    ].find((path) => existsSync(path));
+
+    if (!path) {
+        throw new Error('Could not find package.json');
+    }
+
+    const packageJson = readFileSync(path, 'utf-8').toString();
+    
+    try {
+        return JSON.parse(packageJson).version;
+    } catch {
+        throw new Error('Could not parse package.json');
+    }
+}
