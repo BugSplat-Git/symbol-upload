@@ -21,7 +21,7 @@ export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, a
 
     console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
-    
+
     const symbolsApiClient = new SymbolsApiClient(bugsplat);
     const versionsApiClient = new VersionsApiClient(bugsplat);
     const symbolFiles = await Promise.all(
@@ -75,10 +75,9 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
         } as SymbolFileInfo];
     }
 
-    // TODO BG enable when the backend is ready
-    // if (isDsymFile) {
-    //     return getDSymFileInfos(path);
-    // }
+    if (isDsymFile) {
+        return getDSymFileInfos(path);
+    }
 
     const dbgId = '';
     const moduleName = basename(path);

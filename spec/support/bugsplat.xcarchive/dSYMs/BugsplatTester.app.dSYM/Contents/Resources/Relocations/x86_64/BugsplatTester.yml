@@ -1,0 +1,24 @@
+---
+triple:          'x86_64-apple-darwin'
+binary-path:     '/Users/bobby/Library/Developer/Xcode/DerivedData/BugsplatTester-gunlfjosgoiioffesuafawoidafl/Build/Intermediates.noindex/ArchiveIntermediates/BugsplatTester/InstallationBuildProductsLocation/Applications/BugsplatTester.app/Contents/MacOS/BugsplatTester'
+relocations:
+  - { offsetInCU: 0x27, offset: 0xC7D56, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x1000029F9, symSize: 0xA }
+  - { offsetInCU: 0x3C, offset: 0xC7D6B, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x1000029F9, symSize: 0xA }
+  - { offsetInCU: 0x27, offset: 0xC7E1D, size: 0x8, addend: 0x0, symName: '-[AppDelegate init]', symObjAddr: 0x0, symBinAddr: 0x100002A03, symSize: 0x2F }
+  - { offsetInCU: 0x76, offset: 0xC7E6C, size: 0x8, addend: 0x0, symName: '-[AppDelegate init]', symObjAddr: 0x0, symBinAddr: 0x100002A03, symSize: 0x2F }
+  - { offsetInCU: 0xAD, offset: 0xC7EA3, size: 0x8, addend: 0x0, symName: '-[AppDelegate applicationWillFinishLaunching:]', symObjAddr: 0x2F, symBinAddr: 0x100002A32, symSize: 0x6 }
+  - { offsetInCU: 0xE8, offset: 0xC7EDE, size: 0x8, addend: 0x0, symName: '-[AppDelegate applicationDidFinishLaunching:]', symObjAddr: 0x35, symBinAddr: 0x100002A38, symSize: 0xBF }
+  - { offsetInCU: 0x1BA, offset: 0xC7FB0, size: 0x8, addend: 0x0, symName: '-[AppDelegate performCrash]', symObjAddr: 0xF4, symBinAddr: 0x100002AF7, symSize: 0xE }
+  - { offsetInCU: 0x1F6, offset: 0xC7FEC, size: 0x8, addend: 0x0, symName: '-[AppDelegate crash:]', symObjAddr: 0x102, symBinAddr: 0x100002B05, symSize: 0x12 }
+  - { offsetInCU: 0x248, offset: 0xC803E, size: 0x8, addend: 0x0, symName: '-[AppDelegate applicationLogForBugsplatStartupManager:]', symObjAddr: 0x114, symBinAddr: 0x100002B17, symSize: 0xD }
+  - { offsetInCU: 0x2CB, offset: 0xC80C1, size: 0x8, addend: 0x0, symName: '-[AppDelegate bugsplatStartupManagerWillShowSubmitCrashReportAlert:]', symObjAddr: 0x121, symBinAddr: 0x100002B24, symSize: 0x39 }
+  - { offsetInCU: 0x32C, offset: 0xC8122, size: 0x8, addend: 0x0, symName: '-[AppDelegate bugsplatStartupManagerWillCancelSendingCrashReport:]', symObjAddr: 0x15A, symBinAddr: 0x100002B5D, symSize: 0x39 }
+  - { offsetInCU: 0x38D, offset: 0xC8183, size: 0x8, addend: 0x0, symName: '-[AppDelegate bugsplatStartupManagerWillSendCrashReport:]', symObjAddr: 0x193, symBinAddr: 0x100002B96, symSize: 0x39 }
+  - { offsetInCU: 0x3EE, offset: 0xC81E4, size: 0x8, addend: 0x0, symName: '-[AppDelegate bugsplatStartupManagerDidFinishSendingCrashReport:]', symObjAddr: 0x1CC, symBinAddr: 0x100002BCF, symSize: 0x39 }
+  - { offsetInCU: 0x44F, offset: 0xC8245, size: 0x8, addend: 0x0, symName: '-[AppDelegate bugsplatStartupManager:didFailWithError:]', symObjAddr: 0x205, symBinAddr: 0x100002C08, symSize: 0x5F }
+  - { offsetInCU: 0x4E9, offset: 0xC82DF, size: 0x8, addend: 0x0, symName: '-[AppDelegate attachmentsForBugsplatStartupManager:]', symObjAddr: 0x264, symBinAddr: 0x100002C67, symSize: 0x1A6 }
+  - { offsetInCU: 0x69E, offset: 0xC8494, size: 0x8, addend: 0x0, symName: '-[AppDelegate applicationKeyForBugsplatStartupManager:signal:exceptionName:exceptionReason:]', symObjAddr: 0x40A, symBinAddr: 0x100002E0D, symSize: 0x26 }
+  - { offsetInCU: 0x72C, offset: 0xC8522, size: 0x8, addend: 0x0, symName: '-[AppDelegate window]', symObjAddr: 0x430, symBinAddr: 0x100002E33, symSize: 0x16 }
+  - { offsetInCU: 0x763, offset: 0xC8559, size: 0x8, addend: 0x0, symName: '-[AppDelegate setWindow:]', symObjAddr: 0x446, symBinAddr: 0x100002E49, symSize: 0x11 }
+  - { offsetInCU: 0x7A2, offset: 0xC8598, size: 0x8, addend: 0x0, symName: '-[AppDelegate .cxx_destruct]', symObjAddr: 0x457, symBinAddr: 0x100002E5A, symSize: 0xE }
+...

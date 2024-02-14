@@ -1,8 +1,8 @@
-import { createMachoFiles, FatFile } from 'macho-uuid';
+import { createMachoFiles } from 'macho-uuid';
 import { mkdir } from 'node:fs/promises';
-import { dirname, join, sep } from 'node:path';
-import { tmpDir } from './tmp';
+import { basename, dirname, join } from 'node:path';
 import { SymbolFileInfo } from './info';
+import { tmpDir } from './tmp';
 
 export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> {
     try {
@@ -15,7 +15,7 @@ export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> 
         return Promise.all(
             machoFiles.map(async (macho) => {
                 const dbgId = await macho.getUUID();
-                const moduleName = normalizeModuleName(dirname(macho.path).split(sep).find(part => part.toLowerCase().includes('.dsym'))!);
+                const moduleName = basename(macho.path);
                 const relativePath = join(await macho.getUUID(), moduleName)
                 const path = join(tmpDir, relativePath);
                 await mkdir(dirname(path), { recursive: true });
