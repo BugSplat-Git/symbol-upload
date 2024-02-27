@@ -44,10 +44,20 @@ inputs:
     description: "Base directory for files"
     type: string
     required: false
+  node-version:
+    description: "Node.js version to use"
+    type: string
+    required: false
+    default: '20'
 
 runs:
   using: composite
   steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
     - name: Install symbol-upload
       shell: bash
       run: npm i -g @bugsplat/symbol-upload

@@ -23,7 +23,8 @@
     "prerelease": "npm run build",
     "release": "npm publish --access public",
     "prepkg": "npm run build",
-    "pkg": "npx pkg package.json"
+    "pkg": "npx pkg package.json",
+    "act": "act --secret-file .env"
   },
   "repository": {
     "type": "git",

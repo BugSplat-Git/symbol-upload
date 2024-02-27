@@ -27,11 +27,12 @@ You can use the `symbol-upload` action in your [GitHub Actions](https://github.c
     with:
       clientId: "${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}"
       clientSecret: "${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}"
-      database:"${{ secrets.BUGSPLAT_DATABASE }}"
+      database: "${{ secrets.BUGSPLAT_DATABASE }}"
       application: "your-application"
       version: "your-version"
       files: "**/*.{pdb,exe,dll}"
       directory: "your-build-directory"
+      node-version: "20"
 ```
 
 Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) so that you don't expose the values for `clientId`, `clientSecret`, and `database`.
