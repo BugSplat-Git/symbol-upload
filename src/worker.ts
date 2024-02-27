@@ -1,7 +1,7 @@
 import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
-import { ReadStream, createReadStream } from 'fs';
+import { ReadStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { stat } from 'node:fs/promises';
-import { basename, extname, join } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 import retryPromise from 'promise-retry';
 import { WorkerPool, cpus } from 'workerpool';
 import { SymbolFileInfo } from './info';
@@ -56,6 +56,10 @@ export class UploadWorker {
 
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}.gz`);
+            let tmpSubdir = join(tmpDir, dirname(fileName));
+            if (!existsSync(tmpSubdir)) {
+                mkdirSync(tmpSubdir, { recursive: true });
+            }
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
         } else if (!isZip) {
