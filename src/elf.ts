@@ -12,7 +12,7 @@ export async function tryGetElfUUID(path: string) {
   }
 
   if (success) {
-    return getUUID(section!);
+    return getUUID(section!, 16);
   }
 
   elfFile = await ElfFile.create(path);
@@ -29,6 +29,6 @@ export async function tryGetElfUUID(path: string) {
   return '';
 }
 
-function getUUID(section: Buffer) {
-  return section.subarray(0, 20).toString('hex');
+function getUUID(section: Buffer, offset = 0) {
+  return section.subarray(offset, offset + 20).toString('hex');
 }
