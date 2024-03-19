@@ -2,11 +2,14 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
+import { glob } from 'glob';
+import { dumpSyms as nodeDumpSyms } from 'node-dump-syms';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
-import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { existsSync } from 'node:fs';
 
 (async () => {
     let {
@@ -21,6 +24,7 @@ import { existsSync } from 'node:fs';
         remove,
         files,
         directory,
+        dumpSyms
     } = await getCommandLineOptions(argDefinitions);
 
     if (help) {
@@ -94,7 +98,26 @@ import { existsSync } from 'node:fs';
         await mkdir(tmpDir);
     }
 
-    await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
+    const globPattern = `${directory}/${files}`;
+
+    let symbolFilePaths = await glob(globPattern);
+
+    if (!symbolFilePaths.length) {
+        throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
+    }
+
+    console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
+
+    if (dumpSyms) {
+        symbolFilePaths = symbolFilePaths.map(file => {
+            console.log(`Dumping syms for ${file}...`);
+            const symFile = join(tmpDir, `${basename(file)}.sym`);
+            nodeDumpSyms(file, symFile);
+            return symFile;
+        });
+    }
+
+    await uploadSymbolFiles(bugsplat, database, application, version, directory, symbolFilePaths);
 
     process.exit(0);
 })().catch((error) => {

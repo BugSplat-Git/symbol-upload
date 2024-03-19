@@ -57,6 +57,19 @@
             "type": "node"
         },
         {
+            "name": "Start: dump_syms",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:dump_syms",
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Test",
             "request": "launch",
             "runtimeArgs": [

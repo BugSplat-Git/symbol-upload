@@ -1,5 +1,4 @@
 import { ApiClient, SymbolsApiClient, VersionsApiClient } from "@bugsplat/js-api-client";
-import { glob } from "glob";
 import { basename, dirname, extname, join, relative } from "node:path";
 import { pool } from "workerpool";
 import { getDSymFileInfos } from './dsym';
@@ -11,16 +10,7 @@ import { createWorkersFromSymbolFiles } from './worker';
 
 const workerPool = pool(join(__dirname, 'compression.js'));
 
-export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, directory: string, filesGlob: string) {
-    const globPattern = `${directory}/${filesGlob}`;
-
-    const symbolFilePaths = await glob(globPattern);
-
-    if (!symbolFilePaths.length) {
-        throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
-    }
-
-    console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
+export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, directory: string, symbolFilePaths: Array<string>) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
     const symbolsApiClient = new SymbolsApiClient(bugsplat);

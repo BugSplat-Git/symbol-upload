@@ -85,6 +85,14 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         typeLabel: '{underline string} (optional)',
         description: 'Path of the base directory used to search for symbol files. This value will be combined with the --files glob. Defaults to \'.\'',
     },
+    {
+        name: 'dumpSyms',
+        alias: 'm',
+        type: Boolean,
+        defaultValue: false,
+        description: 'Use dump_syms to generate and upload sym files for specified binaries.',
+        typeLabel: '{underline boolean} (optional)',
+    }
 ];
 
 export const usageDefinitions: Array<Section> = [
@@ -134,7 +142,7 @@ function getPackageVersion(): string {
     }
 
     const packageJson = readFileSync(path, 'utf-8').toString();
-    
+
     try {
         return JSON.parse(packageJson).version;
     } catch {
