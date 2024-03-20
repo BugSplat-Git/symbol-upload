@@ -15,11 +15,11 @@
 
 # symbol-upload
 
-This repo is a simple Node.js utility, set of libraries, and GitHub action for uploading symbol files or source maps to [BugSplat](https://www.bugsplat.com). This utility is designed to be used in your build process to upload symbols to BugSplat for each production build automatically. This package can be used as a library or a command line utility.
+This repo is a simple Node.js utility, set of libraries, and GitHub action for uploading symbol files or source maps to [BugSplat](https://www.bugsplat.com). This utility is designed to be used in your build process to upload symbols to BugSplat automatically for each production build. This package can be used as a library or a command line utility.
 
 ## Action
 
-You can use the `symbol-upload` action in your [GitHub Actions](https://github.com/features/actions) workflow by modifying the following snippet.
+Use the `symbol-upload` action in your [GitHub Actions](https://github.com/features/actions) workflow by modifying the following snippet.
 
 ```yml
 - name: Symbols 📦
@@ -80,7 +80,8 @@ Usage
                                          option is provided no other actions are taken.                                
   -f, --files string (optional)          Glob pattern that specifies a set of files to upload. Defaults to '*.js.map'  
   -d, --directory string (optional)      Path of the base directory used to search for symbol files. This value will   
-                                         be combined with the --files glob. Defaults to '.'                            
+                                         be combined with the --files glob. Defaults to '.'
+  -m, --dumpSyms boolean (optional)      Use dump_syms to generate and upload sym files for specified binaries.                              
 
   The -u and -p arguments are not required if you set the environment variables 
   SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD, or provide a clientId and      
@@ -104,7 +105,7 @@ Links
                                                    
   💌 support@bugsplat.com   
 ```
-3. Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`. Multiple file types can be specified in curly brackets separated by a comma, and wildcards can be used to search directories recursively. For example, `**/*.{pdb,exe,dll}` will search for all `.pdb`, `.exe`, and `.dll` files in the current directory and all subdirectories. 
+3. Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`. Multiple file types can be specified in curly brackets separated by a comma, and wildcards can be used to search directories recursively. For example, `**/*.{pdb,exe,dll}` will search for all `.pdb`, `.exe`, and `.dll` files in the current directory and all subdirectories. Optionally, you can specify the `-m` flag to run [dump_syms](https://github.com/BugSplat-Git/node-dump-syms) against the specified binaries and upload the resulting `.sym` files.
 
 ## API
 
@@ -129,7 +130,7 @@ const bugsplat = await OAuthClientCredentialsClient.createAuthenticatedClient(cl
 
 ```ts
 const directory = '/path/to/symbols/dir';
-const files = '**/*.+(exe|dll|pdb)';
+const files = ['my-cool-app.exe', 'my-cool-app.pdb'];
 await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
 ```
 
