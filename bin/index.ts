@@ -123,14 +123,13 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
     }
 
     await uploadSymbolFiles(bugsplat, database, application, version, directory, symbolFilePaths);
-
-    process.exit(0);
-})().catch((error) => {
-    console.error(error.message);
-    process.exit(1);
-}).finally(async () => {
     await safeRemoveTmp();
-})
+    process.exit(0);
+})().catch(async (error) => {
+    console.error(error.message);
+    await safeRemoveTmp();
+    process.exit(1);
+});
 
 async function createBugSplatClient({
     user,
