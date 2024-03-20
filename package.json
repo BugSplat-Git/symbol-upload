@@ -56,7 +56,8 @@
     "outputPath": "./pkg",
     "compress": "GZip",
     "assets": [
-      "package.json"
+      "package.json",
+      "node_modules/node-dump-syms/dist/native/index.addon"
     ]
   },
   "devDependencies": {
@@ -91,5 +92,8 @@
     "promise-retry": "^2.0.1",
     "rxjs": "^7.8.1",
     "workerpool": "^6.5.1"
+  },
+  "optionalDependencies": {
+    "node-dump-syms": "^3.0.6"
   }
 }

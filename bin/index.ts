@@ -3,7 +3,6 @@ import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApi
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
-import { dumpSyms as nodeDumpSyms } from 'node-dump-syms';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
@@ -109,12 +108,17 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
     console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
 
     if (dumpSyms) {
-        symbolFilePaths = symbolFilePaths.map(file => {
-            console.log(`Dumping syms for ${file}...`);
-            const symFile = join(tmpDir, `${basename(file)}.sym`);
-            nodeDumpSyms(file, symFile);
-            return symFile;
-        });
+        try {
+            const nodeDumpSyms = (await import('node-dump-syms')).dumpSyms;
+            symbolFilePaths = symbolFilePaths.map(file => {
+                console.log(`Dumping syms for ${file}...`);
+                const symFile = join(tmpDir, `${basename(file)}.sym`);
+                nodeDumpSyms(file, symFile);
+                return symFile;
+            });
+        } catch (error) {
+            console.log('node-dump-syms not found, skipping sym dumping...');
+        }
     }
 
     await uploadSymbolFiles(bugsplat, database, application, version, directory, symbolFilePaths);
