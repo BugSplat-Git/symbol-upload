@@ -187,12 +187,12 @@ function logHelpAndExit() {
 
 function logMissingArgAndExit(arg: string): void {
     console.log(`\nMissing argument: -${arg}\n`);
-    process.exit(1);
+    logHelpAndExit()
 }
 
 function logMissingAuthAndExit(): void {
     console.log('\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n');
-    process.exit(1);
+    logHelpAndExit()
 }
 
 function normalizeDirectory(directory: string): string {
