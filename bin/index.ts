@@ -109,6 +109,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
 
     if (dumpSyms) {
         try {
+            // @ts-ignore: Cannot find module
             const nodeDumpSyms = (await import('node-dump-syms')).dumpSyms;
             symbolFilePaths = symbolFilePaths.map(file => {
                 console.log(`Dumping syms for ${file}...`);
