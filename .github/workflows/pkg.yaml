@@ -1,6 +1,10 @@
-name: Build and Upload Artifacts for Multiple OS
+name: Package Builds
 
-on: [push]
+on:
+    push:
+        tags:
+        - 'v*'
+
 
 jobs:
   build:
@@ -20,20 +24,22 @@ jobs:
             artifact_name: symbol-upload-win
     
     steps:
-    - uses: actions/checkout@v4
+    - name: ☑️ Checkout
+      uses: actions/checkout@v4
 
-    - name: Setup Node.js
+    - name: ⚙️ Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
 
-    - name: Install dependencies
+    - name: 🏗️ Install Dependencies
       run: npm ci
 
-    - name: Run platform-specific script
+    - name: 📦 Run Pkg
       run: npm run ${{ matrix.run_script }} # Executes the script based on the operating system
 
-    - uses: actions/upload-artifact@v4
+    - name: ⬆️ Upload Artifacts
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
         path: pkg/* # Uploads the artifact with a platform-specific name and path
