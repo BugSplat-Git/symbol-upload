@@ -117,8 +117,8 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
                 nodeDumpSyms(file, symFile);
                 return symFile;
             });
-        } catch (error) {
-            console.log('node-dump-syms not found, skipping sym dumping...');
+        } catch (cause) {
+            throw new Error('Can\'t run dump_syms! Please ensure node-dump-syms is installed https://github.com/BugSplat-Git/node-dump-syms', { cause });
         }
     }
 
