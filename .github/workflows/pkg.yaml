@@ -16,7 +16,7 @@ jobs:
             run_script: pkg:macos
             artifact_name: symbol-upload-macos
           - os: windows-latest
-            run_script: pkg:win
+            run_script: pkg:windows
             artifact_name: symbol-upload-win
     
     steps:
