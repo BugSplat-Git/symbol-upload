@@ -24,8 +24,12 @@
     "build": "tsc",
     "prerelease": "npm run build",
     "release": "npm publish --access public",
-    "prepkg": "npm run build",
-    "pkg": "npx pkg package.json",
+    "prepkg:linux": "npm run build",
+    "pkg:linux": "npx pkg package.json --targets node18-linux-x64 --output ./pkg/symbol-upload-linux",
+    "prepkg:macos": "npm run build",
+    "pkg:macos": "npx pkg package.json --targets node18-macos-x64 --output ./pkg/symbol-upload-macos",
+    "prepkg:windows": "npm run build",
+    "pkg:windows": "npx pkg package.json --targets node18-win-x64 --output ./pkg/symbol-upload-windows",
     "act": "act --secret-file .env"
   },
   "repository": {
@@ -48,12 +52,6 @@
   "homepage": "https://github.com/BugSplat-Git/symbol-upload#readme",
   "pkg": {
     "scripts": "./dist/**/*.js",
-    "targets": [
-      "node18-macos-x64",
-      "node18-linux-x64",
-      "node18-win-x64"
-    ],
-    "outputPath": "./pkg",
     "compress": "GZip",
     "assets": [
       "package.json",
