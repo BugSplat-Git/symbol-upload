@@ -2,11 +2,13 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
+import { glob } from 'glob';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
-import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { existsSync } from 'node:fs';
 
 (async () => {
     let {
@@ -21,6 +23,7 @@ import { existsSync } from 'node:fs';
         remove,
         files,
         directory,
+        dumpSyms
     } = await getCommandLineOptions(argDefinitions);
 
     if (help) {
@@ -94,15 +97,39 @@ import { existsSync } from 'node:fs';
         await mkdir(tmpDir);
     }
 
-    await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
+    const globPattern = `${directory}/${files}`;
 
-    process.exit(0);
-})().catch((error) => {
-    console.error(error.message);
-    process.exit(1);
-}).finally(async () => {
+    let symbolFilePaths = await glob(globPattern);
+
+    if (!symbolFilePaths.length) {
+        throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
+    }
+
+    console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
+
+    if (dumpSyms) {
+        try {
+            // @ts-ignore: Cannot find module
+            const nodeDumpSyms = (await import('node-dump-syms')).dumpSyms;
+            symbolFilePaths = symbolFilePaths.map(file => {
+                console.log(`Dumping syms for ${file}...`);
+                const symFile = join(tmpDir, `${basename(file)}.sym`);
+                nodeDumpSyms(file, symFile);
+                return symFile;
+            });
+        } catch (cause) {
+            throw new Error('Can\'t run dump_syms! Please ensure node-dump-syms is installed https://github.com/BugSplat-Git/node-dump-syms', { cause });
+        }
+    }
+
+    await uploadSymbolFiles(bugsplat, database, application, version, directory, symbolFilePaths);
     await safeRemoveTmp();
-})
+    process.exit(0);
+})().catch(async (error) => {
+    console.error(error.message);
+    await safeRemoveTmp();
+    process.exit(1);
+});
 
 async function createBugSplatClient({
     user,
@@ -160,12 +187,12 @@ function logHelpAndExit() {
 
 function logMissingArgAndExit(arg: string): void {
     console.log(`\nMissing argument: -${arg}\n`);
-    process.exit(1);
+    logHelpAndExit()
 }
 
 function logMissingAuthAndExit(): void {
     console.log('\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n');
-    process.exit(1);
+    logHelpAndExit()
 }
 
 function normalizeDirectory(directory: string): string {

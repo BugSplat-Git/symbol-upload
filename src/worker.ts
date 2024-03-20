@@ -55,11 +55,11 @@ export class UploadWorker {
         let tmpFileName = '';
 
         if (dbgId && !isZip) {
-            tmpFileName = join(tmpDir, `${fileName}.gz`);
-            let tmpSubdir = join(tmpDir, dirname(fileName));
+            const tmpSubdir = join(tmpDir, dirname(fileName));
             if (!existsSync(tmpSubdir)) {
                 mkdirSync(tmpSubdir, { recursive: true });
             }
+            tmpFileName = join(tmpSubdir, `${fileName}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
         } else if (!isZip) {

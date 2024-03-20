@@ -16,6 +16,7 @@
     "start:dsym": "ts-node -r dotenv/config ./bin/index.ts -d ./spec/support -f \"*.dSYM\" -a BugSplatTester -v \"1.0 (1)\"",
     "start:xcarchive": "ts-node -r dotenv/config ./bin/index.ts -d ./spec/support -f \"*.xcarchive/**/*.dSYM\" -v \"4.5.6 (1)\"",
     "start:elf": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.elf\"",
+    "start:dump_syms": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.dSYM\" -m",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",
@@ -23,8 +24,12 @@
     "build": "tsc",
     "prerelease": "npm run build",
     "release": "npm publish --access public",
-    "prepkg": "npm run build",
-    "pkg": "npx pkg package.json",
+    "prepkg:linux": "npm run build",
+    "pkg:linux": "npx pkg package.json --targets node18-linux-x64 --output ./pkg/symbol-upload-linux",
+    "prepkg:macos": "npm run build",
+    "pkg:macos": "npx pkg package.json --targets node18-macos-x64 --output ./pkg/symbol-upload-macos",
+    "prepkg:windows": "npm run build",
+    "pkg:windows": "npx pkg package.json --targets node18-win-x64 --output ./pkg/symbol-upload-windows",
     "act": "act --secret-file .env"
   },
   "repository": {
@@ -47,15 +52,10 @@
   "homepage": "https://github.com/BugSplat-Git/symbol-upload#readme",
   "pkg": {
     "scripts": "./dist/**/*.js",
-    "targets": [
-      "node18-macos-x64",
-      "node18-linux-x64",
-      "node18-win-x64"
-    ],
-    "outputPath": "./pkg",
     "compress": "GZip",
     "assets": [
-      "package.json"
+      "package.json",
+      "node_modules/node-dump-syms/dist/native/index.addon"
     ]
   },
   "devDependencies": {
@@ -90,5 +90,8 @@
     "promise-retry": "^2.0.1",
     "rxjs": "^7.8.1",
     "workerpool": "^6.5.1"
+  },
+  "optionalDependencies": {
+    "node-dump-syms": "^3.0.6"
   }
 }

@@ -1,0 +1,45 @@
+name: Package Builds
+
+on:
+    push:
+        tags:
+        - 'v*'
+
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            run_script: pkg:linux
+            artifact_name: symbol-upload-linux
+          - os: macos-latest
+            run_script: pkg:macos
+            artifact_name: symbol-upload-macos
+          - os: windows-latest
+            run_script: pkg:windows
+            artifact_name: symbol-upload-win
+    
+    steps:
+    - name: ☑️ Checkout
+      uses: actions/checkout@v4
+
+    - name: ⚙️ Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: 🏗️ Install Dependencies
+      run: npm ci
+
+    - name: 📦 Run Pkg
+      run: npm run ${{ matrix.run_script }} # Executes the script based on the operating system
+
+    - name: ⬆️ Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: pkg/* # Uploads the artifact with a platform-specific name and path
