@@ -55,7 +55,7 @@
     "compress": "GZip",
     "assets": [
       "package.json",
-      "node_modules/node-dump-syms/dist/native/index.addon"
+      "node_modules/node-dump-syms/dist/native/index.node"
     ]
   },
   "devDependencies": {
