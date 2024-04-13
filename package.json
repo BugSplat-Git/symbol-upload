@@ -72,6 +72,7 @@
     "dotenv": "^10.0.0",
     "extract-zip": "^2.0.1",
     "jasmine": "^4.6.0",
+    "node-pre-gyp": "^0.17.0",
     "pkg": "^5.8.1",
     "rimraf": "^5.0.0",
     "ts-node": "^10.9.2",
