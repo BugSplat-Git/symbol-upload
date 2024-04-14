@@ -113,7 +113,8 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
             const nodeDumpSyms = (await import('node-dump-syms')).dumpSyms;
             symbolFilePaths = symbolFilePaths.map(file => {
                 console.log(`Dumping syms for ${file}...`);
-                const symFile = join(tmpDir, `${basename(file)}.sym`);
+                const fileNoExt = file.split('.')[0]; // Handle macos .app.dSYM etc.
+                const symFile = join(tmpDir, `${basename(fileNoExt)}.sym`);
                 nodeDumpSyms(file, symFile);
                 return symFile;
             });
