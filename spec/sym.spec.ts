@@ -34,7 +34,7 @@ describe('getSymFileInfo', () => {
     });
 
     it('should get module name for file with line feeds and carriage returns', async () => {
-        const expected = 'windows';
+        const expected = 'windows.pdb';
 
         const { moduleName } = await getSymFileInfo('./spec/support/windows.sym');
 
