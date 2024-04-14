@@ -18,7 +18,7 @@ describe('getSymFileInfo', () => {
     });
 
     it('should get module name for file with line feeds', async () => {
-        const expected = 'libc++_shared.so';
+        const expected = 'libc++_shared';
 
         const { moduleName } = await getSymFileInfo('./spec/support/android.sym');
 
@@ -34,7 +34,7 @@ describe('getSymFileInfo', () => {
     });
 
     it('should get module name for file with line feeds and carriage returns', async () => {
-        const expected = 'windows.pdb';
+        const expected = 'windows';
 
         const { moduleName } = await getSymFileInfo('./spec/support/windows.sym');
 

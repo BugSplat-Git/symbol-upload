@@ -5,7 +5,7 @@ import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
-import { basename, extname, join } from 'node:path';
+import { basename, join } from 'node:path';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
@@ -113,8 +113,8 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
             const nodeDumpSyms = (await import('node-dump-syms')).dumpSyms;
             symbolFilePaths = symbolFilePaths.map(file => {
                 console.log(`Dumping syms for ${file}...`);
-                const ext = extname(file);
-                const symFile = join(tmpDir, `${basename(file, ext)}.sym`);
+                const fileNoExt = file.split('.')[0]; // Handle macos .app.dSYM etc.
+                const symFile = join(tmpDir, `${basename(fileNoExt)}.sym`);
                 nodeDumpSyms(file, symFile);
                 return symFile;
             });
