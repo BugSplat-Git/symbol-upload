@@ -6,7 +6,7 @@ export async function getSymFileInfo(path: string): Promise<{ dbgId: string, mod
         const matches = Array.from(firstLine?.matchAll(/([0-9a-fA-F]{33,34})\s+(.*)$/gm));
         const dbgId = matches?.at(0)?.at(1) || '';
         const moduleNameWithExt = matches?.at(0)?.at(2) || '';
-        const moduleName = removeNonWindowsExtensions(moduleNameWithExt);
+        const moduleName = removeIgnoredExtensions(moduleNameWithExt);
         return {
             dbgId,
             moduleName
@@ -20,12 +20,16 @@ export async function getSymFileInfo(path: string): Promise<{ dbgId: string, mod
     }
 }
 
-function removeNonWindowsExtensions(moduleName: string): string {
-    const windowsExtensions = ['.dll', '.pdb', '.exe'];
+// The rust-minidump-stackwalker symbol lookup implementation removes some extensions from the module name for symbol lookups.
+// This is a bit of a mystery and is subject to change when we learn more about how it works.
+// For now, remove some module name extensions to satisfy the minidump-stackwalker symbol lookup.
+function removeIgnoredExtensions(moduleName: string): string {
+    // We've seen .pdb, .so, .so.0, and .so.6 in the module lookup
+    const ignoredExtensions = [/\.pdb$/gm, /\.so\.+.*$/gm];
 
-    if (windowsExtensions.some(ext => moduleName.endsWith(ext))) {
+    if (ignoredExtensions.some((regex) => regex.test(moduleName))) {
         return moduleName;
     }
-    
+
     return moduleName.split('.')[0];
 }
