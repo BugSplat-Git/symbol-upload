@@ -10,6 +10,7 @@ import { createWorkersFromSymbolFiles } from './worker';
 
 const workerPool = pool(join(__dirname, 'compression.js'));
 
+// TODO BG should symbolFilePaths be relative to directory?
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, directory: string, symbolFilePaths: Array<string>) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
