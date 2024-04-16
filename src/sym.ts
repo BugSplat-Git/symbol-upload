@@ -25,7 +25,7 @@ export async function getSymFileInfo(path: string): Promise<{ dbgId: string, mod
 // For now, remove some module name extensions to satisfy the minidump-stackwalker symbol lookup.
 function removeIgnoredExtensions(moduleName: string): string {
     // We've seen .pdb, .so, .so.0, and .so.6 in the module lookup
-    const ignoredExtensions = [/\.pdb$/gm, /\.so\.+.*$/gm];
+    const ignoredExtensions = [/\.pdb$/gm, /\.so\.?.*$/gm];
 
     if (ignoredExtensions.some((regex) => regex.test(moduleName))) {
         return moduleName;

@@ -18,7 +18,7 @@ describe('getSymFileInfo', () => {
     });
 
     it('should get module name for file with line feeds', async () => {
-        const expected = 'libc++_shared';
+        const expected = 'libc++_shared.so';
 
         const { moduleName } = await getSymFileInfo('./spec/support/android.sym');
 

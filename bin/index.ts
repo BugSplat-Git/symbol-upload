@@ -182,7 +182,7 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
 // This is a bit of a mystery and is subject to change when we learn more about how it works.
 // For now, remove any non .so extension in the sym file's base name to satisfy the minidump-stackwalker symbol lookup.
 function getSymFileBaseName(file: string): string {
-    const linuxSoExtensionPattern = /\.so\.+.*$/gm;
+    const linuxSoExtensionPattern = /\.so\.?.*$/gm;
     const fileNoExt = file.split('.')[0];
     return linuxSoExtensionPattern.test(file) ? basename(file) : basename(fileNoExt);   
 }
