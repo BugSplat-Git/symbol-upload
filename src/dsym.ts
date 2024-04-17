@@ -22,7 +22,6 @@ export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> 
                 await macho.writeFile(path);
                 return {
                     path,
-                    relativePath,
                     dbgId,
                     moduleName,
                 }

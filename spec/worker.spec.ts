@@ -151,7 +151,6 @@ function createFakeSymbolFileInfos(count: number) {
     return Array.from(Array(count).keys())
         .map((i) => createFakeSymbolFileInfo({
             path: `path${i}`,
-            relativePath: `relativePath${i}`,
             moduleName: `moduleName${i}`,
             dbgId: `dbgId${i}`
         })
@@ -163,7 +162,6 @@ function createFakeSymbolFileInfo(params: Partial<SymbolFileInfo>): SymbolFileIn
         path: 'path',
         moduleName: 'moduleName',
         dbgId: 'dbgId',
-        relativePath: 'relativePath',
     };
     return {
         ...defaults,
