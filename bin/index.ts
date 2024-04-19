@@ -156,12 +156,16 @@ async function fileExists(path: string): Promise<boolean> {
 
 async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition>): Promise<CommandLineOptions> {
     const options = commandLineArgs(argDefinitions);
-    let { application, version } = options;
+    let { database, application, version } = options;
     let packageJson;
-
-    if (!application || !version) {
+    
+    if (!database || !application || !version) {
         const packageJsonPath = './package.json';
         packageJson = await fileExists(packageJsonPath) ? JSON.parse((await readFile(packageJsonPath)).toString()) : null;
+    }
+
+    if (!database && packageJson) {
+        database = packageJson.database;
     }
 
     if (!application && packageJson) {
@@ -174,6 +178,7 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
 
     return {
         ...options,
+        database,
         application,
         version
     }
