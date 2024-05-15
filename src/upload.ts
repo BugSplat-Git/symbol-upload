@@ -32,8 +32,8 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
     const isSymFile = extLowerCase.includes('.sym');
     const isPdbFile = extLowerCase.includes('.pdb');
     const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll');
-    const isElfFile = extLowerCase.includes('.elf') || extLowerCase.includes('.self');
     const isDsymFile = extLowerCase.includes('.dsym');
+    const isElfFile = elfExtensions.some((ext) => extLowerCase.includes(ext));
 
     if (isPdbFile) {
         const dbgId = await tryGetPdbGuid(path);
@@ -91,3 +91,5 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
         relativePath
     } as SymbolFileInfo];
 }
+
+const elfExtensions = ['.elf', '.self', '.prx', '.sprx'];

@@ -57,6 +57,19 @@
             "type": "node"
         },
         {
+            "name": "Start: elf",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:elf",
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Start: dump_syms",
             "request": "launch",
             "runtimeArgs": [
