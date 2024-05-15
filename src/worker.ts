@@ -1,4 +1,4 @@
-import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import { ReadStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { stat } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
@@ -89,8 +89,14 @@ export class UploadWorker {
 
         await this.retryPromise((retry) =>
             client.postSymbols(database, application, version, [symbolFile])
-                .catch((error: Error) => {
+                .catch((error: Error | BugSplatAuthenticationError) => {
                     symFileReadStream.destroy();
+
+                    if (isAuthenticationError(error)) {
+                        console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
+                        throw error;
+                    }
+
                     console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
                     retry(error);
                 })
@@ -107,4 +113,8 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
         result.push(copy.splice(0, Math.ceil(array.length / parts)));
     }
     return result;
+}
+
+function isAuthenticationError(error: Error | BugSplatAuthenticationError): error is BugSplatAuthenticationError {
+    return (error as BugSplatAuthenticationError).isAuthenticationError;
 }
