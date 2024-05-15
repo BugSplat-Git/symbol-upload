@@ -1,5 +1,5 @@
 import { ApiClient, SymbolsApiClient, VersionsApiClient } from "@bugsplat/js-api-client";
-import { basename, dirname, extname, join, relative } from "node:path";
+import { basename, extname, join } from "node:path";
 import { pool } from "workerpool";
 import { getDSymFileInfos } from './dsym';
 import { tryGetElfUUID } from './elf';
@@ -10,13 +10,13 @@ import { createWorkersFromSymbolFiles } from './worker';
 
 const workerPool = pool(join(__dirname, 'compression.js'));
 
-export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, directory: string, symbolFilePaths: Array<string>) {
+export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFilePaths: Array<string>) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
     const symbolsApiClient = new SymbolsApiClient(bugsplat);
     const versionsApiClient = new VersionsApiClient(bugsplat);
     const symbolFiles = await Promise.all(
-        symbolFilePaths.map(async (symbolFilePath) => await createSymbolFileInfos(directory, symbolFilePath))
+        symbolFilePaths.map(async (symbolFilePath) => await createSymbolFileInfos(symbolFilePath))
     ).then(array => array.flat());
     const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, [symbolsApiClient, versionsApiClient]);
     const uploads = workers.map((worker) => worker.upload(database, application, version));
@@ -25,9 +25,8 @@ export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, a
     console.log('Symbols uploaded successfully!');
 }
 
-async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: string): Promise<SymbolFileInfo[]> {
+async function createSymbolFileInfos(symbolFilePath: string): Promise<SymbolFileInfo[]> {
     const path = symbolFilePath;
-    const relativePath = relative(searchDirectory, dirname(path));
     const extLowerCase = extname(path).toLowerCase();
     const isSymFile = extLowerCase.includes('.sym');
     const isPdbFile = extLowerCase.includes('.pdb');
@@ -42,7 +41,6 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
             path,
             dbgId,
             moduleName,
-            relativePath
         } as SymbolFileInfo];
     }
 
@@ -53,7 +51,6 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
             path,
             dbgId,
             moduleName,
-            relativePath
         } as SymbolFileInfo];
     }
 
@@ -63,7 +60,6 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
             path,
             dbgId,
             moduleName,
-            relativePath
         } as SymbolFileInfo];
     }
 
@@ -78,7 +74,6 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
             path,
             dbgId,
             moduleName,
-            relativePath
         } as SymbolFileInfo];
     }
 
@@ -88,7 +83,6 @@ async function createSymbolFileInfos(searchDirectory: string, symbolFilePath: st
         path,
         dbgId,
         moduleName,
-        relativePath
     } as SymbolFileInfo];
 }
 

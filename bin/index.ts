@@ -122,7 +122,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
         }
     }
 
-    await uploadSymbolFiles(bugsplat, database, application, version, directory, symbolFilePaths);
+    await uploadSymbolFiles(bugsplat, database, application, version, symbolFilePaths);
     await safeRemoveTmp();
     process.exit(0);
 })().catch(async (error) => {

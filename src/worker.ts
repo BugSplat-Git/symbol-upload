@@ -42,9 +42,8 @@ export class UploadWorker {
     }
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<void> {
-        let { path, relativePath } = symbolFileInfo;
-        const { dbgId, moduleName } = symbolFileInfo;
-        const folderPrefix = relativePath.replace(/\\/g, '-').replace(/\//g, '-');
+        const { dbgId, moduleName, path } = symbolFileInfo;
+        const folderPrefix = dirname(path).replace(/\\/g, '-').replace(/\//g, '-');
         const fileName = folderPrefix ? [folderPrefix, basename(path)].join('-') : basename(path);
         const uncompressedSize = await this.stat(path).then(stats => stats.size);
         const timestamp = Math.round(new Date().getTime() / 1000);
