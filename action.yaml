@@ -59,11 +59,11 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Install symbol-upload
-      shell: bash
+      shell: pwsh
       run: npm i -g @bugsplat/symbol-upload
         
     - name: Run symbol-upload
-      shell: bash
+      shell: pwsh
       run: >-
         symbol-upload
         -b "${{ inputs.database }}"
