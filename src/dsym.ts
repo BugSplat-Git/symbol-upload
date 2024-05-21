@@ -32,7 +32,3 @@ export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> 
         return [];
     }
 }
-
-function normalizeModuleName(moduleName: string): string {
-    return moduleName.split('.')[0];
-}
