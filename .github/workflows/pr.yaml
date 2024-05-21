@@ -6,7 +6,10 @@ on:
 
 jobs:
   test-my-action:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
     - name: ☑️ Checkout
       uses: actions/checkout@v3
@@ -14,9 +17,9 @@ jobs:
     - name: 📦 Symbols
       uses: ./
       with:
-        clientId: "${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}"
-        clientSecret: "${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}"
-        database: "${{ secrets.BUGSPLAT_DATABASE }}"
+        clientId: ${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}
+        clientSecret: ${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}
+        database: ${{ secrets.BUGSPLAT_DATABASE }}
         application: "symbol-upload-test"
         version: "1.0"
         directory: "spec/support"
