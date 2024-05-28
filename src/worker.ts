@@ -3,12 +3,15 @@ import filenamify from 'filenamify';
 import { ReadStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { stat } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
+import prettyBytes from 'pretty-bytes';
 import retryPromise from 'promise-retry';
 import { WorkerPool, cpus } from 'workerpool';
 import { SymbolFileInfo } from './info';
 import { tmpDir } from './tmp';
 
 const workerCount = cpus;
+
+export type UploadStats = { name: string, size: number };
 
 export function createWorkersFromSymbolFiles(workerPool: WorkerPool, symbolFiles: SymbolFileInfo[], clients: [SymbolsApiClient, VersionsApiClient]): Array<UploadWorker> {
     const numberOfSymbols = symbolFiles.length;
@@ -35,15 +38,15 @@ export class UploadWorker {
         private readonly versionsClient: VersionsApiClient,
     ) { }
 
-    async upload(database: string, application: string, version: string): Promise<void> {
+    async upload(database: string, application: string, version: string): Promise<UploadStats[]> {
         console.log(`Worker ${this.id} uploading ${this.symbolFileInfos.length} symbol files...`);
 
-        await Promise.all(
+        return Promise.all(
             this.symbolFileInfos.map((symbolFileInfo) => this.uploadSingle(database, application, version, symbolFileInfo))
         );
     }
 
-    private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<void> {
+    private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<UploadStats> {
         const { dbgId, moduleName, path } = symbolFileInfo;
         const folderPrefix = dirname(path).replace(/\\/g, '-').replace(/\//g, '-');
         const fileName = folderPrefix ? [folderPrefix, basename(path)].join('-') : basename(path);
@@ -86,6 +89,8 @@ export class UploadWorker {
             moduleName
         };
 
+        const startTime = new Date();
+
         console.log(`Worker ${this.id} uploading ${name}...`);
 
         await this.retryPromise((retry) =>
@@ -103,7 +108,13 @@ export class UploadWorker {
                 })
         );
 
-        console.log(`Worker ${this.id} uploaded ${name}!`);
+        const endTime = new Date();
+        const seconds = (endTime.getTime() - startTime.getTime()) / 1000;
+        console.log(`Worker ${this.id} uploaded ${name}! (${prettyBytes(size)} @ ${prettyBytes(size / seconds)}/sec)`);
+        return {
+            name,
+            size
+        }
     }
 }
 
