@@ -3,6 +3,7 @@ import filenamify from 'filenamify';
 import { ReadStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { stat } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
+import prettyBytes from 'pretty-bytes';
 import retryPromise from 'promise-retry';
 import { WorkerPool, cpus } from 'workerpool';
 import { SymbolFileInfo } from './info';
@@ -86,6 +87,8 @@ export class UploadWorker {
             moduleName
         };
 
+        const startTime = new Date();
+
         console.log(`Worker ${this.id} uploading ${name}...`);
 
         await this.retryPromise((retry) =>
@@ -103,7 +106,9 @@ export class UploadWorker {
                 })
         );
 
-        console.log(`Worker ${this.id} uploaded ${name}!`);
+        const endTime = new Date();
+        const seconds = (endTime.getTime() - startTime.getTime()) / 1000;
+        console.log(`Worker ${this.id} uploaded ${name}! (${prettyBytes(size)} @ ${prettyBytes(size / seconds)}/sec)`);
     }
 }
 
