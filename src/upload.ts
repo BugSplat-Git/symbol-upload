@@ -95,4 +95,4 @@ async function createSymbolFileInfos(symbolFilePath: string): Promise<SymbolFile
     } as SymbolFileInfo];
 }
 
-const elfExtensions = ['.elf', '.self', '.prx', '.sprx'];
+const elfExtensions = ['.elf', '.self', '.prx', '.sprx', '.nss'];
