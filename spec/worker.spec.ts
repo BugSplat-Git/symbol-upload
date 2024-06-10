@@ -128,7 +128,7 @@ describe('worker', () => {
             expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(retries * symbolFiles.length + 1);
         });
 
-        it('should destroy file stream on error', async () => {
+        it('should not destroy file stream on error', async () => {
             const readStream = jasmine.createSpyObj('ReadStream', ['destroy']);
             const retrier = (func) => retryPromise(func, { retries: 0 });
             const symbolFiles = createFakeSymbolFileInfos(1);
@@ -142,7 +142,7 @@ describe('worker', () => {
 
             await worker.upload(database, application, version).catch(() => null);
 
-            expect(readStream.destroy).toHaveBeenCalled();
+            expect(readStream.destroy).not.toHaveBeenCalled();
         });
     });
 });

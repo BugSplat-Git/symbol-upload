@@ -96,8 +96,6 @@ export class UploadWorker {
         await this.retryPromise((retry) =>
             client.postSymbols(database, application, version, [symbolFile])
                 .catch((error: Error | BugSplatAuthenticationError) => {
-                    symFileReadStream.destroy();
-
                     if (isAuthenticationError(error)) {
                         console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
                         throw error;
