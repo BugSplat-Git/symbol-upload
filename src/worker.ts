@@ -110,7 +110,8 @@ export class UploadWorker {
 
         const endTime = new Date();
         const seconds = (endTime.getTime() - startTime.getTime()) / 1000;
-        console.log(`Worker ${this.id} uploaded ${name}! (${prettyBytes(size)} @ ${prettyBytes(size / seconds)}/sec)`);
+        const rate = size / seconds || 0;
+        console.log(`Worker ${this.id} uploaded ${name}! (${prettyBytes(size)} @ ${prettyBytes(rate)}/sec)`);
         return {
             name,
             size
