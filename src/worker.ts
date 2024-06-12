@@ -77,25 +77,29 @@ export class UploadWorker {
         const stats = await this.stat(tmpFileName);
         const lastModified = stats.mtime;
         const size = stats.size;
-        const symFileReadStream = this.createReadStream(tmpFileName);
-        const file = this.toWeb(symFileReadStream);
-        const symbolFile = {
-            name,
-            size,
-            file,
-            uncompressedSize,
-            dbgId,
-            lastModified,
-            moduleName
-        };
-
         const startTime = new Date();
 
         console.log(`Worker ${this.id} uploading ${name}...`);
 
-        await this.retryPromise((retry) =>
-            client.postSymbols(database, application, version, [symbolFile])
+        await this.retryPromise(async (retry) => { 
+            const symFileReadStream = this.createReadStream(tmpFileName);
+            const file = this.toWeb(symFileReadStream);
+            const symbolFile = {
+                name,
+                size,
+                file,
+                uncompressedSize,
+                dbgId,
+                lastModified,
+                moduleName
+            };
+
+            return client.postSymbols(database, application, version, [symbolFile])
                 .catch((error: Error | BugSplatAuthenticationError) => {
+                    // Don't try and cancel the web stream, it's locked by the tee operation in the symbols client.
+                    // Cancelling the file stream should be safe and seems like a good thing to do...
+                    symFileReadStream.destroy();
+
                     if (isAuthenticationError(error)) {
                         console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
                         throw error;
@@ -104,6 +108,7 @@ export class UploadWorker {
                     console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
                     retry(error);
                 })
+            }
         );
 
         const endTime = new Date();
