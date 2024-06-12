@@ -3,13 +3,14 @@ import filenamify from 'filenamify';
 import { ReadStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { stat } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
+import { availableParallelism } from 'os';
 import prettyBytes from 'pretty-bytes';
 import retryPromise from 'promise-retry';
-import { WorkerPool, cpus } from 'workerpool';
+import { WorkerPool } from 'workerpool';
 import { SymbolFileInfo } from './info';
 import { tmpDir } from './tmp';
 
-const workerCount = cpus;
+const workerCount = availableParallelism();
 
 export type UploadStats = { name: string, size: number };
 
@@ -81,7 +82,7 @@ export class UploadWorker {
 
         console.log(`Worker ${this.id} uploading ${name}...`);
 
-        await this.retryPromise(async (retry) => { 
+        await this.retryPromise(async (retry) => {
             const symFileReadStream = this.createReadStream(tmpFileName);
             const file = this.toWeb(symFileReadStream);
             const symbolFile = {
@@ -108,8 +109,7 @@ export class UploadWorker {
                     console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
                     retry(error);
                 })
-            }
-        );
+        });
 
         const endTime = new Date();
         const seconds = (endTime.getTime() - startTime.getTime()) / 1000;
