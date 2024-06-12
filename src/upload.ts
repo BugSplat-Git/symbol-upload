@@ -9,7 +9,7 @@ import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
 import { getSymFileInfo } from './sym';
 import { createWorkersFromSymbolFiles } from './worker';
 
-const workerPool = pool(join(__dirname, 'compression.js'));
+const workerPool = pool(join(__dirname, 'compression.js'), { maxWorkers: 1 });
 
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFilePaths: Array<string>) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
