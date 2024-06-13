@@ -3,18 +3,15 @@ import filenamify from 'filenamify';
 import { ReadStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { stat } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
-import { availableParallelism } from 'os';
 import prettyBytes from 'pretty-bytes';
 import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
 import { SymbolFileInfo } from './info';
 import { tmpDir } from './tmp';
 
-const workerCount = availableParallelism();
-
 export type UploadStats = { name: string, size: number };
 
-export function createWorkersFromSymbolFiles(workerPool: WorkerPool, symbolFiles: SymbolFileInfo[], clients: [SymbolsApiClient, VersionsApiClient]): Array<UploadWorker> {
+export function createWorkersFromSymbolFiles(workerPool: WorkerPool, workerCount: number, symbolFiles: SymbolFileInfo[], clients: [SymbolsApiClient, VersionsApiClient]): Array<UploadWorker> {
     const numberOfSymbols = symbolFiles.length;
 
     if (workerCount >= numberOfSymbols) {

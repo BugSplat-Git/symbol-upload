@@ -1,4 +1,5 @@
 import { ApiClient, SymbolsApiClient, VersionsApiClient } from "@bugsplat/js-api-client";
+import { availableParallelism } from "node:os";
 import { basename, extname, join } from "node:path";
 import prettyBytes from "pretty-bytes";
 import { pool } from "workerpool";
@@ -9,7 +10,8 @@ import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
 import { getSymFileInfo } from './sym';
 import { createWorkersFromSymbolFiles } from './worker';
 
-const workerPool = pool(join(__dirname, 'compression.js'), { maxWorkers: 1 });
+const maxWorkers = availableParallelism();
+const workerPool = pool(join(__dirname, 'compression.js'), { maxWorkers });
 
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFilePaths: Array<string>) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
@@ -21,7 +23,7 @@ export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, a
     const symbolFiles = await Promise.all(
         symbolFilePaths.map(async (symbolFilePath) => await createSymbolFileInfos(symbolFilePath))
     ).then(array => array.flat());
-    const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, [symbolsApiClient, versionsApiClient]);
+    const workers = createWorkersFromSymbolFiles(workerPool, maxWorkers, symbolFiles, [symbolsApiClient, versionsApiClient]);
     const uploads = workers.map((worker) => worker.upload(database, application, version));
     const stats = await Promise.all(uploads).then(stats => stats.flat());
 
