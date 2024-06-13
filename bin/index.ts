@@ -65,7 +65,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
         user,
         password,
         clientId,
-        clientSecret
+        clientSecret,
     });
 
     console.log('Authentication success!');
