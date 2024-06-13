@@ -1,5 +1,5 @@
 import { ApiClient, SymbolsApiClient, VersionsApiClient } from "@bugsplat/js-api-client";
-import { availableParallelism } from "node:os";
+import { availableParallelism, cpus } from "node:os";
 import { basename, extname, join } from "node:path";
 import prettyBytes from "pretty-bytes";
 import { pool } from "workerpool";
@@ -10,7 +10,9 @@ import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
 import { getSymFileInfo } from './sym';
 import { createWorkersFromSymbolFiles } from './worker';
 
-const maxWorkers = availableParallelism();
+// TODO BG re-enable after moving to node 22
+// const maxWorkers = availableParallelism();
+const maxWorkers = cpus().length;
 const workerPool = pool(join(__dirname, 'compression.js'), { maxWorkers });
 
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFilePaths: Array<string>) {
