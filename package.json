@@ -80,7 +80,7 @@
   },
   "dependencies": {
     "@bugsplat/elfy": "^1.0.1",
-    "@bugsplat/js-api-client": "^8.4.0",
+    "@bugsplat/js-api-client": "^8.4.1",
     "archiver": "^7.0.1",
     "command-line-args": "^5.2.0",
     "command-line-usage": "^6.1.1",
