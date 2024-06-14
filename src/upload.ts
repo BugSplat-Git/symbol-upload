@@ -12,7 +12,7 @@ import { createWorkersFromSymbolFiles } from './worker';
 
 // TODO BG re-enable after moving to node 22
 // const maxWorkers = availableParallelism();
-const maxWorkers = cpus().length;
+const maxWorkers = cpus().length - 1;
 const workerPool = pool(join(__dirname, 'compression.js'), { maxWorkers });
 
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFilePaths: Array<string>) {
