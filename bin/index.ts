@@ -126,8 +126,8 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
     await safeRemoveTmp();
     process.exit(0);
 })().catch(async (error) => {
-    console.error(error.message);
     await safeRemoveTmp();
+    console.error(error.message);
     process.exit(1);
 });
 
