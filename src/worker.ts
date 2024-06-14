@@ -39,9 +39,13 @@ export class UploadWorker {
     async upload(database: string, application: string, version: string): Promise<UploadStats[]> {
         console.log(`Worker ${this.id} uploading ${this.symbolFileInfos.length} symbol files...`);
 
-        return Promise.all(
-            this.symbolFileInfos.map((symbolFileInfo) => this.uploadSingle(database, application, version, symbolFileInfo))
-        );
+        const results = [] as UploadStats[];
+
+        for (const symbolFileInfo of this.symbolFileInfos) {
+            results.push(await this.uploadSingle(database, application, version, symbolFileInfo));
+        }
+        
+        return results;
     }
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<UploadStats> {
