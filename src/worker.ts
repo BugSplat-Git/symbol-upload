@@ -61,7 +61,7 @@ export class UploadWorker {
         let tmpFileName = '';
 
         if (dbgId && !isZip) {
-            const tmpSubdir = join(tmpDir, filenamify(dirname(fileName)));
+            const tmpSubdir = join(tmpDir, filenamify(dirname(path)));
             if (!existsSync(tmpSubdir)) {
                 mkdirSync(tmpSubdir, { recursive: true });
             }
