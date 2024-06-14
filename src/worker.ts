@@ -107,6 +107,11 @@ export class UploadWorker {
                         throw error;
                     }
 
+                    if (isMaxSizeExceededError(error)) {
+                        console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
+                        throw error;
+                    }
+
                     console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
                     retry(error);
                 })
@@ -134,4 +139,8 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
 
 function isAuthenticationError(error: Error | BugSplatAuthenticationError): error is BugSplatAuthenticationError {
     return (error as BugSplatAuthenticationError).isAuthenticationError;
+}
+
+function isMaxSizeExceededError(error: Error): boolean {
+    return error.message.includes('Symbol file max size') || error.message.includes('Symbol table max size');
 }

@@ -1,5 +1,5 @@
-import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
-import { availableParallelism, cpus } from 'node:os';
+import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { availableParallelism } from 'node:os';
 import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
 import { SymbolFileInfo } from '../src/info';
@@ -144,6 +144,38 @@ describe('worker', () => {
 
             expect(readStream.destroy).toHaveBeenCalled();
         });
+
+        describe('error', () => {
+            it('should not retry authentication errors', async () => {
+                const retry = jasmine.createSpy();
+                const retrier = (func) => func(retry);
+                const symbolFiles = createFakeSymbolFileInfos(1);
+                const workerPool = createFakeWorkerPool();
+                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new BugSplatAuthenticationError('Failed to upload!')));
+                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
+                (worker as any).retryPromise = retrier;
+                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
+    
+                await worker.upload(database, application, version).catch(() => null);
+    
+                expect(retry).not.toHaveBeenCalled();
+            });
+
+            it('should not retry max size errors', async () => {
+                const retry = jasmine.createSpy();
+                const retrier = (func) => func(retry);
+                const symbolFiles = createFakeSymbolFileInfos(1);
+                const workerPool = createFakeWorkerPool();
+                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new Error('Symbol file max size exceeded!')));
+                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
+                (worker as any).retryPromise = retrier;
+                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
+    
+                await worker.upload(database, application, version).catch(() => null);
+    
+                expect(retry).not.toHaveBeenCalled();
+            });
+        })
     });
 });
 
