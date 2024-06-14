@@ -40,7 +40,7 @@ async function createZipFile(inputFilePath, outputFilePath) {
             zip.finalize();
         })
     } finally {
-        output?.close();
+        output?.destroy();
     }
 }
 

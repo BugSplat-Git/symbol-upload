@@ -1,11 +1,11 @@
-import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { availableParallelism } from 'node:os';
 import retryPromise from 'promise-retry';
+import { WorkerPool } from 'workerpool';
 import { SymbolFileInfo } from '../src/info';
 import { UploadWorker, createWorkersFromSymbolFiles } from '../src/worker';
-import { cpus } from 'node:os';
-import { WorkerPool } from 'workerpool';
-import { basename } from 'node:path';
-const workerCount = cpus().length;
+
+const workerCount = availableParallelism();
 
 describe('worker', () => {
     let symbolsClient: jasmine.SpyObj<SymbolsApiClient>;
@@ -25,7 +25,7 @@ describe('worker', () => {
             const workerPool = createFakeWorkerPool();
             const symbolFiles = createFakeSymbolFileInfos(workerCount + 1);
 
-            const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, clients);
+            const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFiles, clients);
 
             expect(workers.length).toEqual(workerCount);
         });
@@ -34,7 +34,7 @@ describe('worker', () => {
             const symbolFiles = createFakeSymbolFileInfos(workerCount);
             const workerPool = createFakeWorkerPool();
 
-            const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, clients);
+            const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFiles, clients);
 
             expect(workers.length).toEqual(workerCount);
         });
@@ -43,7 +43,7 @@ describe('worker', () => {
             const symbolFiles = createFakeSymbolFileInfos(workerCount * 2);
             const workerPool = createFakeWorkerPool();
 
-            const workers = createWorkersFromSymbolFiles(workerPool, symbolFiles, clients);
+            const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFiles, clients);
             const worker1SymbolFiles = workers[0].symbolFileInfos;
             const worker2SymbolFiles = workers[1].symbolFileInfos;
 
@@ -79,7 +79,7 @@ describe('worker', () => {
                 expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
                 expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
             });
-    
+
             it('should call versionsClient.postSymbols for each symbol file', () => {
                 expect(versionsClient.postSymbols).toHaveBeenCalledTimes(symbolFileInfos.length);
             });
@@ -107,7 +107,7 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
                 expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
             });
-    
+
             it('should call symbolsClient.postSymbols for each symbol file', () => {
                 expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(symbolFileInfos.length);
             });
@@ -144,6 +144,38 @@ describe('worker', () => {
 
             expect(readStream.destroy).toHaveBeenCalled();
         });
+
+        describe('error', () => {
+            it('should not retry authentication errors', async () => {
+                const retry = jasmine.createSpy();
+                const retrier = (func) => func(retry);
+                const symbolFiles = createFakeSymbolFileInfos(1);
+                const workerPool = createFakeWorkerPool();
+                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new BugSplatAuthenticationError('Failed to upload!')));
+                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
+                (worker as any).retryPromise = retrier;
+                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
+    
+                await worker.upload(database, application, version).catch(() => null);
+    
+                expect(retry).not.toHaveBeenCalled();
+            });
+
+            it('should not retry max size errors', async () => {
+                const retry = jasmine.createSpy();
+                const retrier = (func) => func(retry);
+                const symbolFiles = createFakeSymbolFileInfos(1);
+                const workerPool = createFakeWorkerPool();
+                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new Error('Symbol file max size exceeded!')));
+                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
+                (worker as any).retryPromise = retrier;
+                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
+    
+                await worker.upload(database, application, version).catch(() => null);
+    
+                expect(retry).not.toHaveBeenCalled();
+            });
+        })
     });
 });
 
@@ -154,7 +186,7 @@ function createFakeSymbolFileInfos(count: number) {
             moduleName: `moduleName${i}`,
             dbgId: `dbgId${i}`
         })
-    );
+        );
 }
 
 function createFakeSymbolFileInfo(params: Partial<SymbolFileInfo>): SymbolFileInfo {

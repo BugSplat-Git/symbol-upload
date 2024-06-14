@@ -5,15 +5,13 @@ import { stat } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
 import prettyBytes from 'pretty-bytes';
 import retryPromise from 'promise-retry';
-import { WorkerPool, cpus } from 'workerpool';
+import { WorkerPool } from 'workerpool';
 import { SymbolFileInfo } from './info';
 import { tmpDir } from './tmp';
 
-const workerCount = cpus;
-
 export type UploadStats = { name: string, size: number };
 
-export function createWorkersFromSymbolFiles(workerPool: WorkerPool, symbolFiles: SymbolFileInfo[], clients: [SymbolsApiClient, VersionsApiClient]): Array<UploadWorker> {
+export function createWorkersFromSymbolFiles(workerPool: WorkerPool, workerCount: number, symbolFiles: SymbolFileInfo[], clients: [SymbolsApiClient, VersionsApiClient]): Array<UploadWorker> {
     const numberOfSymbols = symbolFiles.length;
 
     if (workerCount >= numberOfSymbols) {
@@ -41,9 +39,13 @@ export class UploadWorker {
     async upload(database: string, application: string, version: string): Promise<UploadStats[]> {
         console.log(`Worker ${this.id} uploading ${this.symbolFileInfos.length} symbol files...`);
 
-        return Promise.all(
-            this.symbolFileInfos.map((symbolFileInfo) => this.uploadSingle(database, application, version, symbolFileInfo))
-        );
+        const results = [] as UploadStats[];
+
+        for (const symbolFileInfo of this.symbolFileInfos) {
+            results.push(await this.uploadSingle(database, application, version, symbolFileInfo));
+        }
+        
+        return results;
     }
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<UploadStats> {
@@ -59,7 +61,7 @@ export class UploadWorker {
         let tmpFileName = '';
 
         if (dbgId && !isZip) {
-            const tmpSubdir = join(tmpDir, filenamify(dirname(fileName)));
+            const tmpSubdir = join(tmpDir, filenamify(dirname(path)));
             if (!existsSync(tmpSubdir)) {
                 mkdirSync(tmpSubdir, { recursive: true });
             }
@@ -77,25 +79,27 @@ export class UploadWorker {
         const stats = await this.stat(tmpFileName);
         const lastModified = stats.mtime;
         const size = stats.size;
-        const symFileReadStream = this.createReadStream(tmpFileName);
-        const file = this.toWeb(symFileReadStream);
-        const symbolFile = {
-            name,
-            size,
-            file,
-            uncompressedSize,
-            dbgId,
-            lastModified,
-            moduleName
-        };
-
         const startTime = new Date();
 
         console.log(`Worker ${this.id} uploading ${name}...`);
 
-        await this.retryPromise((retry) =>
-            client.postSymbols(database, application, version, [symbolFile])
+        await this.retryPromise(async (retry) => {
+            const symFileReadStream = this.createReadStream(tmpFileName);
+            const file = this.toWeb(symFileReadStream);
+            const symbolFile = {
+                name,
+                size,
+                file,
+                uncompressedSize,
+                dbgId,
+                lastModified,
+                moduleName
+            };
+
+            return client.postSymbols(database, application, version, [symbolFile])
                 .catch((error: Error | BugSplatAuthenticationError) => {
+                    // Don't try and cancel the web stream, it's locked by the tee operation in the symbols client.
+                    // Cancelling the file stream should be safe and seems like a good thing to do...
                     symFileReadStream.destroy();
 
                     if (isAuthenticationError(error)) {
@@ -103,10 +107,15 @@ export class UploadWorker {
                         throw error;
                     }
 
+                    if (isMaxSizeExceededError(error)) {
+                        console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
+                        throw error;
+                    }
+
                     console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
                     retry(error);
                 })
-        );
+        });
 
         const endTime = new Date();
         const seconds = (endTime.getTime() - startTime.getTime()) / 1000;
@@ -130,4 +139,8 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
 
 function isAuthenticationError(error: Error | BugSplatAuthenticationError): error is BugSplatAuthenticationError {
     return (error as BugSplatAuthenticationError).isAuthenticationError;
+}
+
+function isMaxSizeExceededError(error: Error): boolean {
+    return error.message.includes('Symbol file max size') || error.message.includes('Symbol table max size');
 }

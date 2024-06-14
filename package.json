@@ -59,7 +59,7 @@
     ]
   },
   "devDependencies": {
-    "@types/archiver": "^5.3.2",
+    "@types/archiver": "^6.0.2",
     "@types/command-line-args": "^5.2.0",
     "@types/command-line-usage": "^5.0.2",
     "@types/firstline": "^2.0.2",
@@ -80,8 +80,8 @@
   },
   "dependencies": {
     "@bugsplat/elfy": "^1.0.1",
-    "@bugsplat/js-api-client": "^8.4.0",
-    "archiver": "^5.3.1",
+    "@bugsplat/js-api-client": "^8.4.2",
+    "archiver": "^7.0.1",
     "command-line-args": "^5.2.0",
     "command-line-usage": "^6.1.1",
     "filenamify": "^4.3.0",
