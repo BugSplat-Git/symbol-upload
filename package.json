@@ -22,12 +22,14 @@
     "clean": "rimraf ./dist",
     "prebuild": "npm run clean",
     "build": "tsc",
+    "prebundle": "npm run clean",
+    "bundle": "ncc build ./bin/index.ts -o ./dist && bpkg ./src/compression.js ./dist/compression.js",
     "prerelease": "npm run build",
     "release": "npm publish --access public",
     "prepkg:linux": "npm run build",
     "pkg:linux": "npx pkg package.json --targets node18-linux-x64 --output ./pkg/symbol-upload-linux",
-    "prepkg:macos": "npm run build",
-    "pkg:macos": "npx pkg package.json --targets node18-macos-x64 --output ./pkg/symbol-upload-macos",
+    "prepkg:macos": "npm run bundle && bpkg ./node_modules/node-dump-syms ./dist/node-dump-syms.js",
+    "pkg:macos": "node --experimental-sea-config sea-config.json && cp $(command -v node) ./dist/symbol-upload && codesign --remove-signature ./dist/symbol-upload && npx postject ./dist/symbol-upload NODE_SEA_BLOB ./dist/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 --macho-segment-name NODE_SEA && codesign --sign - ./dist/symbol-upload",
     "prepkg:windows": "npm run build",
     "pkg:windows": "npx pkg package.json --targets node18-win-x64 --output ./pkg/symbol-upload-windows",
     "act": "act --secret-file .env"
@@ -50,14 +52,6 @@
     "url": "https://github.com/BugSplat-Git/symbol-upload/issues"
   },
   "homepage": "https://github.com/BugSplat-Git/symbol-upload#readme",
-  "pkg": {
-    "scripts": "./dist/**/*.js",
-    "compress": "GZip",
-    "assets": [
-      "package.json",
-      "node_modules/node-dump-syms/dist/native/index.node"
-    ]
-  },
   "devDependencies": {
     "@types/archiver": "^6.0.2",
     "@types/command-line-args": "^5.2.0",
@@ -65,9 +59,10 @@
     "@types/firstline": "^2.0.2",
     "@types/glob": "^8.1.0",
     "@types/jasmine": "^4.3.1",
-    "@types/node": "^18.15.10",
+    "@types/node": "^20.14.8",
     "@types/promise-retry": "^1.1.4",
     "@types/workerpool": "^6.4.4",
+    "bpkg": "^0.9.2",
     "copyfiles": "^2.4.1",
     "dotenv": "^10.0.0",
     "extract-zip": "^2.0.1",

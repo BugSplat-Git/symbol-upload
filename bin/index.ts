@@ -9,6 +9,7 @@ import { basename, join } from 'node:path';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
+import { importNodeDumpSyms } from './preload';
 
 (async () => {
     let {
@@ -110,7 +111,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
     if (dumpSyms) {
         try {
             // @ts-ignore: Cannot find module
-            const nodeDumpSyms = (await import('node-dump-syms')).dumpSyms;
+            const nodeDumpSyms = (await importNodeDumpSyms()).dumpSyms;
             symbolFilePaths = symbolFilePaths.map(file => {
                 console.log(`Dumping syms for ${file}...`);
                 const symFile = join(tmpDir, `${getSymFileBaseName(file)}.sym`);
@@ -118,6 +119,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
                 return symFile;
             });
         } catch (cause) {
+            console.error(cause); // TODO BG remove
             throw new Error('Can\'t run dump_syms! Please ensure node-dump-syms is installed https://github.com/BugSplat-Git/node-dump-syms', { cause });
         }
     }
@@ -158,7 +160,7 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
     const options = commandLineArgs(argDefinitions);
     let { database, application, version } = options;
     let packageJson;
-    
+
     if (!database || !application || !version) {
         const packageJsonPath = './package.json';
         packageJson = await fileExists(packageJsonPath) ? JSON.parse((await readFile(packageJsonPath)).toString()) : null;
@@ -189,7 +191,7 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
 function getSymFileBaseName(file: string): string {
     const linuxSoExtensionPattern = /\.so\.?.*$/gm;
     const fileNoExt = file.split('.')[0];
-    return linuxSoExtensionPattern.test(file) ? basename(file) : basename(fileNoExt);   
+    return linuxSoExtensionPattern.test(file) ? basename(file) : basename(fileNoExt);
 }
 
 function logHelpAndExit() {
