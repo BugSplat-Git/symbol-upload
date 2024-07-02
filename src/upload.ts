@@ -3,11 +3,11 @@ import { availableParallelism } from "node:os";
 import { basename, extname } from "node:path";
 import prettyBytes from "pretty-bytes";
 import { pool } from "workerpool";
-import { findCompressionWorkerPath } from "../bin/preload";
 import { getDSymFileInfos } from './dsym';
 import { tryGetElfUUID } from './elf';
 import { SymbolFileInfo } from './info';
 import { tryGetPdbGuid, tryGetPeGuid } from './pdb';
+import { findCompressionWorkerPath } from "./preload";
 import { getSymFileInfo } from './sym';
 import { createWorkersFromSymbolFiles } from './worker';
 

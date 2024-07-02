@@ -5,11 +5,11 @@ import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
+import { importNodeDumpSyms } from '../src/preload';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import { CommandLineDefinition, argDefinitions, usageDefinitions } from './command-line-definitions';
-import { importNodeDumpSyms } from './preload';
 
 (async () => {
     let {
@@ -183,13 +183,13 @@ async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition
         version
     }
 }
+
 // The rust-minidump-stackwalker symbol lookup implementation removes some extensions from the sym file name for symbol lookups.
 // This is a bit of a mystery and is subject to change when we learn more about how it works.
 // For now, remove any non .so extension in the sym file's base name to satisfy the minidump-stackwalker symbol lookup.
 function getSymFileBaseName(file: string): string {
     const linuxSoExtensionPattern = /\.so\.?.*$/gm;
-    const fileNoExt = file.split('.')[0];
-    return linuxSoExtensionPattern.test(file) ? basename(file) : basename(fileNoExt);
+    return linuxSoExtensionPattern.test(file) ? basename(file) : removeExtensionRecursive(file);
 }
 
 function logHelpAndExit() {
@@ -210,6 +210,14 @@ function logMissingAuthAndExit(): void {
 
 function normalizeDirectory(directory: string): string {
     return directory.replace(/\\/g, '/');
+}
+
+// The extname function will return .dSYM for bugsplat.app.dSYM
+// When processing, we want to our file name for bugsplat.app.dSYM to be bugsplat.sym
+// This function will remove extensions recursively until there are none left
+function removeExtensionRecursive(file: string): string {
+    const ext = extname(file);
+    return ext ? removeExtensionRecursive(basename(file, ext)) : file;
 }
 
 function validAuthenticationArguments({
