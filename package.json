@@ -33,7 +33,7 @@
     "presea:windows": "npm run build:sea",
     "presea:linux": "npm run build:sea",
     "sea:macos": "sh ./sea/macos.sh",
-    "sea:windows": "./sea/windows.ps1",
+    "sea:windows": "powershell.exe .\\sea\\windows.ps1",
     "sea:linux": "sh ./sea/linux.sh"
   },
   "repository": {
