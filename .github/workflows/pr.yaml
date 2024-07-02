@@ -24,4 +24,4 @@ jobs:
         version: "1.0"
         directory: "spec/support"
         files: "**/*.sym"
-        node-version: '21'
+        node-version: '22'
