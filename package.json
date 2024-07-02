@@ -24,8 +24,11 @@
     "build": "tsc",
     "prerelease": "npm run build",
     "release": "npm publish --access public",
+    "ncc": "npx ncc build ./bin/index.ts -o ./dist",
+    "bpkg:compression": "npx bpkg ./src/compression.js ./dist/compression.js",
+    "bpkg:node-dump-syms": "npx bpkg ./node_modules/node-dump-syms ./dist/node-dump-syms.js",
     "prebuild:sea": "npm run clean",
-    "build:sea": "npx ncc build ./bin/index.ts -o ./dist && bpkg ./src/compression.js ./dist/compression.js && bpkg ./node_modules/node-dump-syms ./dist/node-dump-syms.js",
+    "build:sea": "run-s ncc bpkg:compression bpkg:node-dump-syms",
     "presea:macos": "npm run build:sea",
     "presea:windows": "npm run build:sea",
     "presea:linux": "npm run build:sea",
@@ -52,6 +55,7 @@
   },
   "homepage": "https://github.com/BugSplat-Git/symbol-upload#readme",
   "devDependencies": {
+    "@mapbox/node-pre-gyp": "^1.0.11",
     "@types/archiver": "^6.0.2",
     "@types/command-line-args": "^5.2.0",
     "@types/command-line-usage": "^5.0.2",
@@ -61,13 +65,13 @@
     "@types/node": "^20.14.8",
     "@types/promise-retry": "^1.1.4",
     "@types/workerpool": "^6.4.4",
+    "@vercel/ncc": "^0.38.1",
     "bpkg": "^0.9.2",
     "copyfiles": "^2.4.1",
     "dotenv": "^10.0.0",
     "extract-zip": "^2.0.1",
     "jasmine": "^4.6.0",
-    "ncc": "^0.3.6",
-    "node-pre-gyp": "^0.17.0",
+    "npm-run-all": "^4.1.5",
     "postject": "^1.0.0-alpha.6",
     "rimraf": "^5.0.0",
     "ts-node": "^10.9.2",
@@ -90,6 +94,6 @@
     "workerpool": "^6.5.1"
   },
   "optionalDependencies": {
-    "node-dump-syms": "^3.0.6"
+    "node-dump-syms": "^3.0.8"
   }
 }
