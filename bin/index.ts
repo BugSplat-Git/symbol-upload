@@ -110,7 +110,6 @@ import { importNodeDumpSyms } from './preload';
 
     if (dumpSyms) {
         try {
-            // @ts-ignore: Cannot find module
             const nodeDumpSyms = (await importNodeDumpSyms()).dumpSyms;
             symbolFilePaths = symbolFilePaths.map(file => {
                 console.log(`Dumping syms for ${file}...`);
@@ -119,7 +118,6 @@ import { importNodeDumpSyms } from './preload';
                 return symFile;
             });
         } catch (cause) {
-            console.error(cause); // TODO BG remove
             throw new Error('Can\'t run dump_syms! Please ensure node-dump-syms is installed https://github.com/BugSplat-Git/node-dump-syms', { cause });
         }
     }
