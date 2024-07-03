@@ -133,7 +133,7 @@ export const usageDefinitions: Array<Section> = [
 
 function getPackageVersion(): string {
     if (isSea()) {
-        return JSON.parse(`${getAsset('package.json')}`).version;
+        return JSON.parse(`${getAsset('package.json', 'utf-8')}`).version;
     }
 
     const path = [
