@@ -1,10 +1,12 @@
+import type { dumpSyms } from 'node-dump-syms';
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getAsset, getAssetAsBlob, isSea } from 'node:sea';
-import type { dumpSyms } from 'node-dump-syms';
-import { createRequire } from "node:module";
+
+const nativeModuleDir = join(tmpdir(), 'bugsplat');
 
 export async function importNodeDumpSyms(): Promise<{
     dumpSyms: typeof dumpSyms;
@@ -13,7 +15,6 @@ export async function importNodeDumpSyms(): Promise<{
         return import('node-dump-syms');
     }
 
-    const nativeModuleDir = join(tmpdir(), 'bugsplat');
     if (!existsSync(nativeModuleDir)) {
         await mkdir(nativeModuleDir, { recursive: true });
     }
@@ -33,7 +34,6 @@ export function findCompressionWorkerPath(): string {
         return join(__dirname, 'compression.js');
     }
 
-    const nativeModuleDir = join(tmpdir(), 'bugsplat');
     if (!existsSync(nativeModuleDir)) {
         mkdirSync(nativeModuleDir, { recursive: true });
     }

@@ -4,6 +4,7 @@
     "disableExperimentalSEAWarning": true,
     "assets": {
       "node-dump-syms.js": "dist/node-dump-syms.js",
-      "compression.js": "dist/compression.js"
+      "compression.js": "dist/compression.js",
+      "package.json": "package.json"
     }
   }
