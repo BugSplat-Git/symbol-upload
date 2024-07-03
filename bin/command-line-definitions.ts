@@ -2,6 +2,7 @@ import { OptionDefinition as ArgDefinition } from "command-line-args";
 import { Section, OptionDefinition as UsageDefinition } from "command-line-usage";
 import { existsSync, readFileSync } from "fs";
 import { join } from "node:path";
+import { getAsset, isSea } from "node:sea";
 
 const packageVersion = getPackageVersion();
 
@@ -131,6 +132,10 @@ export const usageDefinitions: Array<Section> = [
 ];
 
 function getPackageVersion(): string {
+    if (isSea()) {
+        return JSON.parse(`${getAsset('package.json')}`).version;
+    }
+
     const path = [
         join(__dirname, 'package.json'),
         join(__dirname, '../package.json'),
