@@ -1,4 +1,4 @@
-name: Package Builds
+name: Single Executable Application
 
 on:
     push:
@@ -14,14 +14,14 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            run_script: pkg:linux
+            run_script: sea:linux
             artifact_name: symbol-upload-linux
           - os: macos-latest
-            run_script: pkg:macos
+            run_script: sea:macos
             artifact_name: symbol-upload-macos
           - os: windows-latest
-            run_script: pkg:windows
-            artifact_name: symbol-upload-win
+            run_script: sea:windows
+            artifact_name: symbol-upload-win.exe
     
     steps:
     - name: ☑️ Checkout
@@ -30,7 +30,7 @@ jobs:
     - name: ⚙️ Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
 
     - name: 🏗️ Install Dependencies
       run: npm ci
@@ -42,4 +42,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
-        path: pkg/* # Uploads the artifact with a platform-specific name and path
+        path: dist/${{ matrix.artifact_name }} # Uploads the artifact with a platform-specific name and path
