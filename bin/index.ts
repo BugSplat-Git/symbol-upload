@@ -3,9 +3,9 @@ import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApi
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
-import { basename, extname, join } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 import { importNodeDumpSyms } from '../src/preload';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
@@ -114,6 +114,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
             symbolFilePaths = symbolFilePaths.map(file => {
                 console.log(`Dumping syms for ${file}...`);
                 const symFile = join(tmpDir, `${getSymFileBaseName(file)}.sym`);
+                mkdirSync(dirname(symFile), { recursive: true });
                 nodeDumpSyms(file, symFile);
                 return symFile;
             });
