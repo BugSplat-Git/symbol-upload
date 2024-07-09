@@ -21,7 +21,7 @@ jobs:
             artifact_name: symbol-upload-macos
           - os: windows-latest
             run_script: sea:windows
-            artifact_name: symbol-upload-win.exe
+            artifact_name: symbol-upload-windows.exe
     
     steps:
     - name: ☑️ Checkout
