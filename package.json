@@ -6,6 +6,9 @@
   "bin": {
     "symbol-upload": "./dist/bin/index.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
     "dist"
   ],
