@@ -1,34 +1,33 @@
 import { ElfFile } from '@bugsplat/elfy';
+import { extname } from 'node:path';
 
 export async function tryGetElfUUID(path: string) {
   let success: boolean, section: Buffer | undefined;
 
-  // TODO BG use a using statement here when we move away from pkg and can use node 20+
-  let elfFile = await ElfFile.create(path);
-  try {
-    ({ success, section } = await elfFile.tryReadSection('.note.gnu.build-id'));
-  } finally {
-    elfFile.dispose();
-  }
+  using elfFile = await ElfFile.create(path);
+  ({ success, section } = await elfFile.tryReadSection('.note.gnu.build-id'));
 
   if (success) {
-    return getUUID(section!, 16);
+    return getUUID(section!, path, 16);
   }
 
-  elfFile = await ElfFile.create(path);
-  try {
-    ({ success, section } = await elfFile.tryReadSection('.sce_special'));
-  } finally {
-    elfFile.dispose();
-  }
+  ({ success, section } = await elfFile.tryReadSection('.sce_special'));
 
   if (success) {
-    return getUUID(section!);
+    return getUUID(section!, path);
   }
 
   return '';
 }
 
-function getUUID(section: Buffer, offset = 0) {
-  return section.subarray(offset, offset + 20).toString('hex');
+function getUUID(section: Buffer, path: string, offset = 0) {
+  let uuid = section.subarray(offset, offset + 20).toString('hex');
+  
+  // Nintendo GUIDs seem to be 32 or 40 hex chars 0 padded to 64 hex chars
+  // Until we know more, pad it ourselves with this hacky workaround
+  if (extname(path) === '.nss') {
+    uuid = uuid.padEnd(64, '0');
+  }
+
+  return uuid;
 }
