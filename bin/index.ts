@@ -100,7 +100,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
 
     const globPattern = `${directory}/${files}`;
 
-    let symbolFilePaths = await glob(globPattern);
+    let symbolFilePaths = await globFiles(globPattern);
 
     if (!symbolFilePaths.length) {
         throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
@@ -147,13 +147,6 @@ async function createBugSplatClient({
     return OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret, host);
 }
 
-async function fileExists(path: string): Promise<boolean> {
-    try {
-        return !!(await stat(path));
-    } catch {
-        return false;
-    }
-}
 
 async function getCommandLineOptions(argDefinitions: Array<CommandLineDefinition>): Promise<CommandLineOptions> {
     const options = commandLineArgs(argDefinitions);
