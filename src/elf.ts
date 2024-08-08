@@ -25,7 +25,7 @@ function getUUID(section: Buffer, path: string, offset = 0) {
   
   // Nintendo GUIDs seem to be 32 or 40 hex chars 0 padded to 64 hex chars
   // Until we know more, pad it ourselves with this hacky workaround
-  if (extname(path) === '.nss') {
+  if (extname(path)?.toLowerCase() === '.nss') {
     uuid = uuid.padEnd(64, '0');
   }
 
