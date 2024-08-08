@@ -2,10 +2,11 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
-import { glob } from 'glob';
 import { existsSync, mkdirSync } from 'node:fs';
-import { mkdir, readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
+import { fileExists } from '../src/fs';
+import { globFiles } from '../src/glob';
 import { importNodeDumpSyms } from '../src/preload';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
