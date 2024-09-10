@@ -1,4 +1,5 @@
 import { ApiClient, SymbolsApiClient, VersionsApiClient } from "@bugsplat/js-api-client";
+import { stat } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import { basename, extname } from "node:path";
 import prettyBytes from "pretty-bytes";
@@ -36,12 +37,13 @@ export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, a
 
 async function createSymbolFileInfos(symbolFilePath: string): Promise<SymbolFileInfo[]> {
     const path = symbolFilePath;
+    const isFolder = await stat(path).then((stats) => stats.isDirectory());
     const extLowerCase = extname(path).toLowerCase();
-    const isSymFile = extLowerCase.includes('.sym');
-    const isPdbFile = extLowerCase.includes('.pdb');
-    const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll');
-    const isDsymFile = extLowerCase.includes('.dsym');
-    const isElfFile = elfExtensions.some((ext) => extLowerCase.includes(ext));
+    const isSymFile = extLowerCase.includes('.sym') && !isFolder;
+    const isPdbFile = extLowerCase.includes('.pdb') && !isFolder;
+    const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll') && !isFolder;
+    const isDsymBundle = extLowerCase.includes('.dsym');
+    const isElfFile = elfExtensions.some((ext) => extLowerCase.includes(ext) && !isFolder);
 
     if (isPdbFile) {
         const dbgId = await tryGetPdbGuid(path);
@@ -72,7 +74,7 @@ async function createSymbolFileInfos(symbolFilePath: string): Promise<SymbolFile
         } as SymbolFileInfo];
     }
 
-    if (isDsymFile) {
+    if (isDsymBundle) {
         return getDSymFileInfos(path);
     }
 

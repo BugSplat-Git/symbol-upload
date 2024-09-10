@@ -2,11 +2,11 @@
 import { ApiClient, BugSplatApiClient, OAuthClientCredentialsClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
+import { glob } from 'glob';
 import { existsSync, mkdirSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
 import { fileExists } from '../src/fs';
-import { globFiles } from '../src/glob';
 import { importNodeDumpSyms } from '../src/preload';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
@@ -101,7 +101,7 @@ import { CommandLineDefinition, argDefinitions, usageDefinitions } from './comma
 
     const globPattern = `${directory}/${files}`;
 
-    let symbolFilePaths = await globFiles(globPattern);
+    let symbolFilePaths = await glob(globPattern);
 
     if (!symbolFilePaths.length) {
         throw new Error(`Could not find any files to upload using glob ${globPattern}!`);
