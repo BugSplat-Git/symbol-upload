@@ -49,6 +49,11 @@ inputs:
     type: string
     required: false
     default: '20'
+  dumpSyms:
+    description: "Use dumpSyms to generate symbols"
+    type: boolean
+    required: false
+    default: false    
 
 runs:
   using: composite
@@ -75,3 +80,4 @@ runs:
         -s "${{ inputs.clientSecret }}"
         -f "${{ inputs.files }}"
         -d "${{ inputs.directory }}"
+        ${{ inputs.dumpSyms == 'true' && '-m' || '' }}
