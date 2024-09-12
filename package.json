@@ -20,6 +20,7 @@
     "start:xcarchive": "ts-node -r dotenv/config ./bin/index.ts -d ./spec/support -f \"*.xcarchive/**/*.dSYM\" -v \"4.5.6 (1)\"",
     "start:elf": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.elf\"",
     "start:dump_syms": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.dSYM\" -m",
+    "start:symsrv": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.dll\"",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",
