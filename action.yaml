@@ -48,7 +48,7 @@ inputs:
     description: "Node.js version to use"
     type: string
     required: false
-    default: '20'
+    default: '22'
   dumpSyms:
     description: "Use dumpSyms to generate symbols"
     type: boolean
