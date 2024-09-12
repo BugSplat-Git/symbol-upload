@@ -32,7 +32,8 @@ Use the `symbol-upload` action in your [GitHub Actions](https://github.com/featu
       version: "your-version"
       files: "**/*.{pdb,exe,dll}"
       directory: "your-build-directory"
-      node-version: "20"
+      node-version: "22"
+      dumpSyms: false
 ```
 
 Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) so that you don't expose the values for `clientId`, `clientSecret`, and `database`.
@@ -45,7 +46,7 @@ Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/usin
 ```bash
 bobby@BugSplat % ~ % symbol-upload -h
 
-@bugsplat/symbol-upload v7.2.2
+@bugsplat/symbol-upload v10.1.0
 
   symbol-upload contains a command line utility and a set of libraries to help  
   you upload symbol files to BugSplat.                                          
