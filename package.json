@@ -98,6 +98,6 @@
     "workerpool": "^6.5.1"
   },
   "optionalDependencies": {
-    "node-dump-syms": "^3.0.8"
+    "node-dump-syms": "^3.0.10"
   }
 }
