@@ -1,6 +1,6 @@
 {
   "name": "@bugsplat/symbol-upload",
-  "version": "10.1.1",
+  "version": "10.1.2",
   "description": "Cross platform symbol upload tool",
   "main": "./dist/index.js",
   "bin": {
