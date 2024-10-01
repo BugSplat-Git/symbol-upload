@@ -3,7 +3,7 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [
+    "configurations": [        
         {
             "name": "Start",
             "request": "launch",
@@ -49,6 +49,20 @@
             "runtimeArgs": [
                 "run-script",
                 "start:dsym",
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
+            "name": "Start: dylib",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:dylib",
+                "--preserve-symlinks"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
