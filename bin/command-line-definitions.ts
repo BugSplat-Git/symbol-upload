@@ -76,7 +76,7 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         type: String,
         defaultValue: '*.js.map',
         typeLabel: '{underline string} (optional)',
-        description: 'Glob pattern that specifies a set of files to upload. For example, **/*.\\{pdb,exe,dll\\} will recursively search for .pdb, .exe, and .dll files. Defaults to \'*.js.map\'',
+        description: 'Glob pattern that specifies a set of files to upload. For example, **/*.\\{pdb,exe,dll\\} will recursively search for .pdb, .exe, and .dll files. Defaults to \"*.js.map\"',
     },
     {
         name: 'directory',
