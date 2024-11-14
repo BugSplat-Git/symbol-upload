@@ -76,9 +76,8 @@ export class UploadWorker {
             tmpFileName = path;
         }
 
-        const stats = await this.stat(tmpFileName);
-        const lastModified = stats.mtime;
-        const size = stats.size;
+        const { mtime: lastModified } = await this.stat(path);
+        const { size } =  await this.stat(tmpFileName);
         const startTime = new Date();
 
         console.log(`Worker ${this.id} uploading ${name}...`);
