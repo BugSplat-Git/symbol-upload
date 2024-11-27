@@ -1,0 +1,20 @@
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    target-branch: "main"
+    versioning-strategy: "auto"
+    allow:
+      - dependency-type: "all"
+    ignore:
+      - dependency-type: "dev"
+        update-types: ["version-update:semver-major"]
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
