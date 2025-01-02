@@ -1,8 +1,7 @@
 import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
-import filenamify from 'filenamify';
-import { ReadStream, createReadStream, existsSync, mkdirSync } from 'fs';
+import { ReadStream, createReadStream } from 'fs';
 import { stat } from 'node:fs/promises';
-import { basename, dirname, extname, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import prettyBytes from 'pretty-bytes';
 import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
@@ -50,10 +49,9 @@ export class UploadWorker {
 
     private async uploadSingle(database: string, application: string, version: string, symbolFileInfo: SymbolFileInfo): Promise<UploadStats> {
         const { dbgId, moduleName, path } = symbolFileInfo;
-        const folderPrefix = dirname(path).replace(/\\/g, '-').replace(/\//g, '-');
-        const fileName = folderPrefix ? [folderPrefix, basename(path)].join('-') : basename(path);
+        const fileName = basename(path);
         const uncompressedSize = await this.stat(path).then(stats => stats.size);
-        const timestamp = Math.round(new Date().getTime() / 1000);
+        const uuid = crypto.randomUUID();
         const isZip = extname(path).toLowerCase().includes('.zip');
 
         let client: SymbolsApiClient | VersionsApiClient = this.versionsClient;
@@ -61,16 +59,12 @@ export class UploadWorker {
         let tmpFileName = '';
 
         if (dbgId && !isZip) {
-            const tmpSubdir = join(tmpDir, filenamify(dirname(path)));
-            if (!existsSync(tmpSubdir)) {
-                mkdirSync(tmpSubdir, { recursive: true });
-            }
-            tmpFileName = join(tmpSubdir, `${fileName}.gz`);
+            tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
         } else if (!isZip) {
             name = `${name}.zip`;
-            tmpFileName = join(tmpDir, `${fileName}-${timestamp}.zip`);
+            tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
             await this.pool.exec('createZipFile', [path, tmpFileName]);
         } else {
             tmpFileName = path;
