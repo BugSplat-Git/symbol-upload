@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, macos-latest-large, windows-latest]
         include:
           - os: ubuntu-latest
             run_script: sea:linux
@@ -19,6 +19,9 @@ jobs:
           - os: macos-latest
             run_script: sea:macos
             artifact_name: symbol-upload-macos
+          - os: macos-latest-large
+            run_script: sea:macos
+            artifact_name: symbol-upload-macos-intel
           - os: windows-latest
             run_script: sea:windows
             artifact_name: symbol-upload-windows.exe
