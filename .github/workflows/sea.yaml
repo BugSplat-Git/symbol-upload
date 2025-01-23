@@ -16,15 +16,19 @@ jobs:
           - os: ubuntu-latest
             run_script: sea:linux
             artifact_name: symbol-upload-linux
+            file_name: symbol-upload-linux
           - os: macos-latest
             run_script: sea:macos
             artifact_name: symbol-upload-macos
+            file_name: symbol-upload-macos
           - os: macos-latest-large
             run_script: sea:macos
             artifact_name: symbol-upload-macos-intel
+            file_name: symbol-upload-macos
           - os: windows-latest
             run_script: sea:windows
             artifact_name: symbol-upload-windows.exe
+            file_name: symbol-upload-windows.exe
     
     steps:
     - name: ☑️ Checkout
@@ -45,4 +49,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
-        path: dist/${{ matrix.artifact_name }} # Uploads the artifact with a platform-specific name and path
+        path: dist/${{ matrix.file_name }} # Uploads the artifact with a platform-specific name and path
