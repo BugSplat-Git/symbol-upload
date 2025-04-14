@@ -40,8 +40,30 @@ Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/usin
 
 ## Command Line
 
-1. Install this package globally `npm i -g @bugsplat/symbol-upload`
-2. Run symbol-upload with `-h` to see the latest usage information and package version:
+Install this `symbol-upload` globally using npm.
+
+```bash
+npm i -g @bugsplat/symbol-upload
+```
+
+Alternatively, you can download a binary version using the terminal.
+
+macos
+```sh
+curl -sL -O "https://app.bugsplat.com/download/symbol-upload-macos" && chmod +x symbol-upload-macos
+```
+
+windows
+```ps1
+Invoke-WebRequest -Uri "https://app.bugsplat.com/download/symbol-upload-windows.exe" -OutFile "symbol-upload-windows.exe"
+```
+
+linux
+```sh
+curl -sL -O  "https://app.bugsplat.com/download/symbol-upload-linux" && chmod +x symbol-upload-linux
+```
+
+Run `symbol-upload` with `-h` to see the latest usage information and package version:
 
 ```bash
 bobby@BugSplat % ~ % symbol-upload -h
@@ -106,18 +128,24 @@ Links
                                                    
   💌 support@bugsplat.com   
 ```
-3. Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`. Multiple file types can be specified in curly brackets separated by a comma, and wildcards can be used to search directories recursively. For example, `**/*.{pdb,exe,dll}` will search for all `.pdb`, `.exe`, and `.dll` files in the current directory and all subdirectories. Optionally, you can specify the `-m` flag to run [dump_syms](https://github.com/BugSplat-Git/node-dump-syms) against the specified binaries and upload the resulting `.sym` files.
+
+Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`. Multiple file types can be specified in curly brackets separated by a comma, and wildcards can be used to search directories recursively. For example, `**/*.{pdb,exe,dll}` will search for all `.pdb`, `.exe`, and `.dll` files in the current directory and all subdirectories. Optionally, you can specify the `-m` flag to run [dump_syms](https://github.com/BugSplat-Git/node-dump-syms) against the specified binaries and upload the resulting `.sym` files.
 
 ## API
 
-1. Install this package locally `npm i @bugsplat/symbol-upload`.
-2. Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
+Install this package locally 
+
+```bash
+npm i @bugsplat/symbol-upload
+```
+
+Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
 
 ```ts
 import { BugSplatApiClient, OAuthClientCredentialsClient, uploadSymbolFiles } from '@bugsplat/symbol-upload';
 ```
 
-3. Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuthClientCredentialsClient` using the `createAuthenticatedClient` async factory function.
+Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuthClientCredentialsClient` using the `createAuthenticatedClient` async factory function.
 
 ```ts
 const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email, password);
@@ -127,7 +155,7 @@ const bugsplat = await BugSplatApiClient.createAuthenticatedClientForNode(email,
 const bugsplat = await OAuthClientCredentialsClient.createAuthenticatedClient(clientId, clientSecret);
 ```
 
-4. Upload your symbol files to bugsplat by calling the `uploadSymbolFiles` function.
+Upload your symbol files to bugsplat by calling the `uploadSymbolFiles` function.
 
 ```ts
 const directory = '/path/to/symbols/dir';
@@ -135,7 +163,7 @@ const files = ['my-cool-app.exe', 'my-cool-app.pdb'];
 await uploadSymbolFiles(bugsplat, database, application, version, directory, files);
 ```
 
-If you've done everything correctly, your symbols should be shown by clicking the application link on the [Versions](https://app.bugsplat.com/v2/versions) page.
+If you've done everything correctly, your symbols should appear when you click the application link on the [Versions](https://app.bugsplat.com/v2/versions) page.
 
 <img width="1728" alt="image" src="https://github.com/BugSplat-Git/symbol-upload/assets/2646053/7314bd36-05db-4188-89e4-10f4e7442cec">
 
