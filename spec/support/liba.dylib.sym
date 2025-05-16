@@ -1,0 +1,105 @@
+MODULE Mac arm64 F2DF950B5C5633B88308722BDB7790100 liba.dylib.dSYM
+INFO CODE_ID F2DF950B5C5633B88308722BDB779010
+INFO GENERATOR mozilla/dump_syms 2.3.4
+FILE 0 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/ostream
+FILE 1 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/stdexcept
+FILE 2 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/locale
+FILE 3 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/new
+FILE 4 /Users/wukanghao/repo/crashpad/test/a.cc
+FILE 5 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/vector
+FILE 6 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__memory/shared_ptr.h
+FILE 7 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/string
+FUNC 32bc 438 0 smf::test()
+32bc 40 7 4
+32fc 4 9 4
+3300 14 11 4
+3314 8 14 4
+331c c 13 4
+3328 148 14 4
+3470 4 17 4
+3474 8 14 4
+347c a0 21 4
+351c 68 23 4
+3584 68 24 4
+35ec 68 25 4
+3654 2c 26 4
+3680 58 14 4
+36d8 1c 26 4
+FUNC 36f4 a0 0 A::func()
+36f4 10 28 4
+3704 2c 29 4
+3730 8 30 4
+3738 4 29 4
+373c 8 31 4
+3744 50 32 4
+FUNC 3794 50 0 std::__1::shared_ptr<int>::~shared_ptr[abi:v160006]()
+3794 40 743 6
+37d4 10 746 6
+FUNC 37e4 b4 0 A::A()
+37e4 18 34 4
+37fc 70 42 4
+386c 1c 43 4
+3888 10 42 4
+FUNC 3898 4 0 A::A()
+3898 4 34 4
+PUBLIC 389c 0 __clang_call_terminate
+FUNC 38a8 14 0 std::__1::vector<int, std::__1::allocator<int> >::__throw_length_error[abi:v160006]() const
+38a8 8 854 5
+38b0 c 855 5
+FUNC 38bc 50 0 std::__1::__throw_length_error[abi:v160006](char const*)
+38bc 10 255 1
+38cc 40 257 1
+FUNC 390c 24 0 std::length_error::length_error[abi:v160006](char const*)
+390c 24 154 1
+FUNC 3930 28 0 std::__throw_bad_array_new_length([abi:v160006], void)
+3930 8 175 3
+3938 20 177 3
+FUNC 3958 14 0 std::__1::__shared_ptr_emplace<int, std::__1::allocator<int> >::~__shared_ptr_emplace()
+3958 14 269 6
+FUNC 396c 24 0 std::__1::__shared_ptr_emplace<int, std::__1::allocator<int> >::~__shared_ptr_emplace()
+396c 24 269 6
+FUNC 3990 4 0 std::__1::__shared_ptr_emplace<int, std::__1::allocator<int> >::__on_zero_shared()
+3990 4 310 6
+FUNC 3994 4 0 std::__1::__shared_ptr_emplace<int, std::__1::allocator<int> >::__on_zero_shared_weak()
+3994 4 317 6
+FUNC 3998 164 0 std::__1::__put_character_sequence[abi:v160006]<char, std::__1::char_traits<char> >(std::__1::basic_ostream<char, std::__1::char_traits<char> >, std::__1::basic_ostream const*, unsigned long)
+3998 28 753 0
+39c0 c 758 0
+39cc 8 759 0
+39d4 10 762 0
+39e4 4 764 0
+39e8 4c 769 0
+3a34 10 764 0
+3a44 18 762 0
+3a5c 1c 770 0
+3a78 8 773 0
+3a80 28 779 0
+3aa8 10 769 0
+3ab8 18 773 0
+3ad0 10 776 0
+3ae0 1c 777 0
+FUNC 3afc 194 0 std::__1::__pad_and_output[abi:v160006]<char, std::__1::char_traits<char> >(std::__1::char_traits<char>, std::__1::ostreambuf_iterator const*, std::__1::ostreambuf_iterator const, std::__1::ostreambuf_iterator const, std::__1::ios_base&, std::__1::ostreambuf_iterator)
+3afc 20 1418 2
+3b1c 14 1419 2
+3b30 4 1422 2
+3b34 4 1421 2
+3b38 8 1423 2
+3b40 4 1427 2
+3b44 8 1428 2
+3b4c 1c 1430 2
+3b68 c 1436 2
+3b74 50 1438 2
+3bc4 2c 1439 2
+3bf0 24 1444 2
+3c14 4 1445 2
+3c18 8 1446 2
+3c20 20 1448 2
+3c40 c 1454 2
+3c4c 20 1456 2
+3c6c c 1438 2
+3c78 18 1444 2
+FUNC 3c90 14 0 std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >::__throw_length_error[abi:v160006]() const
+3c90 8 1983 7
+3c98 c 1984 7
+STACK CFI INIT 389c c .cfa: sp 0 +
+STACK CFI 38a0 .cfa: sp 16 + .ra: .cfa -8 + ^ x29: .cfa -16 + ^
