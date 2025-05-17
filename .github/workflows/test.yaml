@@ -1,25 +1,27 @@
 name: Unit Tests
+permissions:
+  contents: read
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: ☑️ Checkout
-      uses: actions/checkout@v4
+      - name: ☑️ Checkout
+        uses: actions/checkout@v4
 
-    - name: ⚙️ Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-    - name: 🏗️ Install Dependencies
-      run: npm ci
+      - name: 🏗️ Install Dependencies
+        run: npm ci
 
-    - name: 🧪 Run Tests
-      run: npm test 
+      - name: 🧪 Run Tests
+        run: npm test
