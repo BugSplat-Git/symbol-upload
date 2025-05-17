@@ -31,5 +31,11 @@ function removeIgnoredExtensions(moduleName: string): string {
         return moduleName;
     }
 
-    return moduleName.split('.')[0];
+    // Remove just the dSYM portion for things like .dylib.dSYM
+    const lastDotIndex = moduleName.lastIndexOf('.');
+    if (lastDotIndex > 0) {
+        return moduleName.substring(0, lastDotIndex);
+    }
+
+    return moduleName;
 }

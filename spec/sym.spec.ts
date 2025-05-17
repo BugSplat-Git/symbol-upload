@@ -40,4 +40,12 @@ describe('getSymFileInfo', () => {
 
         expect(moduleName).toBe(expected);
     });
+
+    it('should get module name for file with .dylib.dSYM extension', async () => {
+        const expected = 'liba.dylib';
+
+        const { moduleName } = await getSymFileInfo('./spec/support/liba.dylib.sym');
+
+        expect(moduleName).toBe(expected);
+    });
 });
