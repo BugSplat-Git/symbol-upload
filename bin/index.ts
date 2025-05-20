@@ -10,9 +10,10 @@ import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
 import { existsSync, mkdirSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
-import { basename, dirname, extname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileExists } from '../src/fs';
 import { importNodeDumpSyms } from '../src/preload';
+import { getNormalizedSymModuleName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import {
@@ -132,7 +133,7 @@ import {
 
     symbolFilePaths = symbolFilePaths.map((file) => {
       console.log(`Dumping syms for ${file}...`);
-      const symFile = join(tmpDir, `${getSymFileBaseName(file)}.sym`);
+      const symFile = join(tmpDir, `${getNormalizedSymModuleName(file)}.sym`);
       mkdirSync(dirname(symFile), { recursive: true });
       nodeDumpSyms(file, symFile);
       return symFile;
@@ -211,16 +212,6 @@ async function getCommandLineOptions(
   };
 }
 
-// The rust-minidump-stackwalker symbol lookup implementation removes some extensions from the sym file name for symbol lookups.
-// This is a bit of a mystery and is subject to change when we learn more about how it works.
-// For now, remove any non .so extension in the sym file's base name to satisfy the minidump-stackwalker symbol lookup.
-function getSymFileBaseName(file: string): string {
-  const linuxSoExtensionPattern = /\.so\.?.*$/gm;
-  return linuxSoExtensionPattern.test(file)
-    ? basename(file)
-    : removeExtensionRecursive(file);
-}
-
 function logHelpAndExit() {
   const help = commandLineUsage(usageDefinitions);
   console.log(help);
@@ -241,14 +232,6 @@ function logMissingAuthAndExit(): void {
 
 function normalizeDirectory(directory: string): string {
   return directory.replace(/\\/g, '/');
-}
-
-// The extname function will return .dSYM for bugsplat.app.dSYM
-// When processing, we want to our file name for bugsplat.app.dSYM to be bugsplat.sym
-// This function will remove extensions recursively until there are none left
-function removeExtensionRecursive(file: string): string {
-  const ext = extname(file);
-  return ext ? removeExtensionRecursive(basename(file, ext)) : file;
 }
 
 function validAuthenticationArguments({
