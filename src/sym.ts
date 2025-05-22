@@ -1,4 +1,5 @@
 import firstline from 'firstline';
+import { basename } from 'node:path';
 
 export async function getSymFileInfo(
   path: string
@@ -26,25 +27,55 @@ export async function getSymFileInfo(
 
 // The rust-minidump-stackwalker symbol lookup implementation removes some extensions from the module name for symbol lookups.
 // This is a bit of a mystery and is subject to change when we learn more about how it works.
-// For now, remove some module name extensions to satisfy the minidump-stackwalker symbol lookup.
+// For now, normalize some module name extensions to satisfy the minidump-stackwalker symbol lookup.
+// When building the path, the pattern is module/GUID/file.sym
 export function getNormalizedSymModuleName(moduleName: string): string {
-  // We've seen .pdb, .so, .so.0, and .so.6 in the module lookup, leave them alone
-  const ignoredExtensions = [/\.pdb$/gm, /\.so\.?.*$/gm];
-  if (ignoredExtensions.some((regex) => regex.test(moduleName))) {
-    return moduleName;
-  }
-
   // Remove the dSYM portion for .dylib.dSYM and .app.dSYM
   const isDsym = moduleName.toLowerCase().endsWith('.dsym');
   if (isDsym) {
     moduleName = moduleName.slice(0, -5);
   }
+  
+  // We've seen .pdb, .so, .so.0, and .so.6 in the module lookup, leave them alone
+  const ignoredExtensions = [/\.pdb$/gm, /\.so\.?.*$/gm, /\.dylib$/gm];
+  if (ignoredExtensions.some((regex) => regex.test(moduleName))) {
+    return moduleName;
+  }
 
-  // Remove the app portion for .app (previously .app.dSYM)
-  const isApp = moduleName.toLowerCase().endsWith('.app');
-  if (isApp) {
-    moduleName = moduleName.slice(0, -4);
+  // Remove the remaining extensions
+  const firstIndex = moduleName.indexOf('.');
+  if (firstIndex !== -1) {
+    moduleName = moduleName.slice(0, firstIndex);
   }
 
   return moduleName;
+}
+
+// The rust-minidump-stackwalker symbol lookup implementation removes some extensions from the sym file name for symbol lookups.
+// This is a bit of a mystery and is subject to change when we learn more about how it works.
+// For now, normalize some sym file names to satisfy the minidump-stackwalker symbol lookup.
+// When building the path, the pattern is module/GUID/file.sym
+
+export function getNormalizedSymFileName(path: string): string {
+  let normalizedFileName = basename(path);
+
+  // Remove the dSYM portion for .dylib.dSYM and .app.dSYM
+  const isDsym = normalizedFileName.toLowerCase().endsWith('.dsym');
+  if (isDsym) {
+    normalizedFileName = normalizedFileName.slice(0, -5);
+  }
+
+  // We've seen .dylib.sym, .so.sym, .so.0.sym, and .so.6.sym in the sym file lookup, leave them alone
+  const ignoredExtensions = [/\.dylib$/gm, /\.so\.?.*$/gm];
+  if (ignoredExtensions.some((regex) => regex.test(normalizedFileName))) {
+    return `${normalizedFileName}.sym`;
+  }
+
+  // Remove the remaining extensions
+  const firstIndex = normalizedFileName.indexOf('.');
+  if (firstIndex !== -1) {
+    normalizedFileName = normalizedFileName.slice(0, firstIndex);
+  }
+
+  return `${normalizedFileName}.sym`;
 }

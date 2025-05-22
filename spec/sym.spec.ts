@@ -1,51 +1,137 @@
-import { getSymFileInfo } from '../src/sym';
+import { getNormalizedSymFileName, getNormalizedSymModuleName, getSymFileInfo } from '../src/sym';
 
-describe('getSymFileInfo', () => {
-    it('should get debug id for file with a 33 character debug id', async () => {
-        const expected = '83AE77A7796BDF7DCE8CE3564B3B5D650';
+describe('sym', () => {
+    describe('getSymFileInfo', () => {
+        it('should get debug id for file with a 33 character debug id', async () => {
+            const expected = '83AE77A7796BDF7DCE8CE3564B3B5D650';
 
-        const { dbgId } = await getSymFileInfo('./spec/support/android.sym');
+            const { dbgId } = await getSymFileInfo('./spec/support/android.sym');
 
-        expect(dbgId).toBe(expected);
+            expect(dbgId).toBe(expected);
+        });
+
+        it('should get debug id for file with a 34 character debug id', async () => {
+            const expected = '9DD7CE5C705C45B09BEE297B84B5B9881c';
+
+            const { dbgId } = await getSymFileInfo('./spec/support/windows.sym');
+
+            expect(dbgId).toBe(expected);
+        });
+
+        it('should get module name for file with line feeds', async () => {
+            const expected = 'libc++_shared.so';
+
+            const { moduleName } = await getSymFileInfo('./spec/support/android.sym');
+
+            expect(moduleName).toBe(expected);
+        });
+
+        it('should get module name for file with spaces in module name', async () => {
+            const expected = 'Electron Helper (GPU)';
+
+            const { moduleName } = await getSymFileInfo('./spec/support/spaces.sym');
+
+            expect(moduleName).toBe(expected);
+        });
+
+        it('should get module name for file with line feeds and carriage returns', async () => {
+            const expected = 'windows.pdb';
+
+            const { moduleName } = await getSymFileInfo('./spec/support/windows.sym');
+
+            expect(moduleName).toBe(expected);
+        });
+
+        it('should get module name for file with .dylib.dSYM extension', async () => {
+            const expected = 'liba.dylib';
+
+            const { moduleName } = await getSymFileInfo('./spec/support/liba.dylib.sym');
+
+            expect(moduleName).toBe(expected);
+        });
     });
 
-    it('should get debug id for file with a 34 character debug id', async () => {
-        const expected = '9DD7CE5C705C45B09BEE297B84B5B9881c';
+    describe('getNormalizedSymModuleName', () => {
+        it('should get normalized sym module name for file with .dylib.dSYM extension', () => {
+            const expected = 'liba.dylib';
 
-        const { dbgId } = await getSymFileInfo('./spec/support/windows.sym');
+            const normalizedSymModuleName = getNormalizedSymModuleName('liba.dylib.dSYM');
 
-        expect(dbgId).toBe(expected);
+            expect(normalizedSymModuleName).toBe(expected);
+        });
+
+        it('should get normalized sym module name for file with .app.dSYM extension', () => {
+            const expected = 'Electron';
+
+            const normalizedSymModuleName = getNormalizedSymModuleName('Electron.app.dSYM');
+
+            expect(normalizedSymModuleName).toBe(expected);
+        });
+
+        it('should get normalized sym module name for file with .so extension', () => {
+            const expected = 'liba.so';
+
+            const normalizedSymModuleName = getNormalizedSymModuleName('liba.so');
+
+            expect(normalizedSymModuleName).toBe(expected);
+        });
+
+        it('should get normalized sym module name for file with .so.0 extension', () => {
+            const expected = 'liba.so.0';
+
+            const normalizedSymModuleName = getNormalizedSymModuleName('liba.so.0');
+
+            expect(normalizedSymModuleName).toBe(expected);
+        });
+        
+        it('should get normalized sym file name for file with a .pdb extension', () => {
+            const expected = 'windows.pdb';
+
+            const normalizedSymModuleName = getNormalizedSymModuleName('windows.pdb');
+
+            expect(normalizedSymModuleName).toBe(expected);
+        });
     });
 
-    it('should get module name for file with line feeds', async () => {
-        const expected = 'libc++_shared.so';
+    describe('getNormalizedSymFileName', () => {
+        it('should get normalized sym file name for file with .dylib.dSYM extension', () => {
+            const expected = 'liba.dylib.sym';
 
-        const { moduleName } = await getSymFileInfo('./spec/support/android.sym');
+            const normalizedSymFileName = getNormalizedSymFileName('liba.dylib.dSYM');
 
-        expect(moduleName).toBe(expected);
-    });
+            expect(normalizedSymFileName).toBe(expected);
+        });
 
-    it('should get module name for file with spaces in module name', async () => {
-        const expected = 'Electron Helper (GPU)';
+        it('should get normalized sym file name for file with .app.dSYM extension', () => {
+            const expected = 'Electron.sym';
 
-        const { moduleName } = await getSymFileInfo('./spec/support/spaces.sym');
+            const normalizedSymFileName = getNormalizedSymFileName('Electron.app.dSYM');
 
-        expect(moduleName).toBe(expected);
-    });
+            expect(normalizedSymFileName).toBe(expected);
+        });
 
-    it('should get module name for file with line feeds and carriage returns', async () => {
-        const expected = 'windows.pdb';
+        it('should get normalized sym file name for file with .so extension', () => {
+            const expected = 'liba.so.sym';
 
-        const { moduleName } = await getSymFileInfo('./spec/support/windows.sym');
+            const normalizedSymFileName = getNormalizedSymFileName('liba.so');
 
-        expect(moduleName).toBe(expected);
-    });
+            expect(normalizedSymFileName).toBe(expected);
+        });
 
-    it('should get module name for file with .dylib.dSYM extension', async () => {
-        const expected = 'liba.dylib';
+        it('should get normalized sym file name for file with .so.0 extension', () => {
+            const expected = 'liba.so.0.sym';
 
-        const { moduleName } = await getSymFileInfo('./spec/support/liba.dylib.sym');
+            const normalizedSymFileName = getNormalizedSymFileName('liba.so.0');
 
-        expect(moduleName).toBe(expected);
+            expect(normalizedSymFileName).toBe(expected);
+        });
+        
+        it('should get normalized sym file name for file with a .pdb extension', () => {
+            const expected = 'windows.sym';
+
+            const normalizedSymFileName = getNormalizedSymFileName('windows.pdb');
+
+            expect(normalizedSymFileName).toBe(expected);
+        });
     });
 });
