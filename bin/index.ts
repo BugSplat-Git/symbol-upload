@@ -10,7 +10,7 @@ import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
 import { existsSync, mkdirSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileExists } from '../src/fs';
 import { importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymModuleName } from '../src/sym';
@@ -21,6 +21,7 @@ import {
   argDefinitions,
   usageDefinitions,
 } from './command-line-definitions';
+import { randomUUID } from 'node:crypto';
 
 (async () => {
   let {
@@ -133,7 +134,7 @@ import {
 
     symbolFilePaths = symbolFilePaths.map((file) => {
       console.log(`Dumping syms for ${file}...`);
-      const symFile = join(tmpDir, `${getNormalizedSymModuleName(file)}.sym`);
+      const symFile = join(tmpDir, randomUUID(), `${getNormalizedSymModuleName(basename(file))}.sym`);
       mkdirSync(dirname(symFile), { recursive: true });
       nodeDumpSyms(file, symFile);
       return symFile;
