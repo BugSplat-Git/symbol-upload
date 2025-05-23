@@ -91,6 +91,22 @@ describe('sym', () => {
 
             expect(normalizedSymModuleName).toBe(expected);
         });
+
+        it('should get normalized sym module name for file with a .so.2.debug extension', () => {
+            const expected = 'linux.so.2';
+
+            const normalizedSymModuleName = getNormalizedSymModuleName('linux.so.2.debug');
+
+            expect(normalizedSymModuleName).toBe(expected);
+        });
+
+        it('should get normalized sym module name for file with a .debug extension', () => {
+            const expected = 'linux';
+
+            const normalizedSymModuleName = getNormalizedSymModuleName('linux.debug');
+
+            expect(normalizedSymModuleName).toBe(expected);
+        });
     });
 
     describe('getNormalizedSymFileName', () => {
@@ -130,6 +146,22 @@ describe('sym', () => {
             const expected = 'windows.sym';
 
             const normalizedSymFileName = getNormalizedSymFileName('windows.pdb');
+
+            expect(normalizedSymFileName).toBe(expected);
+        });
+
+        it('should get normalized sym file name for file with a .so.2.debug extension', () => {
+            const expected = 'linux.so.2.sym';
+
+            const normalizedSymFileName = getNormalizedSymFileName('linux.so.2.debug');
+
+            expect(normalizedSymFileName).toBe(expected);
+        });
+
+        it('should get normalized sym file name for file with a .debug extension', () => {
+            const expected = 'linux.sym';
+
+            const normalizedSymFileName = getNormalizedSymFileName('linux.debug');
 
             expect(normalizedSymFileName).toBe(expected);
         });

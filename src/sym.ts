@@ -30,12 +30,14 @@ export async function getSymFileInfo(
 // For now, normalize some module name extensions to satisfy the minidump-stackwalker symbol lookup.
 // When building the path, the pattern is module/GUID/file.sym
 export function getNormalizedSymModuleName(moduleName: string): string {
-  // Remove the dSYM portion for .dylib.dSYM and .app.dSYM
-  const isDsym = moduleName.toLowerCase().endsWith('.dsym');
-  if (isDsym) {
-    moduleName = moduleName.slice(0, -5);
+  // Remove the .dSYM and .debug portions for .dylib.dSYM, .app.dSYM, and .so.2.debug etc.
+  const alwaysRemoveExtensions = ['.dsym', '.debug'];
+  for (const extension of alwaysRemoveExtensions) {
+    if (moduleName.toLowerCase().endsWith(extension)) {
+      moduleName = moduleName.slice(0, -extension.length);
+    }
   }
-  
+
   // We've seen .pdb, .so, .so.0, and .so.6 in the module lookup, leave them alone
   const ignoredExtensions = [/\.pdb$/gm, /\.so\.?.*$/gm, /\.dylib$/gm];
   if (ignoredExtensions.some((regex) => regex.test(moduleName))) {
@@ -59,7 +61,14 @@ export function getNormalizedSymModuleName(moduleName: string): string {
 export function getNormalizedSymFileName(path: string): string {
   let normalizedFileName = basename(path);
 
-  // Remove the dSYM portion for .dylib.dSYM and .app.dSYM
+  // Remove the .dSYM and .debug portions for .dylib.dSYM, .app.dSYM, and .so.2.debug etc.
+  const alwaysRemoveExtensions = ['.dsym', '.debug'];
+  for (const extension of alwaysRemoveExtensions) {
+    if (normalizedFileName.toLowerCase().endsWith(extension)) {
+      normalizedFileName = normalizedFileName.slice(0, -extension.length);
+    }
+  }
+
   const isDsym = normalizedFileName.toLowerCase().endsWith('.dsym');
   if (isDsym) {
     normalizedFileName = normalizedFileName.slice(0, -5);
