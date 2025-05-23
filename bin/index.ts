@@ -8,12 +8,13 @@ import {
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
+import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileExists } from '../src/fs';
 import { importNodeDumpSyms } from '../src/preload';
-import { getNormalizedSymModuleName } from '../src/sym';
+import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import {
@@ -133,7 +134,7 @@ import {
 
     symbolFilePaths = symbolFilePaths.map((file) => {
       console.log(`Dumping syms for ${file}...`);
-      const symFile = join(tmpDir, `${getNormalizedSymModuleName(file)}.sym`);
+      const symFile = join(tmpDir, randomUUID(), getNormalizedSymFileName(basename(file)));
       mkdirSync(dirname(symFile), { recursive: true });
       nodeDumpSyms(file, symFile);
       return symFile;
