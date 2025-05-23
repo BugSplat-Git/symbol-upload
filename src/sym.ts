@@ -69,11 +69,6 @@ export function getNormalizedSymFileName(path: string): string {
     }
   }
 
-  const isDsym = normalizedFileName.toLowerCase().endsWith('.dsym');
-  if (isDsym) {
-    normalizedFileName = normalizedFileName.slice(0, -5);
-  }
-
   // We've seen .dylib.sym, .so.sym, .so.0.sym, and .so.6.sym in the sym file lookup, leave them alone
   const ignoredExtensions = [/\.dylib$/gm, /\.so\.?.*$/gm];
   if (ignoredExtensions.some((regex) => regex.test(normalizedFileName))) {
