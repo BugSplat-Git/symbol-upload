@@ -68,6 +68,14 @@ describe('sym', () => {
             expect(normalizedSymModuleName).toBe(expected);
         });
 
+        it('should get normalized sym module name for file with .node extension', () => {
+            const expected = 'liba.node';
+
+            const normalizedSymModuleName = getNormalizedSymModuleName('liba.node');
+
+            expect(normalizedSymModuleName).toBe(expected);
+        });
+
         it('should get normalized sym module name for file with .so extension', () => {
             const expected = 'liba.so';
 
@@ -122,6 +130,14 @@ describe('sym', () => {
             const expected = 'Electron.sym';
 
             const normalizedSymFileName = getNormalizedSymFileName('Electron.app.dSYM');
+
+            expect(normalizedSymFileName).toBe(expected);
+        });
+
+        it('should get normalized sym file name for file with .node extension', () => {
+            const expected = 'liba.node.sym';
+
+            const normalizedSymFileName = getNormalizedSymFileName('liba.node');
 
             expect(normalizedSymFileName).toBe(expected);
         });
