@@ -10,7 +10,7 @@ import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
-import { copyFile, mkdir, readFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileExists } from '../src/fs';
 import { createSymbolFileInfos, SymbolFileInfo } from '../src/info';
@@ -194,6 +194,9 @@ async function copyFilesToLocalPath(
     mkdirSync(dirname(localFilePath), { recursive: true });
     await copyFile(symbolFileInfo.path, localFilePath);
   }
+
+  const twoTieredMarkerFilePath = join(localPath, 'index2.txt');
+  await writeFile(twoTieredMarkerFilePath, '.');
 }
 
 async function createBugSplatClient({
