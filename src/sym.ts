@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 
 export async function getSymFileInfo(
   path: string
-): Promise<{ dbgId: string; moduleName: string }> {
+): Promise<{ dbgId: string; moduleName: string, fileName: string }> {
   try {
     const firstLine = await firstline(path);
     const matches = Array.from(
