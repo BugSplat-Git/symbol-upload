@@ -22,6 +22,8 @@ import {
   argDefinitions,
   usageDefinitions,
 } from './command-line-definitions';
+import firstline from 'firstline';
+import type { dumpSyms } from 'node-dump-syms';
 
 (async () => {
   let {
@@ -36,7 +38,7 @@ import {
     remove,
     files,
     directory,
-    dumpSyms,
+    dumpSyms: shouldRunDumpSyms,
   } = await getCommandLineOptions(argDefinitions);
 
   if (help) {
@@ -110,18 +112,18 @@ import {
 
   const globPattern = `${directory}/${files}`;
 
-  let symbolFilePaths = await glob(globPattern);
+  let foundFilePaths = await glob(globPattern);
 
-  if (!symbolFilePaths.length) {
+  if (!foundFilePaths.length) {
     throw new Error(
       `Could not find any files to upload using glob ${globPattern}!`
     );
   }
 
-  console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
+  console.log(`Found files:\n ${foundFilePaths.join('\n')}`);
 
-  if (dumpSyms) {
-    let nodeDumpSyms;
+  if (shouldRunDumpSyms) {
+    let nodeDumpSyms: typeof dumpSyms;
 
     try {
       nodeDumpSyms = (await importNodeDumpSyms()).dumpSyms;
@@ -132,13 +134,11 @@ import {
       );
     }
 
-    symbolFilePaths = symbolFilePaths.map((file) => {
-      console.log(`Dumping syms for ${file}...`);
-      const symFile = join(tmpDir, randomUUID(), getNormalizedSymFileName(basename(file)));
-      mkdirSync(dirname(symFile), { recursive: true });
-      nodeDumpSyms(file, symFile);
-      return symFile;
-    });
+    const newSymFilePaths: Array<string> = [];
+
+    for (const file of foundFilePaths) {
+      newSymFilePaths.push(await runDumpSyms(nodeDumpSyms, file));
+    }
   }
 
   await uploadSymbolFiles(
@@ -146,7 +146,7 @@ import {
     database,
     application,
     version,
-    symbolFilePaths
+    foundFilePaths
   );
   await safeRemoveTmp();
   process.exit(0);
@@ -233,6 +233,25 @@ function logMissingAuthAndExit(): void {
 
 function normalizeDirectory(directory: string): string {
   return directory.replace(/\\/g, '/');
+}
+
+async function runDumpSyms(
+  nodeDumpSyms: typeof dumpSyms,
+  inputFilePath: string
+) {
+  console.log(`Dumping syms for ${inputFilePath}...`);
+
+  const uuid = randomUUID();
+  const tmpSymFile = join(tmpDir, randomUUID(), `${uuid}.sym`);
+
+  mkdirSync(dirname(tmpSymFile), { recursive: true });
+  nodeDumpSyms(inputFilePath, tmpSymFile);
+
+  const symFirstLine = await firstline(tmpSymFile);
+  const moduleName = 'todo bg';
+  const outputFilePath = 'todo bg';
+
+  return outputFilePath;
 }
 
 function validAuthenticationArguments({

@@ -97,6 +97,19 @@
             "type": "node"
         },
         {
+            "name": "Start: addon:windows",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:addon:windows",
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Test",
             "request": "launch",
             "runtimeArgs": [
@@ -109,5 +122,6 @@
             ],
             "type": "node"
         },
+
     ]
 }

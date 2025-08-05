@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 
 export async function getSymFileInfo(
   path: string
-): Promise<{ dbgId: string; moduleName: string }> {
+): Promise<{ dbgId: string; moduleName: string, fileName: string }> {
   try {
     const firstLine = await firstline(path);
     const matches = Array.from(
@@ -38,8 +38,8 @@ export function getNormalizedSymModuleName(moduleName: string): string {
     }
   }
 
-  // We've seen .pdb, .so, .so.0, and .so.6 in the module lookup, leave them alone
-  const ignoredExtensions = [/\.pdb$/gm, /\.so\.?.*$/gm, /\.dylib$/gm];
+  // We've seen .node, .pdb, .so, .so.0, and .so.6 in the module lookup, leave them alone
+  const ignoredExtensions = [/\.node$/gm, /\.pdb$/gm, /\.so\.?.*$/gm, /\.dylib$/gm];
   if (ignoredExtensions.some((regex) => regex.test(moduleName))) {
     return moduleName;
   }
@@ -57,7 +57,6 @@ export function getNormalizedSymModuleName(moduleName: string): string {
 // This is a bit of a mystery and is subject to change when we learn more about how it works.
 // For now, normalize some sym file names to satisfy the minidump-stackwalker symbol lookup.
 // When building the path, the pattern is module/GUID/file.sym
-
 export function getNormalizedSymFileName(path: string): string {
   let normalizedFileName = basename(path);
 
@@ -69,8 +68,8 @@ export function getNormalizedSymFileName(path: string): string {
     }
   }
 
-  // We've seen .dylib.sym, .so.sym, .so.0.sym, and .so.6.sym in the sym file lookup, leave them alone
-  const ignoredExtensions = [/\.dylib$/gm, /\.so\.?.*$/gm];
+  // We've seen .node.sym, .dylib.sym, .so.sym, .so.0.sym, and .so.6.sym in the sym file lookup, leave them alone
+  const ignoredExtensions = [/\.node$/gm, /\.dylib$/gm, /\.so\.?.*$/gm];
   if (ignoredExtensions.some((regex) => regex.test(normalizedFileName))) {
     return `${normalizedFileName}.sym`;
   }
