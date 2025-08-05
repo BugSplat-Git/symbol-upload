@@ -10,16 +10,17 @@ import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
-import { mkdir, readFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileExists } from '../src/fs';
+import { createSymbolFileInfos, SymbolFileInfo } from '../src/info';
 import { importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { uploadSymbolFiles } from '../src/upload';
 import {
-  CommandLineDefinition,
   argDefinitions,
+  CommandLineDefinition,
   usageDefinitions,
 } from './command-line-definitions';
 
@@ -37,6 +38,7 @@ import {
     files,
     directory,
     dumpSyms,
+    localPath,
   } = await getCommandLineOptions(argDefinitions);
 
   if (help) {
@@ -134,20 +136,35 @@ import {
 
     symbolFilePaths = symbolFilePaths.map((file) => {
       console.log(`Dumping syms for ${file}...`);
-      const symFile = join(tmpDir, randomUUID(), getNormalizedSymFileName(basename(file)));
+      const symFile = join(
+        tmpDir,
+        randomUUID(),
+        getNormalizedSymFileName(basename(file))
+      );
       mkdirSync(dirname(symFile), { recursive: true });
       nodeDumpSyms(file, symFile);
       return symFile;
     });
   }
 
-  await uploadSymbolFiles(
-    bugsplat,
-    database,
-    application,
-    version,
-    symbolFilePaths
-  );
+  const symbolFileInfos = await Promise.all(
+    symbolFilePaths.map(
+      async (symbolFilePath) => await createSymbolFileInfos(symbolFilePath)
+    )
+  ).then((array) => array.flat());
+
+  if (localPath) {
+    await copyFilesToLocalPath(symbolFileInfos, localPath);
+  } else {
+    await uploadSymbolFiles(
+      bugsplat,
+      database,
+      application,
+      version,
+      symbolFileInfos
+    );
+  }
+
   await safeRemoveTmp();
   process.exit(0);
 })().catch(async (error) => {
@@ -155,6 +172,29 @@ import {
   console.error(error.message);
   process.exit(1);
 });
+
+async function copyFilesToLocalPath(
+  symbolFileInfos: SymbolFileInfo[],
+  localPath: string
+): Promise<void> {
+  for (const symbolFileInfo of symbolFileInfos) {
+    if (!symbolFileInfo.dbgId) {
+      console.warn(`Failed to parse UUID for ${symbolFileInfo.path}, skipping...`);
+      continue;
+    }
+
+    const twoLetterPrefix = symbolFileInfo.moduleName.slice(0, 2).toLowerCase();
+    const localFilePath = join(
+      localPath,
+      twoLetterPrefix,
+      symbolFileInfo.moduleName,
+      symbolFileInfo.dbgId,
+      basename(symbolFileInfo.path)
+    );
+    mkdirSync(dirname(localFilePath), { recursive: true });
+    await copyFile(symbolFileInfo.path, localFilePath);
+  }
+}
 
 async function createBugSplatClient({
   user,

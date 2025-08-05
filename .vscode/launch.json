@@ -97,6 +97,20 @@
             "type": "node"
         },
         {
+            "name": "Start: local",
+            "request": "launch",
+            "runtimeArgs": [
+                "run-script",
+                "start:local",
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "Test",
             "request": "launch",
             "runtimeArgs": [

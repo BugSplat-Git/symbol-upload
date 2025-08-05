@@ -93,6 +93,14 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         defaultValue: false,
         description: 'Use dump_syms to generate and upload sym files for specified binaries.',
         typeLabel: '{underline boolean} (optional)',
+    },
+    {
+        name: 'localPath',
+        alias: 'l',
+        type: String,
+        defaultValue: '',
+        typeLabel: '{underline string} (optional)',
+        description: 'Path to a local directory to copy files to. If provided, the files will be copied to the local path instead of uploaded to BugSplat.',
     }
 ];
 
