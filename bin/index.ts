@@ -183,10 +183,8 @@ async function copyFilesToLocalPath(
       continue;
     }
 
-    const twoLetterPrefix = symbolFileInfo.moduleName.slice(0, 2).toLowerCase();
     const localFilePath = join(
       localPath,
-      twoLetterPrefix,
       symbolFileInfo.moduleName,
       symbolFileInfo.dbgId,
       basename(symbolFileInfo.path)
@@ -195,8 +193,8 @@ async function copyFilesToLocalPath(
     await copyFile(symbolFileInfo.path, localFilePath);
   }
 
-  const twoTieredMarkerFilePath = join(localPath, 'index2.txt');
-  await writeFile(twoTieredMarkerFilePath, '.');
+  const symSrvMarkerFilePath = join(localPath, 'index.txt');
+  await writeFile(symSrvMarkerFilePath, '.');
 }
 
 async function createBugSplatClient({
