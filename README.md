@@ -131,6 +131,24 @@ Links
 
 Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`. Multiple file types can be specified in curly brackets separated by a comma, and wildcards can be used to search directories recursively. For example, `**/*.{pdb,exe,dll}` will search for all `.pdb`, `.exe`, and `.dll` files in the current directory and all subdirectories. Optionally, you can specify the `-m` flag to run [dump_syms](https://github.com/BugSplat-Git/node-dump-syms) against the specified binaries and upload the resulting `.sym` files.
 
+### Self-Hosting
+
+The symbol-upload tool can be used to create a [SymSrv](https://learn.microsoft.com/en-us/windows/win32/debug/symbol-servers-and-symbol-stores) compatible directory structure for Windows symbols that is compatible with both BugSplat and [Micrsoft Visual Studio](https://learn.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger?view=vs-2022#configure-location-of-symbol-files-and-loading-options). Additionally, symbol-upload can also create a SymSrv compatible directory structure for macOS and Crashpad symbols is compatible with BugSplat.
+
+To skip uploading symbols and create a local directory, provide the `-l` flag and a path where the symbols will be copied.
+
+```bat
+symbol-upload -f "**/*.{pdb,exe,dll}" -l "C:\path\to\output"
+```
+
+Next, use a sync tool to upload the directory to a cloud services provider. The following is an example that uses `s3 sync` via the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
+
+```bat
+aws s3 sync . s3://your-bucket-name-here
+```
+
+To connect BugSplat to your self-hosted symbol server please refer to our Symbol Server [documentation](https://docs.bugsplat.com/introduction/development/working-with-symbol-files/symbol-servers).
+
 ## API
 
 Install this package locally 
