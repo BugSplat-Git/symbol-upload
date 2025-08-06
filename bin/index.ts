@@ -51,19 +51,20 @@ import {
   clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
   clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
 
-  if (!database) {
+  if (!database && !localPath) {
     logMissingArgAndExit('database');
   }
 
-  if (!application) {
+  if (!application && !localPath) {
     logMissingArgAndExit('application');
   }
 
-  if (!version) {
+  if (!version && !localPath) {
     logMissingArgAndExit('version');
   }
 
   if (
+    !localPath &&
     !validAuthenticationArguments({
       user,
       password,
@@ -74,18 +75,24 @@ import {
     logMissingAuthAndExit();
   }
 
-  console.log('About to authenticate...');
+  console.log(`Symbol upload working directory: ${process.cwd()}`);
 
-  const bugsplat = await createBugSplatClient({
-    user,
-    password,
-    clientId,
-    clientSecret,
-  });
+  let bugsplat: ApiClient | null = null;
 
-  console.log('Authentication success!');
+  if (!localPath) {
+    console.log('About to authenticate...');
 
-  if (remove) {
+    bugsplat = await createBugSplatClient({
+      user,
+      password,
+      clientId,
+      clientSecret,
+    });
+
+    console.log('Authentication success!');
+  }
+
+  if (remove && bugsplat) {
     try {
       const versionsApiClient = new VersionsApiClient(bugsplat);
 
@@ -155,7 +162,9 @@ import {
 
   if (localPath) {
     await copyFilesToLocalPath(symbolFileInfos, localPath);
-  } else {
+  } 
+  
+  if (bugsplat) {
     await uploadSymbolFiles(
       bugsplat,
       database,
@@ -177,6 +186,8 @@ async function copyFilesToLocalPath(
   symbolFileInfos: SymbolFileInfo[],
   localPath: string
 ): Promise<void> {
+  console.log(`Copying files to ${localPath}...`);
+  
   for (const symbolFileInfo of symbolFileInfos) {
     if (!symbolFileInfo.dbgId) {
       console.warn(`Failed to parse UUID for ${symbolFileInfo.path}, skipping...`);
