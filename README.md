@@ -133,7 +133,7 @@ Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-pr
 
 ### Self-Hosting
 
-The symbol-upload tool can be used to create a [SymSrv](https://learn.microsoft.com/en-us/windows/win32/debug/symbol-servers-and-symbol-stores) compatible directory structure for Windows symbols that is compatible with both BugSplat and [Micrsoft Visual Studio](https://learn.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger?view=vs-2022#configure-location-of-symbol-files-and-loading-options). Additionally, symbol-upload can also create a SymSrv compatible directory structure for macOS and Crashpad symbols is compatible with BugSplat.
+The symbol-upload tool can be used to create a [SymSrv](https://learn.microsoft.com/en-us/windows/win32/debug/symbol-servers-and-symbol-stores) directory structure for Windows symbols that is compatible with both BugSplat and [Micrsoft Visual Studio](https://learn.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger?view=vs-2022#configure-location-of-symbol-files-and-loading-options). Additionally, symbol-upload can also create a SymSrv compatible directory structure for macOS and Crashpad symbols is compatible with BugSplat.
 
 To skip uploading symbols and create a local directory, provide the `-l` flag and a path where the symbols will be copied.
 
