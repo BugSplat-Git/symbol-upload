@@ -5,7 +5,7 @@ export async function tryGetPdbGuid(pdbFilePath: string): Promise<string> {
         const pdbFile = await PdbFile.createFromFile(pdbFilePath);
         return `${pdbFile.guid}`;
     } catch (error) {
-        console.log(`Could not get guid for ${pdbFilePath}...`);
+        console.log(`Could not get UUID for ${pdbFilePath}...`);
     }
 
     return '';
@@ -16,7 +16,7 @@ export async function tryGetPeGuid(peFilePath: string): Promise<string> {
         const pdbFile = await PeFile.createFromFile(peFilePath);
         return `${pdbFile.guid}`;
     } catch (error) {
-        console.log(`Could not get guid for ${peFilePath}...`);
+        console.log(`Could not get UUID for ${peFilePath}...`);
     }
 
     return '';

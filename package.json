@@ -23,6 +23,7 @@
     "start:dump_syms": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.dSYM\" -m",
     "start:dump_syms_invalid": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/myQtCrasher.vc.pdb\" -m",
     "start:symsrv": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.dll\"",
+    "start:local": "ts-node -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.sym\" -l ./tmp/local",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",

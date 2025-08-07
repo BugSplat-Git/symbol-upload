@@ -93,6 +93,14 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         defaultValue: false,
         description: 'Use dump_syms to generate and upload sym files for specified binaries.',
         typeLabel: '{underline boolean} (optional)',
+    },
+    {
+        name: 'localPath',
+        alias: 'l',
+        type: String,
+        defaultValue: '',
+        typeLabel: '{underline string} (optional)',
+        description: 'Path to a directory to copy symbols to. If provided, the files will be copied to the provided path instead of being uploaded to BugSplat. Useful for creating a self-hosted symbol server.',
     }
 ];
 
