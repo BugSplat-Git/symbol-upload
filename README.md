@@ -68,43 +68,75 @@ Run `symbol-upload` with `-h` to see the latest usage information and package ve
 ```bash
 bobby@BugSplat % ~ % symbol-upload -h
 
-@bugsplat/symbol-upload v10.1.0
+@bugsplat/symbol-upload v10.1.11
 
   symbol-upload contains a command line utility and a set of libraries to help  
   you upload symbol files to BugSplat.                                          
 
 Usage
 
-  -h, --help                             Print this usage guide.                                                       
-  -b, --database string                  Your BugSplat database name. The value of database must match the value used  
-                                         to post crash reports. This value can also be provided via the                
-                                         BUGSPLAT_DATABASE environment variable.                                       
-  -a, --application string               The name of your application. The value of application must match the value   
-                                         used to post crash reports. If not provided symbol-upload will attempt to use 
-                                         the value of the name field in package.json if it exists in the current       
-                                         working directory.                                                            
-  -v, --version string                   Your application's version. The value of version must match the value used to 
-                                         post crash reports. If not provided symbol-upload will attempt to use the     
-                                         value of the version field in package.json if it exists in the current        
-                                         working directory.                                                            
-  -u, --user string (optional)           The email address used to log into your BugSplat account. If provided         
-                                         --password must also be provided. This value can also be provided via the     
-                                         SYMBOL_UPLOAD_USER environment variable.                                      
-  -p, --password string (optional)       The password for your BugSplat account. If provided --user must also be       
-                                         provided. This value can also be provided via the SYMBOL_UPLOAD_PASSWORD      
-                                         environment variable.                                                         
-  -i, --clientId string (optional)       An OAuth2 Client Credentials Client ID for the specified database. If         
-                                         provided --clientSecret must also be provided. This value can also be         
-                                         provided via the SYMBOL_UPLOAD_CLIENT_ID environment variable.                
-  -s, --clientSecret string (optional)   An OAuth2 Client Credentials Client Secret for the specified database. If     
-                                         provided --clientId must also be provided. This value can also be provided    
-                                         via the SYMBOL_UPLOAD_CLIENT_SECRET environment variable.                     
-  -r, --remove                           Removes symbols for a specified database, application, and version. If this   
-                                         option is provided no other actions are taken.                                
-  -f, --files string (optional)          Glob pattern that specifies a set of files to upload. Defaults to '*.js.map'  
-  -d, --directory string (optional)      Path of the base directory used to search for symbol files. This value will   
-                                         be combined with the --files glob. Defaults to '.'
-  -m, --dumpSyms boolean (optional)      Use dump_syms to generate and upload sym files for specified binaries.                              
+  -h, --help                             Print this usage guide.                
+  -b, --database string                  Your BugSplat database name. The value 
+                                         of database must match the value used  
+                                         to post crash reports. This value can  
+                                         also be provided via the               
+                                         BUGSPLAT_DATABASE environment          
+                                         variable.                              
+  -a, --application string               The name of your application. If not   
+                                         provided symbol-upload will attempt to 
+                                         use the value of the name field in     
+                                         package.json if it exists in the       
+                                         current working directory.             
+  -v, --version string                   Your application's version. If not     
+                                         provided symbol-upload will attempt to 
+                                         use the value of the version field in  
+                                         package.json if it exists in the       
+                                         current working directory.             
+  -u, --user string (optional)           The email address used to log into     
+                                         your BugSplat account. If provided     
+                                         --password must also be provided. This 
+                                         value can also be provided via the     
+                                         SYMBOL_UPLOAD_USER environment         
+                                         variable.                              
+  -p, --password string (optional)       The password for your BugSplat         
+                                         account. If provided --user must also  
+                                         be provided. This value can also be    
+                                         provided via the                       
+                                         SYMBOL_UPLOAD_PASSWORD environment     
+                                         variable.                              
+  -i, --clientId string (optional)       An OAuth2 Client Credentials Client ID 
+                                         for the specified database. If         
+                                         provided --clientSecret must also be   
+                                         provided. This value can also be       
+                                         provided via the                       
+                                         SYMBOL_UPLOAD_CLIENT_ID environment    
+                                         variable.                              
+  -s, --clientSecret string (optional)   An OAuth2 Client Credentials Client    
+                                         Secret for the specified database. If  
+                                         provided --clientId must also be       
+                                         provided. This value can also be       
+                                         provided via the                       
+                                         SYMBOL_UPLOAD_CLIENT_SECRET            
+                                         environment variable.                  
+  -r, --remove                           Removes symbols for a specified        
+                                         database, application, and version. If 
+                                         this option is provided no other       
+                                         actions are taken.                     
+  -f, --files string (optional)          Glob pattern that specifies a set of   
+                                         files to upload. For example,          
+                                         **/*.{pdb,exe,dll} will recursively    
+                                         search for .pdb, .exe, and .dll files. 
+                                         Defaults to "*.js.map"                 
+  -d, --directory string (optional)      Path of the base directory used to     
+                                         search for symbol files. This value    
+                                         will be combined with the --files      
+                                         glob. Defaults to '.'                  
+  -m, --dumpSyms boolean (optional)      Use dump_syms to generate and upload   
+                                         sym files for specified binaries.      
+  -l, --localPath string (optional)      Path to a local directory to copy      
+                                         files to. If provided, the files will  
+                                         be copied to the local path instead of 
+                                         uploaded to BugSplat.                  
 
   The -u and -p arguments are not required if you set the environment variables 
   SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD, or provide a clientId and      
