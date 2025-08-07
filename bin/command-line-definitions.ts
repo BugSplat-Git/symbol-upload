@@ -100,7 +100,7 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         type: String,
         defaultValue: '',
         typeLabel: '{underline string} (optional)',
-        description: 'Path to a local directory to copy files to. If provided, the files will be copied to the local path instead of uploaded to BugSplat.',
+        description: 'Path to a directory to copy symbols to. If provided, the files will be copied to the provided path instead of being uploaded to BugSplat. Useful for creating a self-hosted symbol server.',
     }
 ];
 
