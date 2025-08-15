@@ -1,8 +1,10 @@
+import { fileURLToPath } from 'node:url';
 import { fileExists } from "../src/fs";
 
 describe('fs', () => {
     describe('fileExists', () => {
         it('should return true if the file exists', async () => {
+            const __filename = fileURLToPath(import.meta.url);
             const exists = await fileExists(__filename);
             expect(exists).toBe(true);
         });
