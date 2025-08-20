@@ -8,7 +8,7 @@ export function getCurrentFileInfo(importMetaUrl?: string): { __filename: string
     let __filename: string;
     let __dirname: string;
 
-    // Check if we're in a CommonJS context (like SEA) where import.meta.url might be undefined
+    // @ts-ignore - CommonJS context (like SEA) where import.meta.url might be undefined
     const metaUrl = importMetaUrl || (typeof import.meta?.url === 'string' ? import.meta.url : undefined);
     
     if (metaUrl) {
