@@ -1,11 +1,14 @@
-export {
+export type {
     ApiClient,
-    BugSplatApiClient,
-    VersionsApiClient,
-    SymbolsApiClient,
-    OAuthClientCredentialsClient,
     UploadableFile,
     GZippedSymbolFile
 } from '@bugsplat/js-api-client';
 
-export { uploadSymbolFiles } from './src/upload';
+export {
+    BugSplatApiClient,
+    VersionsApiClient,
+    SymbolsApiClient,
+    OAuthClientCredentialsClient
+} from '@bugsplat/js-api-client';
+
+export { uploadSymbolFiles } from './src/upload.js';

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import workerpool from 'workerpool';
 import extract from 'extract-zip';
 import { cwd } from 'node:process';
-const pool = workerpool.pool(join(__dirname, '../src/compression.js'));
+const pool = workerpool.pool(join(import.meta.dirname, '../src/compression.mjs'));
 
 describe('gzip', () => {
     describe('createGzipFile', () => {
