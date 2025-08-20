@@ -265,22 +265,22 @@ async function getCommandLineOptions(
   };
 }
 
-function logHelpAndExit() {
+function logHelpAndExit(code: number = 0) {
   const help = commandLineUsage(usageDefinitions);
   console.log(help);
-  process.exit(1);
+  process.exit(code);
 }
 
 function logMissingArgAndExit(arg: string): void {
   console.log(`\nMissing argument: -${arg}\n`);
-  logHelpAndExit();
+  logHelpAndExit(1);
 }
 
 function logMissingAuthAndExit(): void {
   console.log(
     '\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n'
   );
-  logHelpAndExit();
+  logHelpAndExit(1);
 }
 
 function normalizeDirectory(directory: string): string {
