@@ -160,11 +160,21 @@ Install this package locally
 npm i @bugsplat/symbol-upload
 ```
 
-Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
+### Module Compatibility
 
+This package supports both ES modules (ESM) and CommonJS (CJS) formats. You can use it in either environment:
+
+**ES Modules (ESM):**
 ```ts
 import { BugSplatApiClient, OAuthClientCredentialsClient, uploadSymbolFiles } from '@bugsplat/symbol-upload';
 ```
+
+**CommonJS (CJS):**
+```js
+const { BugSplatApiClient, OAuthClientCredentialsClient, uploadSymbolFiles } = require('@bugsplat/symbol-upload');
+```
+
+Import `BugSplatApiClient` and `VersionsApiClient` from @bugsplat/symbol-upload. Alternatively, you can import `OAuthClientCredentialsClient` if you'd prefer to authenticate with an [OAuth2 Client Credentials](https://docs.bugsplat.com/introduction/development/web-services/oauth2#client-credentials) Client ID and Client Secret.
 
 Create a new instance of `BugSplatApiClient` using the `createAuthenticatedClientForNode` async factory function or `OAuthClientCredentialsClient` using the `createAuthenticatedClient` async factory function.
 

@@ -1,12 +1,13 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "outDir": "./dist/esm",
     "declaration": true,
     "sourceMap": true,
-    "outDir": "./dist/esm",
     "strict": true,
     "noImplicitAny": false,
     "allowSyntheticDefaultImports": true,
