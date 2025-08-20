@@ -7,8 +7,8 @@ import { join } from "node:path";
 import { getAsset, getAssetAsBlob, isSea } from 'node:sea';
 import { getCurrentFileInfo } from './compat.js';
 
-// Get current file info with ESM/CommonJS compatibility
-const { __filename, __dirname } = getCurrentFileInfo(import.meta.url);
+// @ts-ignore - Get current file info with ESM/CommonJS compatibility
+const { __filename, __dirname } = getCurrentFileInfo(import.meta?.url); 
 
 const nativeModuleDir = join(tmpdir(), 'bugsplat');
 
@@ -38,6 +38,7 @@ export function findCompressionWorkerPath(): string {
     // In ESM environments (like development with tsx), use .mjs
     // In CJS environments, use .js
     if (!isSea()) {
+        // @ts-ignore - Check if we're in an ESM environment
         const isESM = typeof import.meta?.url === 'string';
         const workerFile = isESM ? 'compression.mjs' : 'compression.js';
         return join(__dirname, workerFile);

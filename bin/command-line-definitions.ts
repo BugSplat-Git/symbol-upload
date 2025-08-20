@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { getAsset, isSea } from "node:sea";
 import { getCurrentFileInfo } from '../src/compat.js';
 
-// Get current file info with ESM/CommonJS compatibility
-const { __dirname } = getCurrentFileInfo(import.meta.url);
+// @ts-ignore - Get current file info with ESM/CommonJS compatibility
+const { __dirname } = getCurrentFileInfo(import.meta?.url);
 
 const packageVersion = getPackageVersion();
 
