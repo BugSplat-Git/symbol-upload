@@ -19,5 +19,5 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false
   },
-  "files": ["./index.ts", "./bin/index.ts", "src/compression.js", "src/compression.mjs", "src/compat.ts"]
+  "files": ["./index.ts", "./bin/index.ts", "src/compression.cjs", "src/compression.mjs", "src/compat.ts"]
 }

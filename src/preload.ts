@@ -40,7 +40,7 @@ export function findCompressionWorkerPath(): string {
     if (!isSea()) {
         // @ts-ignore - Check if we're in an ESM environment
         const isESM = typeof import.meta?.url === 'string';
-        const workerFile = isESM ? 'compression.mjs' : 'compression.js';
+        const workerFile = isESM ? 'compression.mjs' : 'compression.cjs';
         return join(__dirname, workerFile);
     }
 
@@ -49,8 +49,8 @@ export function findCompressionWorkerPath(): string {
         mkdirSync(nativeModuleDir, { recursive: true });
     }
 
-    const nativeModuleStream = getAsset('compression.js');
-    const targetPath = join(nativeModuleDir, 'compression.js');
+    const nativeModuleStream = getAsset('compression.cjs');
+    const targetPath = join(nativeModuleDir, 'compression.cjs');
     writeFileSync(targetPath, Buffer.from((nativeModuleStream)));
 
     return targetPath;
