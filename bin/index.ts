@@ -141,17 +141,34 @@ import {
       );
     }
 
-    symbolFilePaths = symbolFilePaths.map((file) => {
+    const newSymbolFilePaths: string[] = [];
+
+    for (const file of symbolFilePaths) {
       console.log(`Dumping syms for ${file}...`);
+      
       const symFile = join(
         tmpDir,
         randomUUID(),
         getNormalizedSymFileName(basename(file))
       );
+
       mkdirSync(dirname(symFile), { recursive: true });
-      nodeDumpSyms(file, symFile);
-      return symFile;
-    });
+
+      try {
+        nodeDumpSyms(file, symFile);
+      } catch (error: any) {
+        console.warn(`Failed to dump syms for ${file}: ${error?.message || error}`);
+        continue;
+      }
+
+      newSymbolFilePaths.push(symFile);
+    }
+
+    symbolFilePaths = newSymbolFilePaths;
+  }
+
+  if (!symbolFilePaths.length) {
+    throw new Error('No valid symbol files found!');
   }
 
   const symbolFileInfos = await Promise.all(
