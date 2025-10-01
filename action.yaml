@@ -65,7 +65,7 @@ runs:
 
     - name: Install symbol-upload
       shell: pwsh
-      run: npm i -g @bugsplat/symbol-upload
+      run: npm i -g @bugsplat/symbol-upload@10.1.1
         
     - name: Run symbol-upload
       shell: pwsh
