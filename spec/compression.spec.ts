@@ -7,7 +7,7 @@ import workerpool from 'workerpool';
 import extract from 'extract-zip';
 import { cwd } from 'node:process';
 const pool = workerpool.pool(
-  join(import.meta.dirname, '../src/compression.mjs')
+  join(__dirname, '../src/compression.mjs')
 );
 
 describe('gzip', () => {
@@ -62,8 +62,8 @@ describe('gzip', () => {
 async function streamToString(stream: ReadableStream) {
   const chunks = [] as Uint8Array[];
 
-  for await (const chunk of stream) {
-    chunks.push(Buffer.from(chunk));
+  for await (const chunk of stream as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk);
   }
 
   return Buffer.concat(chunks).toString('utf-8');

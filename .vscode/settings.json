@@ -1,5 +1,6 @@
 {
     "jasmineExplorer.nodeArgv": [
+        "--no-experimental-strip-types",
         "-r",
         "ts-node/register"
     ]  
