@@ -4,7 +4,7 @@ import prettyBytes from "pretty-bytes";
 import { pool } from "workerpool";
 import { SymbolFileInfo } from './info.js';
 import { findCompressionWorkerPath } from "./preload.js";
-import { createWorkersFromSymbolFiles } from './worker.js';
+import { createWorkersFromSymbolFiles, UploadWorker } from './worker.js';
 
 const maxWorkers = availableParallelism();
 const workerPool = pool(findCompressionWorkerPath(), { maxWorkers });
@@ -17,11 +17,11 @@ export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, a
     const symbolsApiClient = new SymbolsApiClient(bugsplat);
     const versionsApiClient = new VersionsApiClient(bugsplat);
     const workers = createWorkersFromSymbolFiles(workerPool, maxWorkers, symbolFileInfos, [symbolsApiClient, versionsApiClient]);
-    const uploads = workers.map((worker) => worker.upload(database, application, version));
-    const stats = await Promise.all(uploads).then(stats => stats.flat());
+    const uploads = workers.map((w: UploadWorker) => w.upload(database, application, version));
+    const stats = await Promise.all(uploads).then((stats) => stats.flat());
 
     const endTime = new Date();
-    const size = stats.reduce((acc, curr) => acc + curr.size, 0);
+    const size = stats.reduce((acc: number, curr: { size: number }) => acc + curr.size, 0);
     const seconds = (endTime.getTime() - startTime.getTime()) / 1000;
 
     console.log(`Uploaded ${symbolFileInfos.length} symbols totaling ${prettyBytes(size)} @ ${prettyBytes(size / seconds)}/sec`);

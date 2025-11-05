@@ -1,6 +1,6 @@
-import { randomUUID } from 'crypto';
-import { rm } from 'fs/promises';
-import { join } from 'path';
+import { randomUUID } from 'node:crypto';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import promiseRetry from 'promise-retry';
 
 const uuid = randomUUID();

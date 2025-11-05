@@ -1,5 +1,5 @@
 import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
-import { ReadStream, createReadStream } from 'fs';
+import { ReadStream, createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import prettyBytes from 'pretty-bytes';

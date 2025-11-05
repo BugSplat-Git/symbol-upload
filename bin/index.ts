@@ -1,23 +1,9 @@
-#! /usr/bin/env node
-import {
-  ApiClient,
-  BugSplatApiClient,
-  OAuthClientCredentialsClient,
-  VersionsApiClient,
-} from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
-import { glob } from 'glob';
-import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync } from 'node:fs';
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { basename, dirname, join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { safeRemoveTmp } from '../src/tmp.js';
 import { fileExists } from '../src/fs.js';
-import { createSymbolFileInfos, SymbolFileInfo } from '../src/info.js';
-import { importNodeDumpSyms } from '../src/preload.js';
-import { getNormalizedSymFileName } from '../src/sym.js';
-import { safeRemoveTmp, tmpDir } from '../src/tmp.js';
-import { uploadSymbolFiles } from '../src/upload.js';
+import { runSymbolUpload, getPackageJson, type CliOptions } from './lib.js';
 import {
   argDefinitions,
   CommandLineDefinition,
@@ -25,173 +11,22 @@ import {
 } from './command-line-definitions.js';
 
 (async () => {
-  let {
-    help,
-    database,
-    application,
-    version,
-    user,
-    password,
-    clientId,
-    clientSecret,
-    remove,
-    files,
-    directory,
-    dumpSyms,
-    localPath,
-  } = await getCommandLineOptions(argDefinitions);
+  let options = getCommandLineOptions(argDefinitions);
 
-  if (help) {
+  if (options.help) {
     logHelpAndExit();
   }
 
-  database = database ?? process.env.BUGSPLAT_DATABASE;
-  user = user ?? process.env.SYMBOL_UPLOAD_USER;
-  password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
-  clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
-  clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
+  // Fill in missing values from package.json
+  const packageJson = await getPackageJson();
+  options = {
+    ...options,
+    database: options.database ?? packageJson?.database,
+    application: options.application ?? packageJson?.name,
+    version: options.version ?? packageJson?.version,
+  };
 
-  if (!database && !localPath) {
-    logMissingArgAndExit('database');
-  }
-
-  if (!application && !localPath) {
-    logMissingArgAndExit('application');
-  }
-
-  if (!version && !localPath) {
-    logMissingArgAndExit('version');
-  }
-
-  if (
-    !localPath &&
-    !validAuthenticationArguments({
-      user,
-      password,
-      clientId,
-      clientSecret,
-    })
-  ) {
-    logMissingAuthAndExit();
-  }
-
-  console.log(`Symbol upload working directory: ${process.cwd()}`);
-
-  let bugsplat: ApiClient | null = null;
-
-  if (!localPath) {
-    console.log('About to authenticate...');
-
-    bugsplat = await createBugSplatClient({
-      user,
-      password,
-      clientId,
-      clientSecret,
-    });
-
-    console.log('Authentication success!');
-  }
-
-  if (remove && bugsplat) {
-    try {
-      const versionsApiClient = new VersionsApiClient(bugsplat);
-
-      console.log(
-        `About to delete symbols for ${database}-${application}-${version}...`
-      );
-
-      await versionsApiClient.deleteSymbols(database, application, version);
-
-      console.log('Symbols deleted successfully!');
-    } catch (error) {
-      console.error(error);
-      process.exit(1);
-    } finally {
-      return;
-    }
-  }
-
-  directory = normalizeDirectory(directory);
-
-  if (!existsSync(tmpDir)) {
-    await mkdir(tmpDir);
-  }
-
-  const globPattern = `${directory}/${files}`;
-
-  let symbolFilePaths = await glob(globPattern);
-
-  if (!symbolFilePaths.length) {
-    throw new Error(
-      `Could not find any files to upload using glob ${globPattern}!`
-    );
-  }
-
-  console.log(`Found files:\n ${symbolFilePaths.join('\n')}`);
-
-  if (dumpSyms) {
-    let nodeDumpSyms;
-
-    try {
-      nodeDumpSyms = (await importNodeDumpSyms()).dumpSyms;
-    } catch (cause) {
-      throw new Error(
-        "Can't import dump_syms! Please ensure node-dump-syms is installed https://github.com/BugSplat-Git/node-dump-syms",
-        { cause }
-      );
-    }
-
-    const newSymbolFilePaths: string[] = [];
-
-    for (const file of symbolFilePaths) {
-      console.log(`Dumping syms for ${file}...`);
-      
-      const symFile = join(
-        tmpDir,
-        randomUUID(),
-        getNormalizedSymFileName(basename(file))
-      );
-
-      mkdirSync(dirname(symFile), { recursive: true });
-
-      try {
-        nodeDumpSyms(file, symFile);
-      } catch (error: any) {
-        console.warn(`Failed to dump syms for ${file}: ${error?.message || error}`);
-        continue;
-      }
-
-      newSymbolFilePaths.push(symFile);
-    }
-
-    symbolFilePaths = newSymbolFilePaths;
-  }
-
-  if (!symbolFilePaths.length) {
-    throw new Error('No valid symbol files found!');
-  }
-
-  const symbolFileInfos = await Promise.all(
-    symbolFilePaths.map(
-      async (symbolFilePath) => await createSymbolFileInfos(symbolFilePath)
-    )
-  ).then((array) => array.flat());
-
-  if (localPath) {
-    await copyFilesToLocalPath(symbolFileInfos, localPath);
-  } 
-  
-  if (bugsplat) {
-    await uploadSymbolFiles(
-      bugsplat,
-      database,
-      application,
-      version,
-      symbolFileInfos
-    );
-  }
-
-  await safeRemoveTmp();
+  await runSymbolUpload(options);
   process.exit(0);
 })().catch(async (error) => {
   await safeRemoveTmp();
@@ -199,123 +34,14 @@ import {
   process.exit(1);
 });
 
-async function copyFilesToLocalPath(
-  symbolFileInfos: SymbolFileInfo[],
-  localPath: string
-): Promise<void> {
-  console.log(`Copying files to ${localPath}...`);
-  
-  for (const symbolFileInfo of symbolFileInfos) {
-    if (!symbolFileInfo.dbgId) {
-      console.warn(`Failed to parse UUID for ${symbolFileInfo.path}, skipping...`);
-      continue;
-    }
-
-    const localFilePath = join(
-      localPath,
-      symbolFileInfo.moduleName,
-      symbolFileInfo.dbgId,
-      basename(symbolFileInfo.path)
-    );
-    mkdirSync(dirname(localFilePath), { recursive: true });
-    await copyFile(symbolFileInfo.path, localFilePath);
-  }
-
-  const symSrvMarkerFilePath = join(localPath, 'index.txt');
-  await writeFile(symSrvMarkerFilePath, '.');
-}
-
-async function createBugSplatClient({
-  user,
-  password,
-  clientId,
-  clientSecret,
-}: AuthenticationArgs): Promise<ApiClient> {
-  const host = process.env.BUGSPLAT_HOST;
-
-  if (user && password) {
-    return BugSplatApiClient.createAuthenticatedClientForNode(
-      user,
-      password,
-      host
-    );
-  }
-
-  return OAuthClientCredentialsClient.createAuthenticatedClient(
-    clientId,
-    clientSecret,
-    host
-  );
-}
-
-async function getCommandLineOptions(
+function getCommandLineOptions(
   argDefinitions: Array<CommandLineDefinition>
-): Promise<CommandLineOptions> {
-  const options = commandLineArgs(argDefinitions);
-  let { database, application, version } = options;
-  let packageJson;
-
-  if (!database || !application || !version) {
-    const packageJsonPath = './package.json';
-    packageJson = (await fileExists(packageJsonPath))
-      ? JSON.parse((await readFile(packageJsonPath)).toString())
-      : null;
-  }
-
-  if (!database && packageJson) {
-    database = packageJson.database;
-  }
-
-  if (!application && packageJson) {
-    application = packageJson.name;
-  }
-
-  if (!version && packageJson) {
-    version = packageJson.version;
-  }
-
-  return {
-    ...options,
-    database,
-    application,
-    version,
-  };
+): CommandLineOptions {
+  return commandLineArgs(argDefinitions);
 }
 
 function logHelpAndExit(code: number = 0) {
   const help = commandLineUsage(usageDefinitions);
   console.log(help);
   process.exit(code);
-}
-
-function logMissingArgAndExit(arg: string): void {
-  console.log(`\nMissing argument: -${arg}\n`);
-  logHelpAndExit(1);
-}
-
-function logMissingAuthAndExit(): void {
-  console.log(
-    '\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n'
-  );
-  logHelpAndExit(1);
-}
-
-function normalizeDirectory(directory: string): string {
-  return directory.replace(/\\/g, '/');
-}
-
-function validAuthenticationArguments({
-  user,
-  password,
-  clientId,
-  clientSecret,
-}: AuthenticationArgs): boolean {
-  return !!(user && password) || !!(clientId && clientSecret);
-}
-
-interface AuthenticationArgs {
-  user: string;
-  password: string;
-  clientId: string;
-  clientSecret: string;
 }

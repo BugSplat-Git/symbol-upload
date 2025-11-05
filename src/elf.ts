@@ -1,4 +1,5 @@
 import { ElfFile } from '@bugsplat/elfy';
+import { Buffer } from 'node:buffer';
 
 export async function tryGetElfUUID(path: string) {
   let success: boolean, section: Buffer | undefined;

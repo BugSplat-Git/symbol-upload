@@ -1,6 +1,6 @@
 import { OptionDefinition as ArgDefinition } from "command-line-args";
 import { Section, OptionDefinition as UsageDefinition } from "command-line-usage";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +11,7 @@ const packageVersion = getPackageVersion();
 export type CommandLineDefinition = ArgDefinition & UsageDefinition;
 
 export const argDefinitions: Array<CommandLineDefinition> = [
+const argDefinitionsData: Array<ArgDefinitionPlain> = [
     {
         name: 'help',
         alias: 'h',
@@ -78,7 +79,7 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         type: String,
         defaultValue: '*.js.map',
         typeLabel: '{underline string} (optional)',
-        description: 'Glob pattern that specifies a set of files to upload. For example, **/*.\\{pdb,exe,dll\\} will recursively search for .pdb, .exe, and .dll files. Defaults to \"*.js.map\"',
+        description: 'Glob pattern that specifies a set of files to upload. For example, **/*.\\{pdb,exe,dll\\} will recursively search for .pdb, .exe, and .dll files. Defaults to "*.js.map"',
     },
     {
         name: 'directory',
