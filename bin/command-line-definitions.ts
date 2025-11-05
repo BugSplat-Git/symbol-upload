@@ -1,12 +1,10 @@
 import { OptionDefinition as ArgDefinition } from "command-line-args";
 import { Section, OptionDefinition as UsageDefinition } from "command-line-usage";
 import { existsSync, readFileSync } from "fs";
-import { join } from "node:path";
-import { getAsset, isSea } from "node:sea";
-import { getCurrentFileInfo } from '../src/compat.js';
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-// @ts-ignore - Get current file info with ESM/CommonJS compatibility
-const { __dirname } = getCurrentFileInfo(import.meta?.url);
+const currentDir = dirname(fileURLToPath(import.meta.url));
 
 const packageVersion = getPackageVersion();
 
@@ -144,14 +142,10 @@ export const usageDefinitions: Array<Section> = [
 ];
 
 function getPackageVersion(): string {
-    if (isSea()) {
-        return JSON.parse(`${getAsset('package.json', 'utf-8')}`).version;
-    }
-
     const path = [
-        join(__dirname, 'package.json'),
-        join(__dirname, '../package.json'),
-        join(__dirname, '../../package.json'),
+        join(currentDir, 'package.json'),
+        join(currentDir, '../package.json'),
+        join(currentDir, '../../package.json'),
     ].find((path) => existsSync(path));
 
     if (!path) {

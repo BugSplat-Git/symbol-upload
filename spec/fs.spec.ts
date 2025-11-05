@@ -1,9 +1,12 @@
-import { fileExists } from '../src/fs';
+import { describe, it, expect } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { fileExists } from '../src/fs.js';
 
 describe('fs', () => {
   describe('fileExists', () => {
     it('should return true if the file exists', async () => {
-      const exists = await fileExists(__filename);
+      const currentFile = fileURLToPath(import.meta.url);
+      const exists = await fileExists(currentFile);
       expect(exists).toBe(true);
     });
 

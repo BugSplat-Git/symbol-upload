@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "lib": ["ESNext"],
-    "module": "commonjs",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "declaration": true,
     "sourceMap": true,
-    "outDir": "./dist/cjs",
+    "outDir": "./dist",
     "strict": true,
     "noImplicitAny": false,
     "allowSyntheticDefaultImports": true,
@@ -20,8 +21,6 @@
   "files": [
     "./index.ts",
     "./bin/index.ts",
-    "src/compression.cjs",
-    "src/compression.mjs",
-    "src/compat.ts"
+    "src/compression.mjs"
   ]
 }

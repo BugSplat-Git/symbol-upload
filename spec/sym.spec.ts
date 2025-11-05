@@ -1,4 +1,5 @@
-import { getNormalizedSymFileName, getNormalizedSymModuleName, getSymFileInfo } from '../src/sym';
+import { describe, it, expect } from 'vitest';
+import { getNormalizedSymFileName, getNormalizedSymModuleName, getSymFileInfo } from '../src/sym.js';
 
 describe('sym', () => {
     describe('getSymFileInfo', () => {

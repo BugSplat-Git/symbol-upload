@@ -5,8 +5,8 @@ import { basename, extname, join } from 'node:path';
 import prettyBytes from 'pretty-bytes';
 import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
-import { SymbolFileInfo } from './info';
-import { tmpDir } from './tmp';
+import { SymbolFileInfo } from './info.js';
+import { tmpDir } from './tmp.js';
 
 export type UploadStats = { name: string, size: number };
 

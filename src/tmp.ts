@@ -3,9 +3,8 @@ import { rm } from 'fs/promises';
 import { join } from 'path';
 import promiseRetry from 'promise-retry';
 
-const currentDirectory = process ? process.cwd() : __dirname;
 const uuid = randomUUID();
-export const tmpDir = join(currentDirectory, `tmp-${uuid}`);
+export const tmpDir = join(process.cwd(), `tmp-${uuid}`);
 
 export async function safeRemoveTmp(remover = rm): Promise<void> {
   try {

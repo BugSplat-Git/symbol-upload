@@ -1,8 +1,52 @@
-// ESM wrapper for compression.cjs (CommonJS)
-// This allows the package to be imported as ESM while keeping the worker as CommonJS for SEA compatibility
+import { createReadStream, createWriteStream } from 'node:fs';
+import { basename } from 'node:path';
+import { lstat } from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
+import { createGzip } from 'node:zlib';
+import archiver from 'archiver';
+import { worker } from 'workerpool';
 
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+async function createGzipFile(inputFilePath, outputFilePath) {
+    await pipeline(
+        createReadStream(inputFilePath),
+        createGzip(),
+        createWriteStream(outputFilePath)
+    );
+}
 
-// Export the CommonJS module through the ESM wrapper
-export default require('./compression.cjs');
+async function createZipFile(inputFilePath, outputFilePath) {
+    let output;
+    
+    try {
+        output = createWriteStream(outputFilePath);
+        await new Promise(async (resolve, reject) => {
+            const zip = archiver('zip');
+            
+            zip.pipe(output);
+            zip.on('error', reject);
+            output.on('close', resolve);
+            output.on('error', reject);
+            
+            const isDirectory = await pathIsDirectory(inputFilePath);
+
+            if (isDirectory) {
+                zip.directory(inputFilePath, basename(inputFilePath));
+            } else {
+                zip.file(inputFilePath, { name: basename(inputFilePath) });
+            }
+
+            zip.finalize();
+        })
+    } finally {
+        output?.destroy();
+    }
+}
+
+function pathIsDirectory(path) {
+    return lstat(path).then(stat => stat.isDirectory());
+}
+
+worker({
+    createGzipFile,
+    createZipFile
+});

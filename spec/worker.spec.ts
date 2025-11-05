@@ -1,23 +1,26 @@
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import { availableParallelism } from 'node:os';
 import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
-import { SymbolFileInfo } from '../src/info';
-import { UploadWorker, createWorkersFromSymbolFiles } from '../src/worker';
+import { SymbolFileInfo } from '../src/info.js';
+import { UploadWorker, createWorkersFromSymbolFiles } from '../src/worker.js';
 
 const workerCount = availableParallelism();
 
 describe('worker', () => {
-    let symbolsClient: jasmine.SpyObj<SymbolsApiClient>;
-    let versionsClient: jasmine.SpyObj<VersionsApiClient>;
+    let symbolsClient: { postSymbols: Mock };
+    let versionsClient: { postSymbols: Mock };
     let clients: [SymbolsApiClient, VersionsApiClient];
 
     beforeEach(() => {
-        symbolsClient = jasmine.createSpyObj<SymbolsApiClient>('SymbolsApiClient', ['postSymbols']);
-        versionsClient = jasmine.createSpyObj<VersionsApiClient>('VersionsApiClient', ['postSymbols']);
-        symbolsClient.postSymbols.and.resolveTo();
-        versionsClient.postSymbols.and.resolveTo();
-        clients = [symbolsClient, versionsClient];
+        symbolsClient = {
+            postSymbols: vi.fn().mockResolvedValue(undefined)
+        };
+        versionsClient = {
+            postSymbols: vi.fn().mockResolvedValue(undefined)
+        };
+        clients = [symbolsClient as any, versionsClient as any];
     });
 
     describe('createWorkersFromSymbolFiles', () => {
@@ -27,7 +30,7 @@ describe('worker', () => {
 
             const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFiles, clients);
 
-            expect(workers.length).toEqual(workerCount);
+            expect(workers.length).toBe(workerCount);
         });
 
         it('should create equal worker count to symbol files', () => {
@@ -36,7 +39,7 @@ describe('worker', () => {
 
             const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFiles, clients);
 
-            expect(workers.length).toEqual(workerCount);
+            expect(workers.length).toBe(workerCount);
         });
 
         it('should spread symbol files evenly across workers', () => {
@@ -47,8 +50,8 @@ describe('worker', () => {
             const worker1SymbolFiles = workers[0].symbolFileInfos;
             const worker2SymbolFiles = workers[1].symbolFileInfos;
 
-            expect(worker1SymbolFiles.length).toEqual(Math.ceil(symbolFiles.length / workerCount));
-            expect(worker2SymbolFiles.length).toEqual(Math.floor(symbolFiles.length / workerCount));
+            expect(worker1SymbolFiles.length).toBe(Math.ceil(symbolFiles.length / workerCount));
+            expect(worker2SymbolFiles.length).toBe(Math.floor(symbolFiles.length / workerCount));
         });
     });
 
@@ -58,7 +61,7 @@ describe('worker', () => {
         const version = 'version';
 
         describe('legacy', () => {
-            let symbolFileInfos;
+            let symbolFileInfos: SymbolFileInfo[];
 
             beforeEach(async () => {
                 symbolFileInfos = createFakeSymbolFileInfos(2).map((info) => ({ ...info, dbgId: undefined }));
@@ -74,10 +77,10 @@ describe('worker', () => {
                     size: 0,
                     uncompressedSize: 0,
                     lastModified: 0,
-                    file: jasmine.stringContaining('.zip'),
+                    file: expect.stringContaining('.zip'),
                 }));
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[0]]));
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[1]]));
             });
 
             it('should call versionsClient.postSymbols for each symbol file', () => {
@@ -86,7 +89,7 @@ describe('worker', () => {
         });
 
         describe('symsrv', () => {
-            let symbolFileInfos;
+            let symbolFileInfos: SymbolFileInfo[];
 
             beforeEach(async () => {
                 symbolFileInfos = createFakeSymbolFileInfos(2);
@@ -102,10 +105,10 @@ describe('worker', () => {
                     size: 0,
                     uncompressedSize: 0,
                     lastModified: 0,
-                    file: jasmine.stringContaining('.gz'),
+                    file: expect.stringContaining('.gz'),
                 }));
-                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
-                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[0]]));
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[1]]));
             });
 
             it('should call symbolsClient.postSymbols for each symbol file', () => {
@@ -115,10 +118,10 @@ describe('worker', () => {
 
         it('should retry failed uploads', async () => {
             const retries = 3;
-            const retrier = (func) => retryPromise(func, { retries, minTimeout: 0, maxTimeout: 0, factor: 1 });
+            const retrier = (func: any) => retryPromise(func, { retries, minTimeout: 0, maxTimeout: 0, factor: 1 });
             const symbolFiles = createFakeSymbolFileInfos(1);
             const workerPool = createFakeWorkerPool();
-            symbolsClient.postSymbols.and.callFake(() => Promise.reject(new Error('Failed to upload!')));
+            symbolsClient.postSymbols.mockImplementation(() => Promise.reject(new Error('Failed to upload!')));
             const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
             (worker as any).retryPromise = retrier;
             (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
@@ -129,12 +132,12 @@ describe('worker', () => {
         });
 
         it('should destroy file stream on error', async () => {
-            const readStream = jasmine.createSpyObj('ReadStream', ['destroy']);
-            const retrier = (func) => retryPromise(func, { retries: 0 });
+            const readStream = { destroy: vi.fn() };
+            const retrier = (func: any) => retryPromise(func, { retries: 0 });
             const symbolFiles = createFakeSymbolFileInfos(1);
             const workerPool = createFakeWorkerPool();
             const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-            symbolsClient.postSymbols.and.rejectWith(new Error('Failed to upload!'));
+            symbolsClient.postSymbols.mockRejectedValue(new Error('Failed to upload!'));
             (worker as any).createReadStream = () => readStream;
             (worker as any).retryPromise = retrier;
             (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
@@ -147,11 +150,11 @@ describe('worker', () => {
 
         describe('error', () => {
             it('should not retry authentication errors', async () => {
-                const retry = jasmine.createSpy();
-                const retrier = (func) => func(retry);
+                const retry = vi.fn();
+                const retrier = (func: any) => func(retry);
                 const symbolFiles = createFakeSymbolFileInfos(1);
                 const workerPool = createFakeWorkerPool();
-                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new BugSplatAuthenticationError('Failed to upload!')));
+                symbolsClient.postSymbols.mockImplementation(() => Promise.reject(new BugSplatAuthenticationError('Failed to upload!')));
                 const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
                 (worker as any).retryPromise = retrier;
                 (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
@@ -162,11 +165,11 @@ describe('worker', () => {
             });
 
             it('should not retry max size errors', async () => {
-                const retry = jasmine.createSpy();
-                const retrier = (func) => func(retry);
+                const retry = vi.fn();
+                const retrier = (func: any) => func(retry);
                 const symbolFiles = createFakeSymbolFileInfos(1);
                 const workerPool = createFakeWorkerPool();
-                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new Error('Symbol file max size exceeded!')));
+                symbolsClient.postSymbols.mockImplementation(() => Promise.reject(new Error('Symbol file max size exceeded!')));
                 const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
                 (worker as any).retryPromise = retrier;
                 (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
@@ -201,17 +204,18 @@ function createFakeSymbolFileInfo(params: Partial<SymbolFileInfo>): SymbolFileIn
     };
 }
 
-function createFakeWorkerPool(): jasmine.SpyObj<WorkerPool> {
-    const fakeWorkerPool = jasmine.createSpyObj('WorkerPool', ['exec']);
-    fakeWorkerPool.exec.and.resolveTo();
+function createFakeWorkerPool(): WorkerPool {
+    const fakeWorkerPool = {
+        exec: vi.fn().mockResolvedValue(undefined)
+    } as any;
     return fakeWorkerPool;
 }
 
 function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient]) {
     const workerPool = createFakeWorkerPool();
     const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients);
-    (worker as any).stat = jasmine.createSpy().and.resolveTo({ size: 0, mtime: 0 });
-    (worker as any).createReadStream = jasmine.createSpy().and.callFake(file => file);
-    (worker as any).toWeb = jasmine.createSpy().and.callFake(file => file);
+    (worker as any).stat = vi.fn().mockResolvedValue({ size: 0, mtime: 0 });
+    (worker as any).createReadStream = vi.fn().mockImplementation((file: any) => file);
+    (worker as any).toWeb = vi.fn().mockImplementation((file: any) => file);
     return worker;
 }
