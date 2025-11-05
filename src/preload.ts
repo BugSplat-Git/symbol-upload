@@ -51,7 +51,7 @@ export function findCompressionWorkerPath(): string {
 
     const nativeModuleStream = getAsset('compression.cjs');
     const targetPath = join(nativeModuleDir, 'compression.cjs');
-    writeFileSync(targetPath, Buffer.from((nativeModuleStream)));
+    writeFileSync(targetPath, new Uint8Array(nativeModuleStream));
 
     return targetPath;
 }
