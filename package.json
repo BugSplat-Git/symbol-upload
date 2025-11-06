@@ -2,20 +2,26 @@
   "name": "@bugsplat/symbol-upload",
   "version": "10.2.3",
   "description": "Cross platform symbol upload tool",
-  "type": "module",
-  "main": "./dist/esm/index.js",
+  "main": "./dist/cjs/index.js",
   "exports": {
-    ".": "./dist/esm/index.js",
-    "./bin": "./dist/esm/bin/index.js"
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./bin": {
+      "import": "./dist/esm/bin/index.js",
+      "require": "./dist/cjs/bin/index.js"
+    }
   },
   "bin": {
-    "symbol-upload": "./dist/esm/bin/index.js"
+    "symbol-upload": "./dist/cjs/bin/index.js"
   },
   "engines": {
     "node": ">=22"
   },
   "files": [
-    "dist"
+    "dist/esm",
+    "dist/cjs"
   ],
   "scripts": {
     "start": "tsx -r dotenv/config ./bin/index.ts -d ./dist -f \"**/*.js.map\"",
@@ -29,17 +35,30 @@
     "start:dump_syms_invalid": "tsx -r dotenv/config ./bin/index.ts -d ./spec -f \"**/myQtCrasher.vc.pdb\" -m",
     "start:symsrv": "tsx -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.dll\"",
     "start:local": "tsx -r dotenv/config ./bin/index.ts -d ./spec -f \"**/*.sym\" -l ./tmp/local",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "start:sea": "./dist/symbol-upload-macos -l output -d ./spec -f \"**/*.dSYM\" -m",
+    "test": "tsx node_modules/jasmine/bin/jasmine",
     "help": "tsx ./bin/index.ts -h",
     "clean": "rimraf ./dist",
     "prebuild": "npm run clean",
     "build": "npm run build:esm && npm run build:cjs",
-    "build:esm": "tsc -p tsconfig.esm.json && npm run copy:compression",
+    "build:esm": "tsc -p tsconfig.esm.json && npm run copy:compression:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/post-build-cjs.js",
-    "copy:compression": "copyfiles -u 1 src/compression.mjs dist/esm/",
+    "copy:compression:esm": "copyfiles -u 1 src/compression.cjs src/compression.mjs dist/esm/",
+    "copy:compression:cjs": "copyfiles -u 1 src/compression.cjs dist/cjs/",
     "prerelease": "npm run build",
-    "release": "npm publish --access public"
+    "release": "npm publish --access public",
+    "bundle": "esbuild ./dist/esm/bin/index.js --bundle --platform=node --target=node18 --format=cjs --outfile=./dist/cjs/index.js --external:node-dump-syms",
+    "bpkg:compression": "npx bpkg ./src/compression.cjs ./dist/cjs/compression.cjs",
+    "bpkg:node-dump-syms": "npx bpkg ./node_modules/node-dump-syms ./dist/cjs/node-dump-syms.js",
+    "prebuild:sea": "npm run clean",
+    "prestart:sea": "npm run build:sea && npm run sea:macos",
+    "build:sea": "npm run build && npm run bundle && run-s bpkg:compression bpkg:node-dump-syms",
+    "presea:macos": "npm run build:sea",
+    "presea:windows": "npm run build:sea",
+    "presea:linux": "npm run build:sea",
+    "sea:macos": "sh ./sea/macos.sh",
+    "sea:windows": "powershell.exe .\\sea\\windows.ps1",
+    "sea:linux": "sh ./sea/linux.sh"
   },
   "repository": {
     "type": "git",
