@@ -2,27 +2,15 @@
   "name": "@bugsplat/symbol-upload",
   "version": "10.2.3",
   "description": "Cross platform symbol upload tool",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "exports": {
-    ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
-    },
-    "./bin": {
-      "import": "./dist/esm/bin/index.js",
-      "require": "./dist/cjs/bin/index.js"
-    }
-  },
+  "main": "./dist/index.js",
   "bin": {
-    "symbol-upload": "./dist/cjs/bin/index.js"
+    "symbol-upload": "./dist/bin/index.js"
   },
   "engines": {
     "node": ">=22"
   },
   "files": [
-    "dist/esm",
-    "dist/cjs"
+    "dist"
   ],
   "scripts": {
     "start": "ts-node -r dotenv/config ./bin/index.ts -d ./dist -f \"**/*.js.map\"",
@@ -42,19 +30,14 @@
     "help": "ts-node ./bin/index.ts -h",
     "clean": "rimraf ./dist",
     "prebuild": "npm run clean",
-    "build": "npm run build:esm && npm run build:cjs",
-    "build:esm": "tsc -p tsconfig.esm.json && npm run copy:compression:esm",
-    "build:cjs": "tsc -p tsconfig.cjs.json && npm run copy:compression:cjs",
-    "copy:compression:esm": "copyfiles -u 1 src/compression.cjs src/compression.mjs dist/esm/",
-    "copy:compression:cjs": "copyfiles -u 1 src/compression.cjs dist/cjs/",
+    "build": "tsc",
     "prerelease": "npm run build",
     "release": "npm publish --access public",
-    "bundle": "esbuild ./dist/esm/bin/index.js --bundle --platform=node --target=node18 --format=cjs --outfile=./dist/cjs/index.js --external:node-dump-syms",
-    "bpkg:compression": "npx bpkg ./src/compression.cjs ./dist/cjs/compression.cjs",
-    "bpkg:node-dump-syms": "npx bpkg ./node_modules/node-dump-syms ./dist/cjs/node-dump-syms.js",
+    "ncc": "npx ncc build ./bin/index.ts -o ./dist",
+    "bpkg:compression": "npx bpkg ./src/compression.js ./dist/compression.js",
+    "bpkg:node-dump-syms": "npx bpkg ./node_modules/node-dump-syms ./dist/node-dump-syms.js",
     "prebuild:sea": "npm run clean",
-    "prestart:sea": "npm run build:sea && npm run sea:macos",
-    "build:sea": "npm run build && npm run bundle && run-s bpkg:compression bpkg:node-dump-syms",
+    "build:sea": "run-s ncc bpkg:compression bpkg:node-dump-syms",
     "presea:macos": "npm run build:sea",
     "presea:windows": "npm run build:sea",
     "presea:linux": "npm run build:sea",

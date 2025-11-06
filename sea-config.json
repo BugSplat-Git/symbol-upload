@@ -1,10 +1,10 @@
 {
-    "main": "dist/cjs/index.js",
-    "output": "dist/cjs/sea-prep.blob",
+    "main": "dist/index.js",
+    "output": "dist/sea-prep.blob",
     "disableExperimentalSEAWarning": true,
     "assets": {
-      "node-dump-syms.js": "dist/cjs/node-dump-syms.js",
-      "compression.cjs": "dist/cjs/compression.cjs",
+      "node-dump-syms.js": "dist/node-dump-syms.js",
+      "compression.js": "dist/compression.js",
       "package.json": "package.json"
     }
   }
