@@ -32,7 +32,7 @@ export async function importNodeDumpSyms(): Promise<{
 
 export function findCompressionWorkerPath(): string {
   if (!isSea()) {
-    return join(getDirname(), 'compression.js');
+    return join(getDirname(), 'compression.cjs');
   }
 
   if (!existsSync(nativeModuleDir)) {
