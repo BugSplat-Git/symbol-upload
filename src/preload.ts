@@ -5,10 +5,6 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getAsset, getAssetAsBlob, isSea } from 'node:sea';
-import { getCurrentFileInfo } from './compat.js';
-
-// @ts-ignore - Get current file info with ESM/CommonJS compatibility
-const { __filename, __dirname } = getCurrentFileInfo(import.meta?.url); 
 
 const nativeModuleDir = join(tmpdir(), 'bugsplat');
 
@@ -34,23 +30,16 @@ export async function importNodeDumpSyms(): Promise<{
 };
 
 export function findCompressionWorkerPath(): string {
-    // Non-SEA environment: choose based on module system
-    // In ESM environments (like development with tsx), use .mjs
-    // In CJS environments, use .js
     if (!isSea()) {
-        // @ts-ignore - Check if we're in an ESM environment
-        const isESM = typeof import.meta?.url === 'string';
-        const workerFile = isESM ? 'compression.mjs' : 'compression.cjs';
-        return join(__dirname, workerFile);
+        return join(__dirname, 'compression.js');
     }
 
-    // SEA environment: always use CommonJS version
     if (!existsSync(nativeModuleDir)) {
         mkdirSync(nativeModuleDir, { recursive: true });
     }
 
-    const nativeModuleStream = getAsset('compression.cjs');
-    const targetPath = join(nativeModuleDir, 'compression.cjs');
+    const nativeModuleStream = getAsset('compression.js');
+    const targetPath = join(nativeModuleDir, 'compression.js');
     writeFileSync(targetPath, new Uint8Array(nativeModuleStream));
 
     return targetPath;

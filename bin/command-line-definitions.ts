@@ -3,10 +3,6 @@ import { Section, OptionDefinition as UsageDefinition } from "command-line-usage
 import { existsSync, readFileSync } from "fs";
 import { join } from "node:path";
 import { getAsset, isSea } from "node:sea";
-import { getCurrentFileInfo } from '../src/compat.js';
-
-// @ts-ignore - Get current file info with ESM/CommonJS compatibility
-const { __dirname } = getCurrentFileInfo(import.meta?.url);
 
 const packageVersion = getPackageVersion();
 

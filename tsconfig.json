@@ -1,27 +1,17 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "lib": ["ESNext"],
+    "target": "es2020",
+    "lib": ["es2022"],
     "module": "commonjs",
     "declaration": true,
     "sourceMap": true,
-    "outDir": "./dist/cjs",
+    "outDir": "./dist",
     "strict": true,
     "noImplicitAny": false,
-    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": false
+    "allowJs": true
   },
-  "files": [
-    "./index.ts",
-    "./bin/index.ts",
-    "src/compression.cjs",
-    "src/compression.mjs",
-    "src/compat.ts"
-  ]
+  "files": ["./index.ts", "./bin/index.ts", "src/compression.js"]
 }
