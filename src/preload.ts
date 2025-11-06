@@ -49,8 +49,8 @@ export function findCompressionWorkerPath(): string {
         mkdirSync(nativeModuleDir, { recursive: true });
     }
 
-    const nativeModuleStream = getAsset('compression.cjs');
-    const targetPath = join(nativeModuleDir, 'compression.cjs');
+    const nativeModuleStream = getAsset('compression.js');
+    const targetPath = join(nativeModuleDir, 'compression.js');
     writeFileSync(targetPath, new Uint8Array(nativeModuleStream));
 
     return targetPath;
