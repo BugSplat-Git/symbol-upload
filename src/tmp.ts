@@ -1,9 +1,10 @@
-import { randomUUID } from 'crypto';
-import { rm } from 'fs/promises';
-import { join } from 'path';
+import { randomUUID } from 'node:crypto';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import promiseRetry from 'promise-retry';
+import { getDirname } from './compat.js';
 
-const currentDirectory = process ? process.cwd() : __dirname;
+const currentDirectory = process ? process.cwd() : getDirname();
 const uuid = randomUUID();
 export const tmpDir = join(currentDirectory, `tmp-${uuid}`);
 

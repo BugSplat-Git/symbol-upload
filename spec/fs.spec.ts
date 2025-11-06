@@ -1,4 +1,8 @@
-import { fileExists } from '../src/fs';
+import { describe, it, expect } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { fileExists } from '../src/fs.js';
+
+const __filename = fileURLToPath(import.meta.url);
 
 describe('fs', () => {
   describe('fileExists', () => {

@@ -1,8 +1,8 @@
 import { createMachoFiles } from 'macho-uuid';
 import { mkdir } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import { SymbolFileInfo } from './info';
-import { tmpDir } from './tmp';
+import { SymbolFileInfo } from './info.js';
+import { tmpDir } from './tmp.js';
 
 export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> {
     try {

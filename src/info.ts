@@ -1,9 +1,9 @@
 import { stat } from "node:fs/promises";
 import { basename, extname } from "node:path";
-import { getDSymFileInfos } from "./dsym";
-import { tryGetElfUUID } from "./elf";
-import { tryGetPdbGuid, tryGetPeGuid } from "./pdb";
-import { getSymFileInfo } from "./sym";
+import { getDSymFileInfos } from "./dsym.js";
+import { tryGetElfUUID } from "./elf.js";
+import { tryGetPdbGuid, tryGetPeGuid } from "./pdb.js";
+import { getSymFileInfo } from "./sym.js";
 
 export type SymbolFileInfo = {
     path: string;

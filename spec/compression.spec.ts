@@ -1,11 +1,15 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ReadStream, createReadStream } from 'node:fs';
 import { rm, writeFile } from 'node:fs/promises';
 import { ReadableStream } from 'node:stream/web';
 import { createGunzip } from 'node:zlib';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import workerpool from 'workerpool';
 import extract from 'extract-zip';
 import { cwd } from 'node:process';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const pool = workerpool.pool(
   join(__dirname, '../src/compression.mjs')
 );

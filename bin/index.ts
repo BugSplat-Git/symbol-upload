@@ -12,17 +12,17 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import { fileExists } from '../src/fs';
-import { createSymbolFileInfos, SymbolFileInfo } from '../src/info';
-import { importNodeDumpSyms } from '../src/preload';
-import { getNormalizedSymFileName } from '../src/sym';
-import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { uploadSymbolFiles } from '../src/upload';
+import { fileExists } from '../src/fs.js';
+import { createSymbolFileInfos, SymbolFileInfo } from '../src/info.js';
+import { importNodeDumpSyms } from '../src/preload.js';
+import { getNormalizedSymFileName } from '../src/sym.js';
+import { safeRemoveTmp, tmpDir } from '../src/tmp.js';
+import { uploadSymbolFiles } from '../src/upload.js';
 import {
   argDefinitions,
   CommandLineDefinition,
   usageDefinitions,
-} from './command-line-definitions';
+} from './command-line-definitions.js';
 
 (async () => {
   let {

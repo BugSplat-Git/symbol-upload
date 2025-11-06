@@ -2,9 +2,9 @@ import { ApiClient, SymbolsApiClient, VersionsApiClient } from "@bugsplat/js-api
 import { availableParallelism } from "node:os";
 import prettyBytes from "pretty-bytes";
 import { pool } from "workerpool";
-import { SymbolFileInfo } from './info';
-import { findCompressionWorkerPath } from "./preload";
-import { createWorkersFromSymbolFiles } from './worker';
+import { SymbolFileInfo } from './info.js';
+import { findCompressionWorkerPath } from "./preload.js";
+import { createWorkersFromSymbolFiles } from './worker.js';
 
 const maxWorkers = availableParallelism();
 const workerPool = pool(findCompressionWorkerPath(), { maxWorkers });
