@@ -1,46 +1,44 @@
 import type { dumpSyms } from 'node-dump-syms';
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getAsset, getAssetAsBlob, isSea } from 'node:sea';
 
-const nativeModuleDir = join(tmpdir(), 'bugsplat');
+const compiledWorkerDir = join(tmpdir(), 'bugsplat');
 
 export async function importNodeDumpSyms(): Promise<{
     dumpSyms: typeof dumpSyms;
 }> {
-    if (!isSea()) {
-        return import('node-dump-syms');
-    }
-
-    if (!existsSync(nativeModuleDir)) {
-        await mkdir(nativeModuleDir, { recursive: true });
-    }
-
-    const nativeModuleStream = getAssetAsBlob('node-dump-syms.js').stream();
-    const targetPath = join(nativeModuleDir, 'node-dump-syms.js');
-    await writeFile(targetPath, nativeModuleStream);
-
-    // Node SEA's default require is for embedded modules
-    // Use createRequire because it's compatible with loading modules from the file system
-    // https://nodejs.org/api/single-executable-applications.html#requireid-in-the-injected-main-script-is-not-file-based
-    return createRequire(__filename)(targetPath);
-};
+    return import('node-dump-syms');
+}
 
 export function findCompressionWorkerPath(): string {
-    if (!isSea()) {
-        return join(__dirname, 'compression.js');
+    // In compiled mode, the worker bundle is embedded via bin/compile-entry.ts.
+    // Check this first because __dirname may resolve to the original source
+    // directory where compression.js exists as an unbundled file.
+    const embeddedPath: string | undefined = (globalThis as any).__embeddedWorkerPath;
+
+    if (embeddedPath) {
+        if (!existsSync(compiledWorkerDir)) {
+            mkdirSync(compiledWorkerDir, { recursive: true });
+        }
+
+        const targetPath = join(compiledWorkerDir, 'compression.bundle.js');
+
+        if (!existsSync(targetPath)) {
+            // In Bun compiled binaries, embedded assets live in /$bunfs/ virtual filesystem.
+            // Node's copyFileSync can't read from /$bunfs/, but readFileSync works.
+            const content = readFileSync(embeddedPath);
+            writeFileSync(targetPath, content);
+        }
+
+        return targetPath;
     }
 
-    if (!existsSync(nativeModuleDir)) {
-        mkdirSync(nativeModuleDir, { recursive: true });
+    const devPath = join(__dirname, 'compression.js');
+
+    if (existsSync(devPath)) {
+        return devPath;
     }
 
-    const nativeModuleStream = getAsset('compression.js');
-    const targetPath = join(nativeModuleDir, 'compression.js');
-    writeFileSync(targetPath, new Uint8Array(nativeModuleStream));
-
-    return targetPath;
+    throw new Error('Could not find compression worker');
 }

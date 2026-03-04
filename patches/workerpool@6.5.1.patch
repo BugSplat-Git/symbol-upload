@@ -1,0 +1,15 @@
+diff --git a/src/requireFoolWebpack.js b/src/requireFoolWebpack.js
+index 1234567..abcdefg 100644
+--- a/src/requireFoolWebpack.js
++++ b/src/requireFoolWebpack.js
+@@ -1,8 +1,3 @@
+ // source of inspiration: https://github.com/sindresorhus/require-fool-webpack
+-var requireFoolWebpack = eval(
+-    'typeof require !== \'undefined\' ' +
+-    '? require ' +
+-    ': function (module) { throw new Error(\'Module " + module + " not found.\') }'
+-);
+-
+-module.exports = requireFoolWebpack;
++// Patched for Bun compile compatibility (eval-based require doesn't work in Bun compiled binaries)
++module.exports = require;

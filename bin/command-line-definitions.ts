@@ -1,10 +1,8 @@
 import { OptionDefinition as ArgDefinition } from "command-line-args";
 import { Section, OptionDefinition as UsageDefinition } from "command-line-usage";
-import { existsSync, readFileSync } from "fs";
-import { join } from "node:path";
-import { getAsset, isSea } from "node:sea";
+import packageJson from '../package.json';
 
-const packageVersion = getPackageVersion();
+const packageVersion = packageJson.version;
 
 export type CommandLineDefinition = ArgDefinition & UsageDefinition;
 
@@ -138,27 +136,3 @@ export const usageDefinitions: Array<Section> = [
             ]
     }
 ];
-
-function getPackageVersion(): string {
-    if (isSea()) {
-        return JSON.parse(`${getAsset('package.json', 'utf-8')}`).version;
-    }
-
-    const path = [
-        join(__dirname, 'package.json'),
-        join(__dirname, '../package.json'),
-        join(__dirname, '../../package.json'),
-    ].find((path) => existsSync(path));
-
-    if (!path) {
-        throw new Error('Could not find package.json');
-    }
-
-    const packageJson = readFileSync(path, 'utf-8').toString();
-
-    try {
-        return JSON.parse(packageJson).version;
-    } catch {
-        throw new Error('Could not parse package.json');
-    }
-}
