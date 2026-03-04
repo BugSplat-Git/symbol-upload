@@ -134,12 +134,11 @@ function isMaxSizeExceededError(error: Error): boolean {
     return error.message.includes('Symbol file max size') || error.message.includes('Symbol table max size');
 }
 
-function createFileStream(filePath: string): { file: ReadableStream; destroy: () => void } {
-    // Bun's fetch doesn't support ReadableStreams created via ReadStream.toWeb() as PUT bodies.
-    // Use Bun.file().stream() which produces a web-standard ReadableStream that works correctly.
+function createFileStream(filePath: string): { file: ReadableStream | Blob; destroy: () => void } {
+    // Bun's fetch can't properly PUT a ReadableStream to S3 (uses chunked encoding).
+    // Bun.file() returns a lazy Blob that streams from disk with proper content-length.
     if ('Bun' in globalThis) {
-        const bunFile = (globalThis as any).Bun.file(filePath);
-        return { file: bunFile.stream(), destroy: () => {} };
+        return { file: (globalThis as any).Bun.file(filePath), destroy: () => {} };
     }
 
     const nodeStream = createReadStream(filePath);
