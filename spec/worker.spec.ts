@@ -132,22 +132,19 @@ describe('worker', () => {
         });
 
         it('should destroy file stream on error', async () => {
-            const readStream = {
-                destroy: vi.fn(),
-            };
+            const destroy = vi.fn();
             const retrier = (func) => retryPromise(func, { retries: 0 });
             const symbolFiles = createFakeSymbolFileInfos(1);
             const workerPool = createFakeWorkerPool();
             const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
             vi.mocked(symbolsClient.postSymbols).mockRejectedValue(new Error('Failed to upload!'));
-            (worker as any).createReadStream = () => readStream;
+            (worker as any).createFileStream = () => ({ file: 'fake-stream', destroy });
             (worker as any).retryPromise = retrier;
             (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
-            (worker as any).toWeb = () => readStream;
 
             await worker.upload(database, application, version).catch(() => null);
 
-            expect(readStream.destroy).toHaveBeenCalled();
+            expect(destroy).toHaveBeenCalled();
         });
 
         describe('error', () => {
@@ -217,7 +214,6 @@ function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[]
     const workerPool = createFakeWorkerPool();
     const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients);
     (worker as any).stat = vi.fn().mockResolvedValue({ size: 0, mtime: 0 });
-    (worker as any).createReadStream = vi.fn().mockImplementation(file => file);
-    (worker as any).toWeb = vi.fn().mockImplementation(file => file);
+    (worker as any).createFileStream = vi.fn().mockImplementation(file => ({ file, destroy: vi.fn() }));
     return worker;
 }
