@@ -11,6 +11,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "allowJs": true
   },
   "files": ["./index.ts", "./bin/index.ts", "src/compression.js"]
