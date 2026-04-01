@@ -16,22 +16,11 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
     const isFolder = await stat(path).then((stats) => stats.isDirectory());
     const extLowerCase = extname(path).toLowerCase();
     const isSymFile = extLowerCase.includes('.sym') && !isFolder;
-    const isPdbFile = extLowerCase.includes('.pdb') && !isFolder;
-    const isPeFile = extLowerCase.includes('.exe') || extLowerCase.includes('.dll') && !isFolder;
+    const isPeOrPdbFile = (extLowerCase.includes('.pdb') || extLowerCase.includes('.exe') || extLowerCase.includes('.dll')) && !isFolder;
     const isDsymBundle = extLowerCase.includes('.dsym');
     const isElfFile = elfExtensions.some((ext) => extLowerCase.includes(ext) && !isFolder);
 
-    if (isPdbFile) {
-        const dbgId = await tryGetGuid(path);
-        const moduleName = basename(path);
-        return [{
-            path,
-            dbgId,
-            moduleName,
-        } as SymbolFileInfo];
-    }
-
-    if (isPeFile) {
+    if (isPeOrPdbFile) {
         const dbgId = await tryGetGuid(path);
         const moduleName = basename(path);
         return [{
