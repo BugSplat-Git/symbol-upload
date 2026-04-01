@@ -73,7 +73,7 @@ export class UploadWorker {
                 await this.pool.exec('createZipFile', [path, tmpFileName]);
             }
         } else {
-            console.log(`Worker ${this.id} skipping ${name}, could not parse GUID...`);
+            console.warn(`Worker ${this.id} skipping ${name} (extension: ${extname(path)}), missing dbgId...`);
             return { name, size: 0 };
         }
 
