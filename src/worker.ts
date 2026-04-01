@@ -58,16 +58,23 @@ export class UploadWorker {
         let name = basename(path);
         let tmpFileName = '';
 
+        const isSourceMap = extname(path).toLowerCase() === '.map';
+
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
-        } else if (!isZip) {
-            name = `${name}.zip`;
-            tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
-            await this.pool.exec('createZipFile', [path, tmpFileName]);
+        } else if (isSourceMap || isZip) {
+            if (isZip) {
+                tmpFileName = path;
+            } else {
+                name = `${name}.zip`;
+                tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
+                await this.pool.exec('createZipFile', [path, tmpFileName]);
+            }
         } else {
-            tmpFileName = path;
+            console.log(`Worker ${this.id} skipping ${name}, could not parse GUID...`);
+            return { name, size: 0 };
         }
 
         const { mtime: lastModified } = await this.stat(path);

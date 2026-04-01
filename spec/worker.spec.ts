@@ -60,31 +60,28 @@ describe('worker', () => {
         const application = 'application';
         const version = 'version';
 
-        describe('legacy', () => {
-            let symbolFileInfos;
+        describe('skip', () => {
+            it('should skip files with no dbgId', async () => {
+                const symbolFileInfos = createFakeSymbolFileInfos(2).map((info) => ({ ...info, dbgId: '' }));
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                const results = await worker.upload(database, application, version);
 
-            beforeEach(async () => {
-                symbolFileInfos = createFakeSymbolFileInfos(2).map((info) => ({ ...info, dbgId: undefined }));
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+                expect(versionsClient.postSymbols).not.toHaveBeenCalled();
+                expect(results.every(r => r.size === 0)).toBe(true);
+            });
+        });
+
+        describe('legacy', () => {
+            it('should use versionsClient for source maps without dbgId', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'app.js.map', moduleName: 'app.js.map', dbgId: '' }),
+                ];
                 const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
                 await worker.upload(database, application, version);
-            });
 
-            it('should call versionsClient.postSymbols with database, application, version, and symbol files', () => {
-                const symbolFiles = symbolFileInfos.map(symbolFile => ({
-                    name: `${symbolFile.path}.zip`,
-                    dbgId: symbolFile.dbgId,
-                    moduleName: symbolFile.moduleName,
-                    size: 0,
-                    uncompressedSize: 0,
-                    lastModified: 0,
-                    file: expect.stringContaining('.zip'),
-                }));
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[0]]));
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[1]]));
-            });
-
-            it('should call versionsClient.postSymbols for each symbol file', () => {
-                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(symbolFileInfos.length);
+                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(1);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
         });
 

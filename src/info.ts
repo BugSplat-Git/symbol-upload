@@ -2,7 +2,7 @@ import { stat } from "node:fs/promises";
 import { basename, extname } from "node:path";
 import { getDSymFileInfos } from "./dsym";
 import { tryGetElfUUID } from "./elf";
-import { tryGetPdbGuid, tryGetPeGuid } from "./pdb";
+import { tryGetGuid } from "./guid";
 import { getSymFileInfo } from "./sym";
 
 export type SymbolFileInfo = {
@@ -22,7 +22,7 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
     const isElfFile = elfExtensions.some((ext) => extLowerCase.includes(ext) && !isFolder);
 
     if (isPdbFile) {
-        const dbgId = await tryGetPdbGuid(path);
+        const dbgId = await tryGetGuid(path);
         const moduleName = basename(path);
         return [{
             path,
@@ -32,7 +32,7 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
     }
 
     if (isPeFile) {
-        const dbgId = await tryGetPeGuid(path);
+        const dbgId = await tryGetGuid(path);
         const moduleName = basename(path);
         return [{
             path,
