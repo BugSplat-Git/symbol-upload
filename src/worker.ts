@@ -62,7 +62,7 @@ export class UploadWorker {
         const isSourceMap = extname(path).toLowerCase() === '.map';
 
         // Unreal binary encodes Linux sym files, fallback to legacy
-        const isUnrealSym = extname(path).toLowerCase() === '.map' && !dbgId;
+        const isUnrealSym = extname(path).toLowerCase() === '.sym' && !dbgId;
 
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
