@@ -57,7 +57,6 @@ export function getNormalizedSymModuleName(moduleName: string): string {
 // This is a bit of a mystery and is subject to change when we learn more about how it works.
 // For now, normalize some sym file names to satisfy the minidump-stackwalker symbol lookup.
 // When building the path, the pattern is module/GUID/file.sym
-
 export function getNormalizedSymFileName(path: string): string {
   let normalizedFileName = basename(path);
 
