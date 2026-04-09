@@ -58,13 +58,17 @@ export class UploadWorker {
         let name = basename(path);
         let tmpFileName = '';
 
+        // We can't store source maps without a dbgId, fallback to legacy
         const isSourceMap = extname(path).toLowerCase() === '.map';
+
+        // Unreal binary encodes Linux sym files, fallback to legacy
+        const isUnrealSym = extname(path).toLowerCase() === '.sym' && !dbgId;
 
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
-        } else if (isSourceMap || isZip) {
+        } else if (isSourceMap || isUnrealSym || isZip) {
             if (isZip) {
                 tmpFileName = path;
             } else {

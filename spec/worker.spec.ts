@@ -73,6 +73,17 @@ describe('worker', () => {
         });
 
         describe('legacy', () => {
+            it('should use versionsClient for .sym files without dbgId', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'crashpad.sym', moduleName: 'crashpad.sym', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(1);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+            });
+
             it('should use versionsClient for source maps without dbgId', async () => {
                 const symbolFileInfos = [
                     createFakeSymbolFileInfo({ path: 'app.js.map', moduleName: 'app.js.map', dbgId: '' }),
