@@ -58,7 +58,7 @@ export class UploadWorker {
         let name = basename(path);
         let tmpFileName = '';
 
-        // We can't store source maps by UUID, fallback to legacy
+        // We can't store source maps without a dbgId, fallback to legacy
         const isSourceMap = extname(path).toLowerCase() === '.map';
 
         // Unreal binary encodes Linux sym files, fallback to legacy
