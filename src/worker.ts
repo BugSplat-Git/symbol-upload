@@ -22,10 +22,9 @@ export function createWorkersFromSymbolFiles(workerPool: WorkerPool, workerCount
 }
 
 export class UploadWorker {
-    private createReadStream = createReadStream;
+    private createFileStream = createFileStream;
     private retryPromise = retryPromise;
     private stat = stat;
-    private toWeb = ReadStream.toWeb;
 
     constructor(
         public readonly id: number,
@@ -43,7 +42,7 @@ export class UploadWorker {
         for (const symbolFileInfo of this.symbolFileInfos) {
             results.push(await this.uploadSingle(database, application, version, symbolFileInfo));
         }
-        
+
         return results;
     }
 
@@ -88,8 +87,7 @@ export class UploadWorker {
         console.log(`Worker ${this.id} uploading ${name}...`);
 
         await this.retryPromise(async (retry) => {
-            const symFileReadStream = this.createReadStream(tmpFileName);
-            const file = this.toWeb(symFileReadStream);
+            const { file, destroy } = this.createFileStream(tmpFileName);
             const symbolFile = {
                 name,
                 size,
@@ -102,9 +100,7 @@ export class UploadWorker {
 
             return client.postSymbols(database, application, version, [symbolFile])
                 .catch((error: Error | BugSplatAuthenticationError) => {
-                    // Don't try and cancel the web stream, it's locked by the tee operation in the symbols client.
-                    // Cancelling the file stream should be safe and seems like a good thing to do...
-                    symFileReadStream.destroy();
+                    destroy();
 
                     if (isAuthenticationError(error)) {
                         console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
@@ -147,4 +143,16 @@ function isAuthenticationError(error: Error | BugSplatAuthenticationError): erro
 
 function isMaxSizeExceededError(error: Error): boolean {
     return error.message.includes('Symbol file max size') || error.message.includes('Symbol table max size');
+}
+
+function createFileStream(filePath: string): { file: ReadableStream; destroy: () => void } {
+    if ('Bun' in globalThis) {
+        return { file: (globalThis as any).Bun.file(filePath).stream(), destroy: () => {} };
+    }
+
+    const nodeStream = createReadStream(filePath);
+    return {
+        file: ReadStream.toWeb(nodeStream) as ReadableStream,
+        destroy: () => nodeStream.destroy()
+    };
 }
