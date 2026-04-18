@@ -57,16 +57,27 @@ export class UploadWorker {
         let name = basename(path);
         let tmpFileName = '';
 
+        // We can't store source maps without a dbgId, fallback to legacy
+        const isSourceMap = extname(path).toLowerCase() === '.map';
+
+        // Unreal binary encodes Linux sym files, fallback to legacy
+        const isUnrealSym = extname(path).toLowerCase() === '.sym' && !dbgId;
+
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
-        } else if (!isZip) {
-            name = `${name}.zip`;
-            tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
-            await this.pool.exec('createZipFile', [path, tmpFileName]);
+        } else if (isSourceMap || isUnrealSym || isZip) {
+            if (isZip) {
+                tmpFileName = path;
+            } else {
+                name = `${name}.zip`;
+                tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
+                await this.pool.exec('createZipFile', [path, tmpFileName]);
+            }
         } else {
-            tmpFileName = path;
+            console.warn(`Worker ${this.id} skipping ${name} (extension: ${extname(path)}), missing dbgId...`);
+            return { name, size: 0 };
         }
 
         const { mtime: lastModified } = await this.stat(path);
