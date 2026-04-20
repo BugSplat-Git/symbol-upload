@@ -91,7 +91,7 @@
     "workerpool": "^6.5.1"
   },
   "optionalDependencies": {
-    "node-dump-syms": "^3.0.12"
+    "node-dump-syms": "^3.0.13"
   },
   "patchedDependencies": {
     "workerpool@6.5.1": "patches/workerpool@6.5.1.patch"
