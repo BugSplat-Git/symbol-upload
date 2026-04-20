@@ -28,8 +28,12 @@ export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> 
 
         return Promise.all(
             machoFiles.map(async (macho) => {
+                const sourcePath = macho.path;
+                if (!sourcePath) {
+                    throw new Error('Mach-O file is missing a source path');
+                }
                 const dbgId = await macho.getUUID();
-                const moduleName = basename(macho.path);
+                const moduleName = basename(sourcePath);
                 const relativePath = join(await macho.getUUID(), moduleName)
                 const path = join(tmpDir, relativePath);
                 await mkdir(dirname(path), { recursive: true });

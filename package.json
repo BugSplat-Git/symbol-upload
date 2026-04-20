@@ -103,5 +103,10 @@
   },
   "optionalDependencies": {
     "node-dump-syms": "^3.0.13"
+  },
+  "overrides": {
+    "archiver-utils": {
+      "glob": "^13.0.6"
+    }
   }
 }
