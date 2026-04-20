@@ -95,5 +95,8 @@
   },
   "patchedDependencies": {
     "workerpool@6.5.1": "patches/workerpool@6.5.1.patch"
-  }
+  },
+  "trustedDependencies": [
+    "node-dump-syms"
+  ]
 }
