@@ -32,10 +32,10 @@ jobs:
     
     steps:
     - name: ☑️ Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: ⚙️ Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: '22'
 
@@ -46,7 +46,7 @@ jobs:
       run: npm run ${{ matrix.run_script }} # Executes the script based on the operating system
 
     - name: ⬆️ Upload Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.artifact_name }}
         path: dist/${{ matrix.file_name }} # Uploads the artifact with a platform-specific name and path
