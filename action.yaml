@@ -49,6 +49,11 @@ inputs:
     type: string
     required: false
     default: '24'
+  symbol-upload-version:
+    description: "Version of @bugsplat/symbol-upload to install from npm"
+    type: string
+    required: false
+    default: '10.3.1'
   dumpSyms:
     description: "Use dumpSyms to generate symbols"
     type: boolean
@@ -65,7 +70,7 @@ runs:
 
     - name: Install symbol-upload
       shell: pwsh
-      run: npm i -g @bugsplat/symbol-upload@10.2.4
+      run: npm i -g @bugsplat/symbol-upload@${{ inputs.symbol-upload-version }}
         
     - name: Run symbol-upload
       shell: pwsh
