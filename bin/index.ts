@@ -5,6 +5,7 @@ import {
   OAuthClientCredentialsClient,
   VersionsApiClient,
 } from '@bugsplat/js-api-client';
+import { validateOAuthCredentials } from '../src/auth';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
@@ -240,6 +241,8 @@ async function createBugSplatClient({
       host
     );
   }
+
+  await validateOAuthCredentials(clientId, clientSecret, host);
 
   return OAuthClientCredentialsClient.createAuthenticatedClient(
     clientId,
