@@ -1,4 +1,4 @@
-import { BugSplatAuthenticationError } from '@bugsplat/js-api-client';
+import { BugSplatAuthenticationError, BugSplatRateLimitError } from '@bugsplat/js-api-client';
 import {
     BrokenCircuitError,
     ConsecutiveBreaker,
@@ -24,8 +24,7 @@ export interface RetryPolicyOptions {
 }
 
 export function isRateLimitError(error: unknown): boolean {
-    // js-api-client throws a BugSplatRateLimitError with status 429 for rate-limited responses.
-    return (error as { status?: number } | null)?.status === 429;
+    return (error as BugSplatRateLimitError | null)?.status === 429;
 }
 
 export function isAuthenticationError(error: unknown): boolean {
