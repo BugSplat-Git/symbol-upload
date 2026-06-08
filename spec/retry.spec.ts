@@ -51,6 +51,10 @@ describe('createUploadRetryPolicy', () => {
 
         await policy.execute(failing).catch(() => null);
 
+        // The first 429 trips the breaker (inner policy), so the retries that follow fast-fail with
+        // BrokenCircuitError instead of hitting the network again — only the initial attempt does.
+        expect(failing).toHaveBeenCalledTimes(1);
+
         const next = vi.fn().mockResolvedValue('ok');
         await expect(policy.execute(next)).rejects.toBeInstanceOf(BrokenCircuitError);
         expect(next).not.toHaveBeenCalled();

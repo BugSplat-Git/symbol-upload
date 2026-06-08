@@ -94,28 +94,33 @@ export class UploadWorker {
 
         // The shared retry policy owns all retry/backoff/coordination (see retry.ts).
         // We just hand it a single upload attempt; it decides whether and when to retry.
-        await this.retryPolicy.execute(async () => {
-            const symFileReadStream = this.createReadStream(tmpFileName);
-            const file = this.toWeb(symFileReadStream);
-            const symbolFile = {
-                name,
-                size,
-                file,
-                uncompressedSize,
-                dbgId,
-                lastModified,
-                moduleName
-            };
+        try {
+            await this.retryPolicy.execute(async () => {
+                const symFileReadStream = this.createReadStream(tmpFileName);
+                const file = this.toWeb(symFileReadStream);
+                const symbolFile = {
+                    name,
+                    size,
+                    file,
+                    uncompressedSize,
+                    dbgId,
+                    lastModified,
+                    moduleName
+                };
 
-            try {
-                await client.postSymbols(database, application, version, [symbolFile]);
-            } catch (error) {
-                // Don't try and cancel the web stream, it's locked by the tee operation in the symbols client.
-                // Cancelling the file stream should be safe and seems like a good thing to do...
-                symFileReadStream.destroy();
-                throw error;
-            }
-        });
+                try {
+                    await client.postSymbols(database, application, version, [symbolFile]);
+                } catch (error) {
+                    // Don't try and cancel the web stream, it's locked by the tee operation in the symbols client.
+                    // Cancelling the file stream should be safe and seems like a good thing to do...
+                    symFileReadStream.destroy();
+                    throw error;
+                }
+            });
+        } catch (error) {
+            console.error(`Worker ${this.id} failed to upload ${name}: ${(error as Error).message}`);
+            throw error;
+        }
 
         const endTime = new Date();
         const seconds = (endTime.getTime() - startTime.getTime()) / 1000;
