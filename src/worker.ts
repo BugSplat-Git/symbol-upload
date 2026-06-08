@@ -1,11 +1,12 @@
-import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { IPolicy } from 'cockatiel';
 import { ReadStream, createReadStream } from 'fs';
 import { stat } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import prettyBytes from 'pretty-bytes';
-import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
 import { SymbolFileInfo } from './info';
+import { createUploadRetryPolicy } from './retry';
 import { tmpDir } from './tmp';
 
 export type UploadStats = { name: string, size: number };
@@ -13,17 +14,20 @@ export type UploadStats = { name: string, size: number };
 export function createWorkersFromSymbolFiles(workerPool: WorkerPool, workerCount: number, symbolFiles: SymbolFileInfo[], clients: [SymbolsApiClient, VersionsApiClient]): Array<UploadWorker> {
     const numberOfSymbols = symbolFiles.length;
 
+    // Shared across every worker in this run so the circuit breaker can coordinate them: one 429
+    // trips the breaker and all workers back off, since they all upload from the same IP.
+    const retryPolicy = createUploadRetryPolicy();
+
     if (workerCount >= numberOfSymbols) {
-        return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, [symbolFile], workerPool, ...clients));
+        return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, [symbolFile], workerPool, ...clients, retryPolicy));
     }
 
     const symbolFilesChunks = splitToChunks(symbolFiles, workerCount);
-    return symbolFilesChunks.map((chunk, i) => new UploadWorker(i + 1, chunk, workerPool, ...clients));
+    return symbolFilesChunks.map((chunk, i) => new UploadWorker(i + 1, chunk, workerPool, ...clients, retryPolicy));
 }
 
 export class UploadWorker {
     private createReadStream = createReadStream;
-    private retryPromise = retryPromise;
     private stat = stat;
     private toWeb = ReadStream.toWeb;
 
@@ -33,6 +37,7 @@ export class UploadWorker {
         private readonly pool: WorkerPool,
         private readonly symbolsClient: SymbolsApiClient,
         private readonly versionsClient: VersionsApiClient,
+        private readonly retryPolicy: IPolicy,
     ) { }
 
     async upload(database: string, application: string, version: string): Promise<UploadStats[]> {
@@ -87,7 +92,9 @@ export class UploadWorker {
 
         console.log(`Worker ${this.id} uploading ${name}...`);
 
-        await this.retryPromise(async (retry) => {
+        // The shared retry policy owns all retry/backoff/coordination (see retry.ts).
+        // We just hand it a single upload attempt; it decides whether and when to retry.
+        await this.retryPolicy.execute(async () => {
             const symFileReadStream = this.createReadStream(tmpFileName);
             const file = this.toWeb(symFileReadStream);
             const symbolFile = {
@@ -100,25 +107,14 @@ export class UploadWorker {
                 moduleName
             };
 
-            return client.postSymbols(database, application, version, [symbolFile])
-                .catch((error: Error | BugSplatAuthenticationError) => {
-                    // Don't try and cancel the web stream, it's locked by the tee operation in the symbols client.
-                    // Cancelling the file stream should be safe and seems like a good thing to do...
-                    symFileReadStream.destroy();
-
-                    if (isAuthenticationError(error)) {
-                        console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
-                        throw error;
-                    }
-
-                    if (isMaxSizeExceededError(error)) {
-                        console.error(`Worker ${this.id} failed to upload ${name}: ${error.message}!`);
-                        throw error;
-                    }
-
-                    console.error(`Worker ${this.id} failed to upload ${name} with error: ${error.message}! Retrying...`)
-                    retry(error);
-                })
+            try {
+                await client.postSymbols(database, application, version, [symbolFile]);
+            } catch (error) {
+                // Don't try and cancel the web stream, it's locked by the tee operation in the symbols client.
+                // Cancelling the file stream should be safe and seems like a good thing to do...
+                symFileReadStream.destroy();
+                throw error;
+            }
         });
 
         const endTime = new Date();
@@ -139,12 +135,4 @@ function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {
         result.push(copy.splice(0, Math.ceil(array.length / parts)));
     }
     return result;
-}
-
-function isAuthenticationError(error: Error | BugSplatAuthenticationError): error is BugSplatAuthenticationError {
-    return (error as BugSplatAuthenticationError).isAuthenticationError;
-}
-
-function isMaxSizeExceededError(error: Error): boolean {
-    return error.message.includes('Symbol file max size') || error.message.includes('Symbol table max size');
 }

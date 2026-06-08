@@ -1,6 +1,6 @@
-import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { IPolicy } from 'cockatiel';
 import { availableParallelism } from 'node:os';
-import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
 import { vi } from 'vitest';
 import { SymbolFileInfo } from '../src/info';
@@ -124,71 +124,30 @@ describe('worker', () => {
             });
         });
 
-        it('should retry failed uploads', async () => {
-            const retries = 3;
-            const retrier = (func) => retryPromise(func, { retries, minTimeout: 0, maxTimeout: 0, factor: 1 });
-            const symbolFiles = createFakeSymbolFileInfos(1);
-            const workerPool = createFakeWorkerPool();
-            vi.mocked(symbolsClient.postSymbols).mockImplementation(() => Promise.reject(new Error('Failed to upload!')));
-            const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-            (worker as any).retryPromise = retrier;
-            (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
+        it('should run each upload through the retry policy', async () => {
+            const retryPolicy = createFakePolicy();
+            const symbolFiles = createFakeSymbolFileInfos(2);
+            const worker = createUploadWorkerWithFakeReadStream(1, symbolFiles, clients, retryPolicy);
 
-            await worker.upload(database, application, version).catch(() => null);
+            await worker.upload(database, application, version);
 
-            expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(retries * symbolFiles.length + 1);
+            expect(retryPolicy.execute).toHaveBeenCalledTimes(symbolFiles.length);
         });
 
         it('should destroy file stream on error', async () => {
             const readStream = {
                 destroy: vi.fn(),
             };
-            const retrier = (func) => retryPromise(func, { retries: 0 });
             const symbolFiles = createFakeSymbolFileInfos(1);
-            const workerPool = createFakeWorkerPool();
-            const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
+            const worker = createUploadWorkerWithFakeReadStream(1, symbolFiles, clients);
             vi.mocked(symbolsClient.postSymbols).mockRejectedValue(new Error('Failed to upload!'));
             (worker as any).createReadStream = () => readStream;
-            (worker as any).retryPromise = retrier;
-            (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
             (worker as any).toWeb = () => readStream;
 
             await worker.upload(database, application, version).catch(() => null);
 
             expect(readStream.destroy).toHaveBeenCalled();
         });
-
-        describe('error', () => {
-            it('should not retry authentication errors', async () => {
-                const retry = vi.fn();
-                const retrier = (func) => func(retry);
-                const symbolFiles = createFakeSymbolFileInfos(1);
-                const workerPool = createFakeWorkerPool();
-                vi.mocked(symbolsClient.postSymbols).mockImplementation(() => Promise.reject(new BugSplatAuthenticationError('Failed to upload!')));
-                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-                (worker as any).retryPromise = retrier;
-                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
-    
-                await worker.upload(database, application, version).catch(() => null);
-    
-                expect(retry).not.toHaveBeenCalled();
-            });
-
-            it('should not retry max size errors', async () => {
-                const retry = vi.fn();
-                const retrier = (func) => func(retry);
-                const symbolFiles = createFakeSymbolFileInfos(1);
-                const workerPool = createFakeWorkerPool();
-                vi.mocked(symbolsClient.postSymbols).mockImplementation(() => Promise.reject(new Error('Symbol file max size exceeded!')));
-                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-                (worker as any).retryPromise = retrier;
-                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
-    
-                await worker.upload(database, application, version).catch(() => null);
-    
-                expect(retry).not.toHaveBeenCalled();
-            });
-        })
     });
 });
 
@@ -221,11 +180,19 @@ function createFakeWorkerPool(): WorkerPool {
     return fakeWorkerPool;
 }
 
-function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient]) {
+function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy()) {
     const workerPool = createFakeWorkerPool();
-    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients);
+    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients, retryPolicy);
     (worker as any).stat = vi.fn().mockResolvedValue({ size: 0, mtime: 0 });
     (worker as any).createReadStream = vi.fn().mockImplementation(file => file);
     (worker as any).toWeb = vi.fn().mockImplementation(file => file);
     return worker;
+}
+
+// A pass-through policy that runs the attempt exactly once. Retry/backoff/breaker behavior is
+// covered in retry.spec.ts; here we only care that the worker hands each upload to the policy.
+function createFakePolicy(): IPolicy {
+    return {
+        execute: vi.fn().mockImplementation((fn) => fn({ attempt: 0, signal: new AbortController().signal })),
+    } as unknown as IPolicy;
 }
