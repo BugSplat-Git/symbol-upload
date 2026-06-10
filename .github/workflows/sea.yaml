@@ -50,3 +50,40 @@ jobs:
       with:
         name: ${{ matrix.artifact_name }}
         path: dist/${{ matrix.file_name }} # Uploads the artifact with a platform-specific name and path
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+    - name: ⬇️ Download Artifacts
+      uses: actions/download-artifact@v7
+      with:
+        path: artifacts
+
+    - name: 📦 Stage Release Assets
+      run: |
+        mkdir release
+        cp artifacts/symbol-upload-linux/symbol-upload-linux release/symbol-upload-linux
+        cp artifacts/symbol-upload-macos/symbol-upload-macos release/symbol-upload-macos
+        cp artifacts/symbol-upload-macos-intel/symbol-upload-macos release/symbol-upload-macos-intel
+        cp artifacts/symbol-upload-windows.exe/symbol-upload-windows.exe release/symbol-upload-windows.exe
+        chmod +x release/symbol-upload-linux release/symbol-upload-macos release/symbol-upload-macos-intel
+
+    - name: 🚀 Create Release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        PRERELEASE=""
+        if [[ "$TAG" == *-* ]]; then
+          PRERELEASE="--prerelease"
+        fi
+        if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          gh release upload "$TAG" release/* --repo "$GITHUB_REPOSITORY" --clobber
+        else
+          gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes $PRERELEASE
+        fi
