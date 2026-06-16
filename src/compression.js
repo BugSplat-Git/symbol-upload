@@ -3,7 +3,7 @@ const { basename } = require('node:path');
 const { lstat } = require('node:fs/promises');
 const { pipeline } = require('node:stream/promises');
 const { createGzip } = require('node:zlib');
-const archiver = require('archiver');
+const { ZipArchive } = require('archiver');
 const workerpool = require('workerpool');
 
 async function createGzipFile(inputFilePath, outputFilePath) {
@@ -20,7 +20,7 @@ async function createZipFile(inputFilePath, outputFilePath) {
   try {
     output = createWriteStream(outputFilePath);
     await new Promise(async (resolve, reject) => {
-      const zip = archiver('zip');
+      const zip = new ZipArchive();
 
       zip.pipe(output);
       zip.on('error', reject);

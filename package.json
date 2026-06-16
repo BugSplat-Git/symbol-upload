@@ -7,7 +7,7 @@
     "symbol-upload": "./dist/bin/index.js"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   },
   "files": [
     "dist"
@@ -34,10 +34,10 @@
     "prerelease": "npm run build",
     "release": "npm publish --access public",
     "ncc": "npx ncc build ./bin/index.ts -o ./dist",
-    "bpkg:compression": "npx bpkg ./src/compression.js ./dist/compression.js",
+    "bundle:compression": "node ./scripts/bundle-compression.js",
     "bpkg:node-dump-syms": "npx bpkg ./node_modules/node-dump-syms ./dist/node-dump-syms.js",
     "prebuild:sea": "npm run clean",
-    "build:sea": "run-s ncc bpkg:compression bpkg:node-dump-syms",
+    "build:sea": "run-s ncc bundle:compression bpkg:node-dump-syms",
     "presea:macos": "npm run build:sea",
     "presea:windows": "npm run build:sea",
     "presea:linux": "npm run build:sea",
@@ -64,7 +64,7 @@
   },
   "homepage": "https://github.com/BugSplat-Git/symbol-upload#readme",
   "devDependencies": {
-    "@types/archiver": "^6.0.2",
+    "@types/archiver": "^8.0.0",
     "@types/command-line-args": "^5.2.0",
     "@types/command-line-usage": "^5.0.2",
     "@types/firstline": "^2.0.2",
@@ -85,7 +85,7 @@
   "dependencies": {
     "@bugsplat/elfy": "^1.0.1",
     "@bugsplat/js-api-client": "^15.2.0",
-    "archiver": "^7.0.1",
+    "archiver": "^8.0.0",
     "cockatiel": "^4.0.0",
     "command-line-args": "^5.2.0",
     "command-line-usage": "^6.1.1",
@@ -99,10 +99,5 @@
   },
   "optionalDependencies": {
     "node-dump-syms": "^3.0.13"
-  },
-  "overrides": {
-    "archiver-utils": {
-      "glob": "^13.0.6"
-    }
   }
 }
