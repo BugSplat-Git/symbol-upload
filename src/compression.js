@@ -19,15 +19,15 @@ async function createZipFile(inputFilePath, outputFilePath) {
 
   try {
     output = createWriteStream(outputFilePath);
-    await new Promise(async (resolve, reject) => {
+    const isDirectory = await pathIsDirectory(inputFilePath);
+
+    await new Promise((resolve, reject) => {
       const zip = new ZipArchive();
 
       zip.pipe(output);
       zip.on('error', reject);
       output.on('close', resolve);
       output.on('error', reject);
-
-      const isDirectory = await pathIsDirectory(inputFilePath);
 
       if (isDirectory) {
         zip.directory(inputFilePath, basename(inputFilePath));
