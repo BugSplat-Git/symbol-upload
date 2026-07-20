@@ -34,28 +34,48 @@ export function getPortablePdbGuid(buffer: Buffer): string {
 // Walk the ECMA-335 metadata root to locate the "#Pdb" stream and return the
 // 16-byte GUID at its start. Layout (ECMA-335 II.24.2.1):
 //   uint32 signature ('BSJB'), uint16 major, uint16 minor, uint32 reserved,
-//   uint32 versionLength, byte[versionLength] version (4-byte aligned),
-//   uint16 flags, uint16 streamCount,
+//   uint32 versionLength, byte[versionLength] version,
+//   padding to next 4-byte boundary, uint16 flags, uint16 streamCount,
 //   streamCount x { uint32 offset, uint32 size, null-terminated ASCII name
 //                   padded with \0 to the next 4-byte boundary }
 function getPdbStreamGuidBytes(buffer: Buffer): Buffer {
-    const versionLength = buffer.readUInt32LE(12);
-    const streamCount = buffer.readUInt16LE(16 + versionLength + 2);
+    if (buffer.length < 20) {
+        throw new Error('Portable PDB metadata header is truncated');
+    }
 
-    let offset = 16 + versionLength + 4;
+    const versionLength = buffer.readUInt32LE(12);
+    // Version string is followed by padding to a 4-byte boundary before flags/streams.
+    const headerAfterVersion = 16 + align4(versionLength);
+    if (headerAfterVersion + 4 > buffer.length) {
+        throw new Error('Portable PDB metadata header is truncated');
+    }
+
+    const streamCount = buffer.readUInt16LE(headerAfterVersion + 2);
+    let offset = headerAfterVersion + 4;
     for (let i = 0; i < streamCount; i++) {
+        if (offset + 8 > buffer.length) {
+            throw new Error('Portable PDB stream header is truncated');
+        }
+
         const streamOffset = buffer.readUInt32LE(offset);
-        offset += 8; // skip stream offset (4) + size (4)
+        const streamSize = buffer.readUInt32LE(offset + 4);
+        offset += 8;
 
         const nameStart = offset;
         while (offset < buffer.length && buffer[offset] !== 0) {
             offset++;
+        }
+        if (offset >= buffer.length) {
+            throw new Error('Portable PDB stream name is truncated');
         }
         const name = buffer.toString('ascii', nameStart, offset);
         // Advance past the name, its null terminator, and 4-byte alignment padding.
         offset = nameStart + align4(offset - nameStart + 1);
 
         if (name === PDB_STREAM_NAME) {
+            if (streamSize < PDB_ID_SIZE) {
+                throw new Error('Portable PDB #Pdb stream is too small');
+            }
             if (streamOffset + PDB_ID_SIZE > buffer.length) {
                 throw new Error('Portable PDB #Pdb stream is truncated');
             }

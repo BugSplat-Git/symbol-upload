@@ -12,7 +12,8 @@ export async function tryGetPdbGuid(pdbFilePath: string): Promise<string> {
     try {
         return await tryGetPortablePdbGuid(pdbFilePath);
     } catch (error) {
-        console.log(`Could not get UUID for ${pdbFilePath}...`);
+        const reason = error instanceof Error ? error.message : String(error);
+        console.log(`Could not get UUID for ${pdbFilePath}: ${reason}`);
     }
 
     return '';
