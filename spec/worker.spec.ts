@@ -1,22 +1,25 @@
-import { BugSplatAuthenticationError, SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { SymbolsApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
+import { IPolicy } from 'cockatiel';
 import { availableParallelism } from 'node:os';
-import retryPromise from 'promise-retry';
 import { WorkerPool } from 'workerpool';
+import { vi } from 'vitest';
 import { SymbolFileInfo } from '../src/info';
 import { UploadWorker, createWorkersFromSymbolFiles } from '../src/worker';
 
 const workerCount = availableParallelism();
 
 describe('worker', () => {
-    let symbolsClient: jasmine.SpyObj<SymbolsApiClient>;
-    let versionsClient: jasmine.SpyObj<VersionsApiClient>;
+    let symbolsClient: SymbolsApiClient;
+    let versionsClient: VersionsApiClient;
     let clients: [SymbolsApiClient, VersionsApiClient];
 
     beforeEach(() => {
-        symbolsClient = jasmine.createSpyObj<SymbolsApiClient>('SymbolsApiClient', ['postSymbols']);
-        versionsClient = jasmine.createSpyObj<VersionsApiClient>('VersionsApiClient', ['postSymbols']);
-        symbolsClient.postSymbols.and.resolveTo();
-        versionsClient.postSymbols.and.resolveTo();
+        symbolsClient = {
+            postSymbols: vi.fn().mockResolvedValue(undefined),
+        } as unknown as SymbolsApiClient;
+        versionsClient = {
+            postSymbols: vi.fn().mockResolvedValue(undefined),
+        } as unknown as VersionsApiClient;
         clients = [symbolsClient, versionsClient];
     });
 
@@ -27,7 +30,7 @@ describe('worker', () => {
 
             const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFiles, clients);
 
-            expect(workers.length).toEqual(workerCount);
+            expect(workers.length).toBe(workerCount);
         });
 
         it('should create equal worker count to symbol files', () => {
@@ -36,7 +39,7 @@ describe('worker', () => {
 
             const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFiles, clients);
 
-            expect(workers.length).toEqual(workerCount);
+            expect(workers.length).toBe(workerCount);
         });
 
         it('should spread symbol files evenly across workers', () => {
@@ -47,8 +50,8 @@ describe('worker', () => {
             const worker1SymbolFiles = workers[0].symbolFileInfos;
             const worker2SymbolFiles = workers[1].symbolFileInfos;
 
-            expect(worker1SymbolFiles.length).toEqual(Math.ceil(symbolFiles.length / workerCount));
-            expect(worker2SymbolFiles.length).toEqual(Math.floor(symbolFiles.length / workerCount));
+            expect(worker1SymbolFiles.length).toBe(Math.ceil(symbolFiles.length / workerCount));
+            expect(worker2SymbolFiles.length).toBe(Math.floor(symbolFiles.length / workerCount));
         });
     });
 
@@ -57,31 +60,39 @@ describe('worker', () => {
         const application = 'application';
         const version = 'version';
 
-        describe('legacy', () => {
-            let symbolFileInfos;
+        describe('skip', () => {
+            it('should skip files with no dbgId', async () => {
+                const symbolFileInfos = createFakeSymbolFileInfos(2).map((info) => ({ ...info, dbgId: '' }));
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                const results = await worker.upload(database, application, version);
 
-            beforeEach(async () => {
-                symbolFileInfos = createFakeSymbolFileInfos(2).map((info) => ({ ...info, dbgId: undefined }));
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+                expect(versionsClient.postSymbols).not.toHaveBeenCalled();
+                expect(results.every(r => r.size === 0)).toBe(true);
+            });
+        });
+
+        describe('legacy', () => {
+            it('should use versionsClient for .sym files without dbgId', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'crashpad.sym', moduleName: 'crashpad.sym', dbgId: '' }),
+                ];
                 const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
                 await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(1);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
-            it('should call versionsClient.postSymbols with database, application, version, and symbol files', () => {
-                const symbolFiles = symbolFileInfos.map(symbolFile => ({
-                    name: `${symbolFile.path}.zip`,
-                    dbgId: symbolFile.dbgId,
-                    moduleName: symbolFile.moduleName,
-                    size: 0,
-                    uncompressedSize: 0,
-                    lastModified: 0,
-                    file: jasmine.stringContaining('.zip'),
-                }));
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
-            });
+            it('should use versionsClient for source maps without dbgId', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'app.js.map', moduleName: 'app.js.map', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
 
-            it('should call versionsClient.postSymbols for each symbol file', () => {
-                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(symbolFileInfos.length);
+                expect(versionsClient.postSymbols).toHaveBeenCalledTimes(1);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
         });
 
@@ -102,10 +113,10 @@ describe('worker', () => {
                     size: 0,
                     uncompressedSize: 0,
                     lastModified: 0,
-                    file: jasmine.stringContaining('.gz'),
+                    file: expect.stringContaining('.gz'),
                 }));
-                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[0]]));
-                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, jasmine.arrayContaining([symbolFiles[1]]));
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[0]]));
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, expect.arrayContaining([symbolFiles[1]]));
             });
 
             it('should call symbolsClient.postSymbols for each symbol file', () => {
@@ -113,69 +124,30 @@ describe('worker', () => {
             });
         });
 
-        it('should retry failed uploads', async () => {
-            const retries = 3;
-            const retrier = (func) => retryPromise(func, { retries, minTimeout: 0, maxTimeout: 0, factor: 1 });
-            const symbolFiles = createFakeSymbolFileInfos(1);
-            const workerPool = createFakeWorkerPool();
-            symbolsClient.postSymbols.and.callFake(() => Promise.reject(new Error('Failed to upload!')));
-            const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-            (worker as any).retryPromise = retrier;
-            (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
+        it('should run each upload through the retry policy', async () => {
+            const retryPolicy = createFakePolicy();
+            const symbolFiles = createFakeSymbolFileInfos(2);
+            const worker = createUploadWorkerWithFakeReadStream(1, symbolFiles, clients, retryPolicy);
 
-            await worker.upload(database, application, version).catch(() => null);
+            await worker.upload(database, application, version);
 
-            expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(retries * symbolFiles.length + 1);
+            expect(retryPolicy.execute).toHaveBeenCalledTimes(symbolFiles.length);
         });
 
         it('should destroy file stream on error', async () => {
-            const readStream = jasmine.createSpyObj('ReadStream', ['destroy']);
-            const retrier = (func) => retryPromise(func, { retries: 0 });
+            const readStream = {
+                destroy: vi.fn(),
+            };
             const symbolFiles = createFakeSymbolFileInfos(1);
-            const workerPool = createFakeWorkerPool();
-            const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-            symbolsClient.postSymbols.and.rejectWith(new Error('Failed to upload!'));
+            const worker = createUploadWorkerWithFakeReadStream(1, symbolFiles, clients);
+            vi.mocked(symbolsClient.postSymbols).mockRejectedValue(new Error('Failed to upload!'));
             (worker as any).createReadStream = () => readStream;
-            (worker as any).retryPromise = retrier;
-            (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
             (worker as any).toWeb = () => readStream;
 
             await worker.upload(database, application, version).catch(() => null);
 
             expect(readStream.destroy).toHaveBeenCalled();
         });
-
-        describe('error', () => {
-            it('should not retry authentication errors', async () => {
-                const retry = jasmine.createSpy();
-                const retrier = (func) => func(retry);
-                const symbolFiles = createFakeSymbolFileInfos(1);
-                const workerPool = createFakeWorkerPool();
-                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new BugSplatAuthenticationError('Failed to upload!')));
-                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-                (worker as any).retryPromise = retrier;
-                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
-    
-                await worker.upload(database, application, version).catch(() => null);
-    
-                expect(retry).not.toHaveBeenCalled();
-            });
-
-            it('should not retry max size errors', async () => {
-                const retry = jasmine.createSpy();
-                const retrier = (func) => func(retry);
-                const symbolFiles = createFakeSymbolFileInfos(1);
-                const workerPool = createFakeWorkerPool();
-                symbolsClient.postSymbols.and.callFake(() => Promise.reject(new Error('Symbol file max size exceeded!')));
-                const worker = new UploadWorker(1, symbolFiles, workerPool, ...clients);
-                (worker as any).retryPromise = retrier;
-                (worker as any).stat = () => Promise.resolve({ size: 0, mtime: 0 });
-    
-                await worker.upload(database, application, version).catch(() => null);
-    
-                expect(retry).not.toHaveBeenCalled();
-            });
-        })
     });
 });
 
@@ -201,17 +173,26 @@ function createFakeSymbolFileInfo(params: Partial<SymbolFileInfo>): SymbolFileIn
     };
 }
 
-function createFakeWorkerPool(): jasmine.SpyObj<WorkerPool> {
-    const fakeWorkerPool = jasmine.createSpyObj('WorkerPool', ['exec']);
-    fakeWorkerPool.exec.and.resolveTo();
+function createFakeWorkerPool(): WorkerPool {
+    const fakeWorkerPool = {
+        exec: vi.fn().mockResolvedValue(undefined),
+    } as unknown as WorkerPool;
     return fakeWorkerPool;
 }
 
-function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient]) {
+function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy()) {
     const workerPool = createFakeWorkerPool();
-    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients);
-    (worker as any).stat = jasmine.createSpy().and.resolveTo({ size: 0, mtime: 0 });
-    (worker as any).createReadStream = jasmine.createSpy().and.callFake(file => file);
-    (worker as any).toWeb = jasmine.createSpy().and.callFake(file => file);
+    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients, retryPolicy);
+    (worker as any).stat = vi.fn().mockResolvedValue({ size: 0, mtime: 0 });
+    (worker as any).createReadStream = vi.fn().mockImplementation(file => file);
+    (worker as any).toWeb = vi.fn().mockImplementation(file => file);
     return worker;
+}
+
+// A pass-through policy that runs the attempt exactly once. Retry/backoff/breaker behavior is
+// covered in retry.spec.ts; here we only care that the worker hands each upload to the policy.
+function createFakePolicy(): IPolicy {
+    return {
+        execute: vi.fn().mockImplementation((fn) => fn({ attempt: 0, signal: new AbortController().signal })),
+    } as unknown as IPolicy;
 }

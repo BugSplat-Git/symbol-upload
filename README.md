@@ -32,7 +32,8 @@ Use the `symbol-upload` action in your [GitHub Actions](https://github.com/featu
       version: "your-version"
       files: "**/*.{pdb,exe,dll}"
       directory: "your-build-directory"
-      node-version: "22"
+      node-version: "24"
+      symbol-upload-version: "10.3.1"
       dumpSyms: false
 ```
 
