@@ -11,13 +11,23 @@ export type SymbolFileInfo = {
     dbgId: string;
 }
 
+export async function filterSymbolFilePaths(symbolFilePaths: string[]): Promise<string[]> {
+    const keep = await Promise.all(
+        symbolFilePaths.map(async (path) => {
+            const isFolder = await stat(path).then((stats) => stats.isDirectory()).catch(() => false);
+            return !isFolder || isDsymBundlePath(path);
+        })
+    );
+    return symbolFilePaths.filter((_, i) => keep[i]);
+}
+
 export async function createSymbolFileInfos(symbolFilePath: string): Promise<SymbolFileInfo[]> {
     const path = symbolFilePath;
     const isFolder = await stat(path).then((stats) => stats.isDirectory());
     const extLowerCase = extname(path).toLowerCase();
     const isSymFile = extLowerCase.includes('.sym') && !isFolder;
     const isPeOrPdbFile = (extLowerCase.includes('.pdb') || extLowerCase.includes('.exe') || extLowerCase.includes('.dll')) && !isFolder;
-    const isDsymBundle = extLowerCase.includes('.dsym');
+    const isDsymBundle = isDsymBundlePath(path);
     const isElfFile = elfExtensions.includes(extLowerCase) && !isFolder;
 
     if (isPeOrPdbFile) {
@@ -60,6 +70,10 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
         dbgId,
         moduleName,
     } as SymbolFileInfo];
+}
+
+function isDsymBundlePath(path: string): boolean {
+    return extname(path).toLowerCase().includes('.dsym');
 }
 
 const elfExtensions = ['.elf', '.self', '.prx', '.sprx', '.nss', '.nrs', '.bin'];
