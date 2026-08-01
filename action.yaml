@@ -76,7 +76,11 @@ runs:
       run: |
         $version = $env:VERSION
         if (-not $version) {
-          $version = if ($env:ACTION_REF -match '^v\d+(\.\d+){0,2}(-.+)?$') { $env:ACTION_REF -replace '^v', '' } else { 'latest' }
+          $version = if ($env:ACTION_REF -match '^v\d+(\.\d+){0,2}(-.+)?$') {
+            $env:ACTION_REF -replace '^v', ''
+          } else {
+            (Get-Content (Join-Path $env:GITHUB_ACTION_PATH 'package.json') -Raw | ConvertFrom-Json).version
+          }
         }
         npm i -g "@bugsplat/symbol-upload@$version"
         
