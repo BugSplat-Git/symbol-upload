@@ -72,7 +72,6 @@ jobs:
 
     - name: 🚀 Publish to npm
       env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         TAG: ${{ github.ref_name }}
       run: |
         VERSION=$(node -p "require('./package.json').version")
@@ -86,7 +85,7 @@ jobs:
         fi
         DIST_TAG=""
         case "$VERSION" in *-*) DIST_TAG="--tag next";; esac
-        npm publish --provenance --access public $DIST_TAG
+        npm publish --access public $DIST_TAG
 
   release:
     needs: [build, publish]
