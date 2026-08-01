@@ -1,4 +1,7 @@
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { filterSymbolFilePaths } from '../src/info';
+import { safeRemoveTmp, tmpDir } from '../src/tmp';
 
 describe('info', () => {
   describe('filterSymbolFilePaths', () => {
@@ -32,6 +35,23 @@ describe('info', () => {
         'spec/support/bugsplat.elf',
       ];
       await expect(filterSymbolFilePaths(paths)).resolves.toEqual(paths);
+    });
+
+    it('should drop directories whose extension merely starts with .dsym', async () => {
+      const notABundle = join(tmpDir, 'weird.dsym2');
+      await mkdir(notABundle, { recursive: true });
+
+      try {
+        await expect(filterSymbolFilePaths([notABundle])).resolves.toEqual([]);
+      } finally {
+        await safeRemoveTmp();
+      }
+    });
+
+    it('should surface stat errors instead of deferring them', async () => {
+      await expect(
+        filterSymbolFilePaths(['spec/support/does-not-exist.sym'])
+      ).rejects.toThrow('ENOENT');
     });
   });
 });

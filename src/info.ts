@@ -14,7 +14,7 @@ export type SymbolFileInfo = {
 export async function filterSymbolFilePaths(symbolFilePaths: string[]): Promise<string[]> {
     const keep = await Promise.all(
         symbolFilePaths.map(async (path) => {
-            const isFolder = await stat(path).then((stats) => stats.isDirectory()).catch(() => false);
+            const isFolder = await stat(path).then((stats) => stats.isDirectory());
             return !isFolder || isDsymBundlePath(path);
         })
     );
@@ -73,7 +73,7 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
 }
 
 function isDsymBundlePath(path: string): boolean {
-    return extname(path).toLowerCase().includes('.dsym');
+    return extname(path).toLowerCase() === '.dsym';
 }
 
 const elfExtensions = ['.elf', '.self', '.prx', '.sprx', '.nss', '.nrs', '.bin'];
