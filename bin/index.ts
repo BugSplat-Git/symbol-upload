@@ -17,7 +17,7 @@ import { createSymbolFileInfos, SymbolFileInfo } from '../src/info';
 import { importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { uploadSymbolFiles } from '../src/upload';
+import { terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
 import {
   argDefinitions,
   CommandLineDefinition,
@@ -105,7 +105,7 @@ import {
       console.log('Symbols deleted successfully!');
     } catch (error) {
       console.error(error);
-      process.exit(1);
+      process.exitCode = 1;
     } finally {
       return;
     }
@@ -192,12 +192,13 @@ import {
   }
 
   await safeRemoveTmp();
-  process.exit(0);
-})().catch(async (error) => {
-  await safeRemoveTmp();
-  console.error(error.message);
-  process.exit(1);
-});
+})()
+  .catch(async (error) => {
+    await safeRemoveTmp();
+    console.error(error.message);
+    process.exitCode = 1;
+  })
+  .finally(() => terminateWorkerPool());
 
 async function copyFilesToLocalPath(
   symbolFileInfos: SymbolFileInfo[],

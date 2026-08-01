@@ -9,6 +9,15 @@ import { createWorkersFromSymbolFiles } from './worker';
 const maxWorkers = availableParallelism();
 const workerPool = pool(findCompressionWorkerPath(), { maxWorkers });
 
+// Workers hold a MessagePort open, which would keep node alive forever once we stop calling process.exit().
+export async function terminateWorkerPool(terminator = () => workerPool.terminate()): Promise<void> {
+    try {
+        await terminator();
+    } catch (error) {
+        console.error('Could not terminate the worker pool!', error);
+    }
+}
+
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFileInfos: Array<SymbolFileInfo>) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
