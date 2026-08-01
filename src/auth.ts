@@ -4,7 +4,6 @@ import {
   BugSplatAuthenticationError,
   OAuthClientCredentialsClient,
 } from '@bugsplat/js-api-client';
-import { isAuthenticationError } from './retry';
 
 export interface AuthenticationArgs {
   user: string;
@@ -41,11 +40,13 @@ async function createAuthenticatedOAuthClient(
 
   // The authorize endpoint answers unknown client ids with an error payload instead of an
   // access_token, which would otherwise fail later with a confusing 401 in the middle of an upload.
-  if (!json?.access_token) {
+  // json() re-reads a clone of the authorize response; if that ever stops working, trust login()
+  // rather than reject an authentication that succeeded.
+  if (json && !json.access_token) {
     const detail =
-      json?.error_description ??
-      json?.message ??
-      json?.error ??
+      json.error_description ??
+      json.message ??
+      json.error ??
       `status ${response.status}`;
     throw new BugSplatAuthenticationError(
       createAuthenticationErrorMessage(detail)
@@ -59,13 +60,14 @@ async function login(client: OAuthClientCredentialsClient) {
   try {
     return await client.login();
   } catch (error) {
-    if (isAuthenticationError(error)) {
-      throw error;
+    // A non-JSON authorize response, a proxy error page for example, rejects inside login().
+    if (error instanceof SyntaxError) {
+      throw new BugSplatAuthenticationError(
+        createAuthenticationErrorMessage(error.message)
+      );
     }
 
-    throw new BugSplatAuthenticationError(
-      createAuthenticationErrorMessage((error as Error).message)
-    );
+    throw error;
   }
 }
 

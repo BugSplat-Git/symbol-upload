@@ -4,7 +4,6 @@ import {
 } from '@bugsplat/js-api-client';
 import { vi } from 'vitest';
 import { createBugSplatClient } from '../src/auth';
-import { isAuthenticationError } from '../src/retry';
 
 describe('createBugSplatClient', () => {
   const host = 'https://app.bugsplat.com';
@@ -43,7 +42,7 @@ describe('createBugSplatClient', () => {
         (error) => error
       );
 
-      expect(isAuthenticationError(error)).toBe(true);
+      expect(error.isAuthenticationError).toBe(true);
     });
 
     it('should throw for an invalid client secret', async () => {
@@ -77,6 +76,40 @@ describe('createBugSplatClient', () => {
       await expect(createBugSplatClient(oauthArgs, host)).rejects.toThrow(
         /Could not authenticate/
       );
+    });
+
+    it('should rethrow network errors instead of blaming credentials', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockRejectedValue(new TypeError('fetch failed'))
+      );
+
+      await expect(createBugSplatClient(oauthArgs, host)).rejects.toThrow(
+        'fetch failed'
+      );
+    });
+
+    it('should return an authenticated client when the response can only be read once', async () => {
+      const response = jsonResponse(200, {
+        token_type: 'Bearer',
+        access_token: '🪙',
+      });
+      let reads = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(async () => ({
+          status: response.status,
+          body: response.body,
+          clone: () =>
+            reads++ === 0
+              ? response.clone()
+              : { json: () => Promise.reject(new Error('body consumed')) },
+        }))
+      );
+
+      const client = await createBugSplatClient(oauthArgs, host);
+
+      expect(client).toBeInstanceOf(OAuthClientCredentialsClient);
     });
   });
 
