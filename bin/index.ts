@@ -42,7 +42,8 @@ import {
   } = await getCommandLineOptions(argDefinitions);
 
   if (help) {
-    logHelpAndExit();
+    logHelp();
+    return;
   }
 
   database = database ?? process.env.BUGSPLAT_DATABASE;
@@ -52,15 +53,18 @@ import {
   clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
 
   if (!database && !localPath) {
-    logMissingArgAndExit('database');
+    logMissingArg('database');
+    return;
   }
 
   if (!application && !localPath) {
-    logMissingArgAndExit('application');
+    logMissingArg('application');
+    return;
   }
 
   if (!version && !localPath) {
-    logMissingArgAndExit('version');
+    logMissingArg('version');
+    return;
   }
 
   if (
@@ -72,7 +76,8 @@ import {
       clientSecret,
     })
   ) {
-    logMissingAuthAndExit();
+    logMissingAuth();
+    return;
   }
 
   console.log(`Symbol upload working directory: ${process.cwd()}`);
@@ -283,22 +288,23 @@ async function getCommandLineOptions(
   };
 }
 
-function logHelpAndExit(code: number = 0) {
+function logHelp(): void {
   const help = commandLineUsage(usageDefinitions);
   console.log(help);
-  process.exit(code);
 }
 
-function logMissingArgAndExit(arg: string): void {
+function logMissingArg(arg: string): void {
   console.log(`\nMissing argument: -${arg}\n`);
-  logHelpAndExit(1);
+  logHelp();
+  process.exitCode = 1;
 }
 
-function logMissingAuthAndExit(): void {
+function logMissingAuth(): void {
   console.log(
     '\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n'
   );
-  logHelpAndExit(1);
+  logHelp();
+  process.exitCode = 1;
 }
 
 function normalizeDirectory(directory: string): string {

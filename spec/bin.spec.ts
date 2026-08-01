@@ -5,12 +5,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const localPath = join(tmpdir(), `symbol-upload-spec-${randomUUID()}`);
+const detectForcedExit = ['-r', './spec/support/detect-forced-exit.js'];
 
-function runCli(args: string[]): Promise<{ code: number | null; output: string }> {
+function runCli(
+  args: string[],
+  nodeArgs: string[] = []
+): Promise<{ code: number | null; output: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      ['-r', 'ts-node/register', 'bin/index.ts', ...args],
+      [...nodeArgs, '-r', 'ts-node/register', 'bin/index.ts', ...args],
       { stdio: ['ignore', 'pipe', 'pipe'] }
     );
 
@@ -42,6 +46,47 @@ describe('bin', () => {
     ]);
 
     expect(code).toBe(0);
+  }, 30_000);
+
+  it('should exit non-zero when a required argument is missing', async () => {
+    const { code, output } = await runCli(['-f', '*.sym']);
+
+    expect(code).toBe(1);
+    expect(output).toContain('Missing argument');
+  }, 30_000);
+
+  // process.exit() tears the event loop down while libuv still has work in flight, which trips an
+  // assertion in src/win/async.c on Windows and loses the exit code. Draining is what makes the
+  // code reliable, so the absence of a forced exit is the behavior worth pinning.
+  it('should drain instead of forcing an exit when no symbol files match', async () => {
+    const { code, output } = await runCli(
+      [
+        '-d', './spec/support',
+        '-f', '**/*.no-such-extension',
+        '-l', localPath,
+      ],
+      detectForcedExit
+    );
+
+    expect(output).not.toContain('FORCED_EXIT');
+    expect(code).toBe(1);
+  }, 30_000);
+
+  it('should drain instead of forcing an exit on success', async () => {
+    const { code, output } = await runCli(
+      ['-d', './spec/support', '-f', '*.sym', '-l', localPath],
+      detectForcedExit
+    );
+
+    expect(output).not.toContain('FORCED_EXIT');
+    expect(code).toBe(0);
+  }, 30_000);
+
+  it('should drain instead of forcing an exit when a required argument is missing', async () => {
+    const { code, output } = await runCli(['-f', '*.sym'], detectForcedExit);
+
+    expect(output).not.toContain('FORCED_EXIT');
+    expect(code).toBe(1);
   }, 30_000);
 
   afterAll(async () => await rm(localPath, { recursive: true, force: true }));
