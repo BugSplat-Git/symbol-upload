@@ -23,7 +23,7 @@ Use the `symbol-upload` action in your [GitHub Actions](https://github.com/featu
 
 ```yml
 - name: Symbols 📦
-    uses: BugSplat-Git/symbol-upload@main
+    uses: BugSplat-Git/symbol-upload@v10
     with:
       clientId: "${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}"
       clientSecret: "${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}"
@@ -33,11 +33,12 @@ Use the `symbol-upload` action in your [GitHub Actions](https://github.com/featu
       files: "**/*.{pdb,exe,dll}"
       directory: "your-build-directory"
       node-version: "24"
-      symbol-upload-version: "10.5.1"
       dumpSyms: false
 ```
 
 Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) so that you don't expose the values for `clientId`, `clientSecret`, and `database`.
+
+Pin `@v10` to track the latest 10.x release, or an exact tag like `@v10.5.1`. The action installs the `@bugsplat/symbol-upload` npm package version matching the pinned ref; set `symbol-upload-version` to override.
 
 ## Command Line
 
