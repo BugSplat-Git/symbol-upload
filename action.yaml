@@ -53,7 +53,7 @@ inputs:
     description: "Version of @bugsplat/symbol-upload to install from npm"
     type: string
     required: false
-    default: '10.3.1'
+    default: '10.5.1'
   dumpSyms:
     description: "Use dumpSyms to generate symbols"
     type: boolean
