@@ -1,10 +1,5 @@
 #! /usr/bin/env node
-import {
-  ApiClient,
-  BugSplatApiClient,
-  OAuthClientCredentialsClient,
-  VersionsApiClient,
-} from '@bugsplat/js-api-client';
+import { ApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
@@ -12,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
+import { AuthenticationArgs, createBugSplatClient } from '../src/auth';
 import { fileExists } from '../src/fs';
 import {
   createSymbolFileInfos,
@@ -237,29 +233,6 @@ async function copyFilesToLocalPath(
   await writeFile(symSrvMarkerFilePath, '.');
 }
 
-async function createBugSplatClient({
-  user,
-  password,
-  clientId,
-  clientSecret,
-}: AuthenticationArgs): Promise<ApiClient> {
-  const host = process.env.BUGSPLAT_HOST;
-
-  if (user && password) {
-    return BugSplatApiClient.createAuthenticatedClientForNode(
-      user,
-      password,
-      host
-    );
-  }
-
-  return OAuthClientCredentialsClient.createAuthenticatedClient(
-    clientId,
-    clientSecret,
-    host
-  );
-}
-
 async function getCommandLineOptions(
   argDefinitions: Array<CommandLineDefinition>
 ): Promise<CommandLineOptions> {
@@ -324,11 +297,4 @@ function validAuthenticationArguments({
   clientSecret,
 }: AuthenticationArgs): boolean {
   return !!(user && password) || !!(clientId && clientSecret);
-}
-
-interface AuthenticationArgs {
-  user: string;
-  password: string;
-  clientId: string;
-  clientSecret: string;
 }
