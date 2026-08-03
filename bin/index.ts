@@ -13,7 +13,11 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileExists } from '../src/fs';
-import { createSymbolFileInfos, SymbolFileInfo } from '../src/info';
+import {
+  createSymbolFileInfos,
+  filterSymbolFilePaths,
+  SymbolFileInfo,
+} from '../src/info';
 import { importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
@@ -124,7 +128,7 @@ import {
 
   const globPattern = `${directory}/${files}`;
 
-  let symbolFilePaths = await glob(globPattern);
+  let symbolFilePaths = await filterSymbolFilePaths(await glob(globPattern));
 
   if (!symbolFilePaths.length) {
     throw new Error(
