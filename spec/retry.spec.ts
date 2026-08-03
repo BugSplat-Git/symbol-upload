@@ -6,8 +6,13 @@ import { createUploadRetryPolicy } from '../src/retry';
 // Fast timings so retries/backoff resolve instantly in tests.
 const fast = { maxAttempts: 3, initialDelay: 1, maxDelay: 1, halfOpenAfter: 1, rateLimitThreshold: 1 };
 
+// Shape of a BugSplatApiError: an Error carrying the response status.
+function apiError(message: string, status: number) {
+    return Object.assign(new Error(message), { status });
+}
+
 function rateLimitError() {
-    return Object.assign(new Error('too many requests'), { status: 429 });
+    return apiError('too many requests', 429);
 }
 
 describe('createUploadRetryPolicy', () => {
@@ -33,6 +38,31 @@ describe('createUploadRetryPolicy', () => {
         const fn = vi.fn().mockRejectedValue(new BugSplatAuthenticationError('bad credentials'));
 
         await expect(policy.execute(fn)).rejects.toThrow('bad credentials');
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([400, 403, 404, 413])('should not retry %i, the request itself is the problem', async (status) => {
+        const policy = createUploadRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(apiError('rejected', status));
+
+        await expect(policy.execute(fn)).rejects.toThrow('rejected');
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([408, 500, 502, 503])('should retry %i, which can clear on its own', async (status) => {
+        const policy = createUploadRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(apiError('transient', status));
+
+        await expect(policy.execute(fn)).rejects.toThrow('transient');
+        expect(fn).toHaveBeenCalledTimes(fast.maxAttempts + 1);
+    });
+
+    // Bridge for client versions predating the typed BugSplatApiError; remove with isUntypedForbiddenError.
+    it('should not retry the legacy untyped 403 error carrying no status', async () => {
+        const policy = createUploadRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(new Error('Error getting presigned URL, invalid credentials'));
+
+        await expect(policy.execute(fn)).rejects.toThrow('invalid credentials');
         expect(fn).toHaveBeenCalledTimes(1);
     });
 
