@@ -17,7 +17,7 @@ import { createSymbolFileInfos, SymbolFileInfo } from '../src/info';
 import { importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { uploadSymbolFiles } from '../src/upload';
+import { terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
 import {
   argDefinitions,
   CommandLineDefinition,
@@ -42,7 +42,8 @@ import {
   } = await getCommandLineOptions(argDefinitions);
 
   if (help) {
-    logHelpAndExit();
+    logHelp();
+    return;
   }
 
   database = database ?? process.env.BUGSPLAT_DATABASE;
@@ -52,15 +53,18 @@ import {
   clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
 
   if (!database && !localPath) {
-    logMissingArgAndExit('database');
+    logMissingArg('database');
+    return;
   }
 
   if (!application && !localPath) {
-    logMissingArgAndExit('application');
+    logMissingArg('application');
+    return;
   }
 
   if (!version && !localPath) {
-    logMissingArgAndExit('version');
+    logMissingArg('version');
+    return;
   }
 
   if (
@@ -72,7 +76,8 @@ import {
       clientSecret,
     })
   ) {
-    logMissingAuthAndExit();
+    logMissingAuth();
+    return;
   }
 
   console.log(`Symbol upload working directory: ${process.cwd()}`);
@@ -105,7 +110,7 @@ import {
       console.log('Symbols deleted successfully!');
     } catch (error) {
       console.error(error);
-      process.exit(1);
+      process.exitCode = 1;
     } finally {
       return;
     }
@@ -190,14 +195,17 @@ import {
       symbolFileInfos
     );
   }
-
-  await safeRemoveTmp();
-  process.exit(0);
-})().catch(async (error) => {
-  await safeRemoveTmp();
-  console.error(error.message);
-  process.exit(1);
-});
+})()
+  .catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  })
+  // Stop the workers before removing tmpDir. A rejected upload leaves sibling workers mid-gzip, and
+  // deleting the directory out from under them means noisy worker failures and file locks on Windows.
+  .finally(async () => {
+    await terminateWorkerPool();
+    await safeRemoveTmp();
+  });
 
 async function copyFilesToLocalPath(
   symbolFileInfos: SymbolFileInfo[],
@@ -282,22 +290,23 @@ async function getCommandLineOptions(
   };
 }
 
-function logHelpAndExit(code: number = 0) {
+function logHelp(): void {
   const help = commandLineUsage(usageDefinitions);
   console.log(help);
-  process.exit(code);
 }
 
-function logMissingArgAndExit(arg: string): void {
+function logMissingArg(arg: string): void {
   console.log(`\nMissing argument: -${arg}\n`);
-  logHelpAndExit(1);
+  logHelp();
+  process.exitCode = 1;
 }
 
-function logMissingAuthAndExit(): void {
+function logMissingAuth(): void {
   console.log(
     '\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n'
   );
-  logHelpAndExit(1);
+  logHelp();
+  process.exitCode = 1;
 }
 
 function normalizeDirectory(directory: string): string {
