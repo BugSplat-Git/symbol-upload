@@ -22,10 +22,13 @@ describe('upload', () => {
             const terminator = vi.fn().mockRejectedValue(new Error('Failed to terminate pool!'));
             const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-            await expect(terminateWorkerPool(terminator)).resolves.toBeUndefined();
+            try {
+                await expect(terminateWorkerPool(terminator)).resolves.toBeUndefined();
 
-            expect(error).toHaveBeenCalled();
-            error.mockRestore();
+                expect(error).toHaveBeenCalled();
+            } finally {
+                error.mockRestore();
+            }
         });
 
         // The pool only spawns workers once a task runs, and a spawned worker holds a MessagePort

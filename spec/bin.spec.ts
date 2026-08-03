@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 const localPath = join(tmpdir(), `symbol-upload-spec-${randomUUID()}`);
 const detectForcedExit = ['-r', './spec/support/detect-forced-exit.js'];
+const cliTimeout = 25_000;
 
 function runCli(
   args: string[],
@@ -18,11 +19,27 @@ function runCli(
       { stdio: ['ignore', 'pipe', 'pipe'] }
     );
 
+    // Kill the child ourselves so a hang can't outlive the spec and orphan a process.
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`symbol-upload ${args.join(' ')} did not exit within ${cliTimeout}ms`));
+    }, cliTimeout);
+
     let output = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
     child.stdout.on('data', (data) => (output += data));
     child.stderr.on('data', (data) => (output += data));
-    child.on('error', reject);
-    child.on('exit', (code) => resolve({ code, output }));
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    // Resolve on close, not exit: exit fires while the stdio pipes can still have buffered output,
+    // which truncates what the assertions below read.
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({ code, output });
+    });
   });
 }
 

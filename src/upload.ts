@@ -10,7 +10,10 @@ const maxWorkers = availableParallelism();
 const workerPool = pool(findCompressionWorkerPath(), { maxWorkers });
 
 // Workers hold a MessagePort open, which would keep node alive forever once we stop calling process.exit().
-export async function terminateWorkerPool(terminator = () => workerPool.terminate()): Promise<void> {
+// Terminate with force so a stuck compression worker can't hold the CLI open: the default waits for
+// in-progress tasks, while force cancels them and workerpool hard-kills anything that ignores the
+// terminate message within workerTerminateTimeout.
+export async function terminateWorkerPool(terminator = () => workerPool.terminate(true)): Promise<void> {
     try {
         await terminator();
     } catch (error) {

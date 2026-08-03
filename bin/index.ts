@@ -195,15 +195,17 @@ import {
       symbolFileInfos
     );
   }
-
-  await safeRemoveTmp();
 })()
-  .catch(async (error) => {
-    await safeRemoveTmp();
+  .catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
   })
-  .finally(() => terminateWorkerPool());
+  // Stop the workers before removing tmpDir. A rejected upload leaves sibling workers mid-gzip, and
+  // deleting the directory out from under them means noisy worker failures and file locks on Windows.
+  .finally(async () => {
+    await terminateWorkerPool();
+    await safeRemoveTmp();
+  });
 
 async function copyFilesToLocalPath(
   symbolFileInfos: SymbolFileInfo[],
