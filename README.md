@@ -23,21 +23,22 @@ Use the `symbol-upload` action in your [GitHub Actions](https://github.com/featu
 
 ```yml
 - name: Symbols 📦
-    uses: BugSplat-Git/symbol-upload@main
-    with:
-      clientId: "${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}"
-      clientSecret: "${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}"
-      database: "${{ secrets.BUGSPLAT_DATABASE }}"
-      application: "your-application"
-      version: "your-version"
-      files: "**/*.{pdb,exe,dll}"
-      directory: "your-build-directory"
-      node-version: "24"
-      symbol-upload-version: "10.3.1"
-      dumpSyms: false
+  uses: BugSplat-Git/symbol-upload@v11
+  with:
+    clientId: "${{ secrets.SYMBOL_UPLOAD_CLIENT_ID }}"
+    clientSecret: "${{ secrets.SYMBOL_UPLOAD_CLIENT_SECRET }}"
+    database: "${{ secrets.BUGSPLAT_DATABASE }}"
+    application: "your-application"
+    version: "your-version"
+    files: "**/*.{pdb,exe,dll}"
+    directory: "your-build-directory"
+    node-version: "24"
+    dumpSyms: false
 ```
 
 Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) so that you don't expose the values for `clientId`, `clientSecret`, and `database`.
+
+Pin `@v11` to track the latest 11.x release, or an exact tag like `@v11.0.0`. The action installs the `@bugsplat/symbol-upload` npm package version matching the pinned ref; SHA and branch refs install the version recorded in that commit's `package.json`. Set `symbol-upload-version` to override.
 
 ## Command Line
 
