@@ -1,4 +1,4 @@
-import { BugSplatAuthenticationError } from '@bugsplat/js-api-client';
+import { BugSplatApiError, BugSplatAuthenticationError, BugSplatRateLimitError } from '@bugsplat/js-api-client';
 import { BrokenCircuitError } from 'cockatiel';
 import { vi } from 'vitest';
 import { createUploadRetryPolicy } from '../src/retry';
@@ -6,8 +6,12 @@ import { createUploadRetryPolicy } from '../src/retry';
 // Fast timings so retries/backoff resolve instantly in tests.
 const fast = { maxAttempts: 3, initialDelay: 1, maxDelay: 1, halfOpenAfter: 1, rateLimitThreshold: 1 };
 
+function apiError(message: string, status: number) {
+    return new BugSplatApiError(message, status);
+}
+
 function rateLimitError() {
-    return Object.assign(new Error('too many requests'), { status: 429 });
+    return new BugSplatRateLimitError('too many requests');
 }
 
 describe('createUploadRetryPolicy', () => {
@@ -34,6 +38,22 @@ describe('createUploadRetryPolicy', () => {
 
         await expect(policy.execute(fn)).rejects.toThrow('bad credentials');
         expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([400, 403, 404, 413])('should not retry %i, the request itself is the problem', async (status) => {
+        const policy = createUploadRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(apiError('rejected', status));
+
+        await expect(policy.execute(fn)).rejects.toThrow('rejected');
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([408, 500, 502, 503])('should retry %i, which can clear on its own', async (status) => {
+        const policy = createUploadRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(apiError('transient', status));
+
+        await expect(policy.execute(fn)).rejects.toThrow('transient');
+        expect(fn).toHaveBeenCalledTimes(fast.maxAttempts + 1);
     });
 
     it('should not retry max size errors', async () => {

@@ -1,4 +1,4 @@
-import { BugSplatAuthenticationError, BugSplatRateLimitError } from '@bugsplat/js-api-client';
+import { BugSplatApiError, BugSplatAuthenticationError } from '@bugsplat/js-api-client';
 import {
     BrokenCircuitError,
     ConsecutiveBreaker,
@@ -24,7 +24,7 @@ export interface RetryPolicyOptions {
 }
 
 export function isRateLimitError(error: unknown): boolean {
-    return (error as BugSplatRateLimitError | null)?.status === 429;
+    return (error as BugSplatApiError | null)?.status === 429;
 }
 
 export function isAuthenticationError(error: unknown): boolean {
@@ -36,9 +36,19 @@ export function isMaxSizeExceededError(error: unknown): boolean {
     return message.includes('Symbol file max size') || message.includes('Symbol table max size');
 }
 
-// Auth and max-size failures are permanent; retrying them just wastes requests against the rate limit.
+/**
+ * A 4xx means the request itself is the problem — wrong database, a client with the `restricted` scope,
+ * a file the server won't take — so resending it earns the same rejection. 408 and 429 are the
+ * exceptions: both clear on their own, and 429 additionally drives the circuit breaker below.
+ */
+export function hasPermanentStatus(error: unknown): boolean {
+    const status = (error as BugSplatApiError | null)?.status;
+    return !!status && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
+// Permanent failures are worth failing fast on; retrying them just wastes requests against the rate limit.
 function isPermanent(error: unknown): boolean {
-    return isAuthenticationError(error) || isMaxSizeExceededError(error);
+    return hasPermanentStatus(error) || isAuthenticationError(error) || isMaxSizeExceededError(error);
 }
 
 /**
