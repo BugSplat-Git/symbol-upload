@@ -1,4 +1,4 @@
-import { BugSplatAuthenticationError } from '@bugsplat/js-api-client';
+import { BugSplatApiError, BugSplatAuthenticationError, BugSplatRateLimitError } from '@bugsplat/js-api-client';
 import { BrokenCircuitError } from 'cockatiel';
 import { vi } from 'vitest';
 import { createUploadRetryPolicy } from '../src/retry';
@@ -6,13 +6,12 @@ import { createUploadRetryPolicy } from '../src/retry';
 // Fast timings so retries/backoff resolve instantly in tests.
 const fast = { maxAttempts: 3, initialDelay: 1, maxDelay: 1, halfOpenAfter: 1, rateLimitThreshold: 1 };
 
-// Shape of a BugSplatApiError: an Error carrying the response status.
 function apiError(message: string, status: number) {
-    return Object.assign(new Error(message), { status });
+    return new BugSplatApiError(message, status);
 }
 
 function rateLimitError() {
-    return apiError('too many requests', 429);
+    return new BugSplatRateLimitError('too many requests');
 }
 
 describe('createUploadRetryPolicy', () => {
@@ -55,15 +54,6 @@ describe('createUploadRetryPolicy', () => {
 
         await expect(policy.execute(fn)).rejects.toThrow('transient');
         expect(fn).toHaveBeenCalledTimes(fast.maxAttempts + 1);
-    });
-
-    // Bridge for client versions predating the typed BugSplatApiError; remove with isUntypedForbiddenError.
-    it('should not retry the legacy untyped 403 error carrying no status', async () => {
-        const policy = createUploadRetryPolicy(fast);
-        const fn = vi.fn().mockRejectedValue(new Error('Error getting presigned URL, invalid credentials'));
-
-        await expect(policy.execute(fn)).rejects.toThrow('invalid credentials');
-        expect(fn).toHaveBeenCalledTimes(1);
     });
 
     it('should not retry max size errors', async () => {

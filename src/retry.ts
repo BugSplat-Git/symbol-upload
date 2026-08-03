@@ -1,4 +1,4 @@
-import { BugSplatAuthenticationError } from '@bugsplat/js-api-client';
+import { BugSplatApiError, BugSplatAuthenticationError } from '@bugsplat/js-api-client';
 import {
     BrokenCircuitError,
     ConsecutiveBreaker,
@@ -23,19 +23,8 @@ export interface RetryPolicyOptions {
     rateLimitThreshold?: number;
 }
 
-/**
- * The HTTP status a failed upload request carries, if any.
- *
- * Read structurally rather than through `BugSplatApiError`: the declared @bugsplat/js-api-client floor
- * (^15.2.0) predates that class, so importing it wouldn't compile against every supported version.
- * See BugSplat-Git/bugsplat-js-api-client#174.
- */
-function statusOf(error: unknown): number | undefined {
-    return (error as { status?: number } | null)?.status;
-}
-
 export function isRateLimitError(error: unknown): boolean {
-    return statusOf(error) === 429;
+    return (error as BugSplatApiError | null)?.status === 429;
 }
 
 export function isAuthenticationError(error: unknown): boolean {
@@ -53,28 +42,13 @@ export function isMaxSizeExceededError(error: unknown): boolean {
  * exceptions: both clear on their own, and 429 additionally drives the circuit breaker below.
  */
 export function hasPermanentStatus(error: unknown): boolean {
-    const status = statusOf(error);
+    const status = (error as BugSplatApiError | null)?.status;
     return !!status && status >= 400 && status < 500 && status !== 408 && status !== 429;
-}
-
-/**
- * Bridge for @bugsplat/js-api-client versions predating BugSplat-Git/bugsplat-js-api-client#174, which
- * throw a bare Error for the 403 raised when credentials authenticate but aren't allowed to upload.
- * Those carry no status, so this legacy message is the only signal. Versions from #174 on carry a
- * status and a clearer message, and are caught by hasPermanentStatus — delete this once the dependency
- * floor moves past it.
- */
-function isUntypedForbiddenError(error: unknown): boolean {
-    const message = (error as Error | null)?.message ?? '';
-    return message.includes('Error getting presigned URL, invalid credentials');
 }
 
 // Permanent failures are worth failing fast on; retrying them just wastes requests against the rate limit.
 function isPermanent(error: unknown): boolean {
-    return hasPermanentStatus(error)
-        || isAuthenticationError(error)
-        || isMaxSizeExceededError(error)
-        || isUntypedForbiddenError(error);
+    return hasPermanentStatus(error) || isAuthenticationError(error) || isMaxSizeExceededError(error);
 }
 
 /**
