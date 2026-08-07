@@ -1,15 +1,10 @@
-import {
-  BugSplatApiClient,
-  OAuthClientCredentialsClient,
-} from '@bugsplat/js-api-client';
+import { OAuthClientCredentialsClient } from '@bugsplat/js-api-client';
 import { vi } from 'vitest';
 import { createBugSplatClient } from '../src/auth';
 
 describe('createBugSplatClient', () => {
   const host = 'https://app.bugsplat.com';
   const oauthArgs = {
-    user: '',
-    password: '',
     clientId: '🎫',
     clientSecret: '🔐',
   };
@@ -86,36 +81,6 @@ describe('createBugSplatClient', () => {
 
       await expect(createBugSplatClient(oauthArgs, host)).rejects.toThrow(
         'fetch failed'
-      );
-    });
-  });
-
-  describe('user and password', () => {
-    const userArgs = {
-      user: '🧑',
-      password: '🔑',
-      clientId: '',
-      clientSecret: '',
-    };
-
-    it('should return an authenticated client', async () => {
-      stubFetch(
-        new Response('{}', {
-          status: 200,
-          headers: { 'set-cookie': 'xsrf-token=token; path=/' },
-        })
-      );
-
-      const client = await createBugSplatClient(userArgs, host);
-
-      expect(client).toBeInstanceOf(BugSplatApiClient);
-    });
-
-    it('should throw for invalid credentials', async () => {
-      stubFetch(jsonResponse(401, { message: 'Authentication failure' }));
-
-      await expect(createBugSplatClient(userArgs, host)).rejects.toThrow(
-        /Could not authenticate/
       );
     });
   });

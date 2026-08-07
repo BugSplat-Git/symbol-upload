@@ -37,31 +37,17 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         description: 'Your application\'s version. If not provided symbol-upload will attempt to use the value of the version field in package.json if it exists in the current working directory.',
     },
     {
-        name: 'user',
-        alias: 'u',
-        type: String,
-        typeLabel: '{underline string} (optional)',
-        description: 'The email address used to log into your BugSplat account. If provided --password must also be provided. This value can also be provided via the SYMBOL_UPLOAD_USER environment variable.',
-    },
-    {
-        name: 'password',
-        alias: 'p',
-        type: String,
-        typeLabel: '{underline string} (optional)',
-        description: 'The password for your BugSplat account. If provided --user must also be provided. This value can also be provided via the SYMBOL_UPLOAD_PASSWORD environment variable.',
-    },
-    {
         name: 'clientId',
         alias: 'i',
         type: String,
-        typeLabel: '{underline string} (optional)',
+        typeLabel: '{underline string}',
         description: 'An OAuth2 Client Credentials Client ID for the specified database. If provided --clientSecret must also be provided. This value can also be provided via the SYMBOL_UPLOAD_CLIENT_ID environment variable.',
     },
     {
         name: 'clientSecret',
         alias: 's',
         type: String,
-        typeLabel: '{underline string} (optional)',
+        typeLabel: '{underline string}',
         description: 'An OAuth2 Client Credentials Client Secret for the specified database. If provided --clientId must also be provided. This value can also be provided via the SYMBOL_UPLOAD_CLIENT_SECRET environment variable.',
     },
     {
@@ -115,15 +101,13 @@ export const usageDefinitions: Array<Section> = [
     },
     {
         content: [
-            'The -u and -p arguments are not required if you set the environment variables SYMBOL_UPLOAD_USER and SYMBOL_UPLOAD_PASSWORD, or provide a clientId and clientSecret.',
-            '',
-            'The -i and -s arguments are not required if you set the environment variables SYMBOL_UPLOAD_CLIENT_ID and SYMBOL_UPLOAD_CLIENT_SECRET, or provide a user and password.'
+            'The -i and -s arguments are not required if you set the environment variables SYMBOL_UPLOAD_CLIENT_ID and SYMBOL_UPLOAD_CLIENT_SECRET.'
         ]
     },
     {
         header: 'Example',
         content: [
-            'symbol-upload -b {italic your-bugsplat-database} -a {italic your-application-name} -v {italic your-version} [ -f "*.js.map" -d "/path/to/containing/dir" [ -u {italic your-bugsplat-email} -p {italic your-bugsplat-password} ] OR [ -i {italic your-client-id} -s {italic your-client-secret}] ]',
+            'symbol-upload -b {italic your-bugsplat-database} -a {italic your-application-name} -v {italic your-version} -i {italic your-client-id} -s {italic your-client-secret} [ -f "*.js.map" -d "/path/to/containing/dir" ]',
         ]
     },
     {
