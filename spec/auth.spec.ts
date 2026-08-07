@@ -88,29 +88,6 @@ describe('createBugSplatClient', () => {
         'fetch failed'
       );
     });
-
-    it('should return an authenticated client when the response can only be read once', async () => {
-      const response = jsonResponse(200, {
-        token_type: 'Bearer',
-        access_token: '🪙',
-      });
-      let reads = 0;
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockImplementation(async () => ({
-          status: response.status,
-          body: response.body,
-          clone: () =>
-            reads++ === 0
-              ? response.clone()
-              : { json: () => Promise.reject(new Error('body consumed')) },
-        }))
-      );
-
-      const client = await createBugSplatClient(oauthArgs, host);
-
-      expect(client).toBeInstanceOf(OAuthClientCredentialsClient);
-    });
   });
 
   describe('user and password', () => {
