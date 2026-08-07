@@ -30,8 +30,6 @@ import {
     database,
     application,
     version,
-    user,
-    password,
     clientId,
     clientSecret,
     remove,
@@ -47,8 +45,6 @@ import {
   }
 
   database = database ?? process.env.BUGSPLAT_DATABASE;
-  user = user ?? process.env.SYMBOL_UPLOAD_USER;
-  password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
   clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
   clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
 
@@ -70,8 +66,6 @@ import {
   if (
     !localPath &&
     !validAuthenticationArguments({
-      user,
-      password,
       clientId,
       clientSecret,
     })
@@ -88,8 +82,6 @@ import {
     console.log('About to authenticate...');
 
     bugsplat = await createBugSplatClient({
-      user,
-      password,
       clientId,
       clientSecret,
     });
@@ -280,7 +272,7 @@ function logMissingArg(arg: string): void {
 
 function logMissingAuth(): void {
   console.log(
-    '\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n'
+    '\nInvalid authentication arguments: please provide a clientId and clientSecret\n'
   );
   logHelp();
   process.exitCode = 1;
@@ -291,10 +283,8 @@ function normalizeDirectory(directory: string): string {
 }
 
 function validAuthenticationArguments({
-  user,
-  password,
   clientId,
   clientSecret,
 }: AuthenticationArgs): boolean {
-  return !!(user && password) || !!(clientId && clientSecret);
+  return !!(clientId && clientSecret);
 }

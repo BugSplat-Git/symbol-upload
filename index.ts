@@ -5,7 +5,6 @@ export type {
 } from '@bugsplat/js-api-client';
 
 export {
-    BugSplatApiClient,
     VersionsApiClient,
     SymbolsApiClient,
     OAuthClientCredentialsClient
