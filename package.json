@@ -4,7 +4,7 @@
   "description": "Cross platform symbol upload tool",
   "main": "./dist/index.js",
   "bin": {
-    "symbol-upload": "./dist/bin/index.js"
+    "symbol-upload": "dist/bin/index.js"
   },
   "engines": {
     "node": ">=22.12.0"
