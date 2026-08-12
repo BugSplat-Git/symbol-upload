@@ -1,7 +1,7 @@
 import { BugSplatApiError, BugSplatAuthenticationError, BugSplatRateLimitError } from '@bugsplat/js-api-client';
 import { BrokenCircuitError } from 'cockatiel';
 import { vi } from 'vitest';
-import { createUploadRetryPolicy } from '../src/retry';
+import { createAuthRetryPolicy, createUploadRetryPolicy } from '../src/retry';
 
 // Fast timings so retries/backoff resolve instantly in tests.
 const fast = { maxAttempts: 3, initialDelay: 1, maxDelay: 1, halfOpenAfter: 1, rateLimitThreshold: 1 };
@@ -89,6 +89,71 @@ describe('createUploadRetryPolicy', () => {
         // Breaker only trips on 429s, so the next call still reaches the function.
         const next = vi.fn().mockResolvedValue('ok');
         await expect(policy.execute(next)).resolves.toBe('ok');
+        expect(next).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('createAuthRetryPolicy', () => {
+    it('should resolve a successful login without retrying', async () => {
+        const policy = createAuthRetryPolicy(fast);
+        const fn = vi.fn().mockResolvedValue('client');
+
+        await expect(policy.execute(fn)).resolves.toBe('client');
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should retry a rate limited login', async () => {
+        const policy = createAuthRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(rateLimitError());
+
+        await expect(policy.execute(fn)).rejects.toThrow('too many requests');
+        expect(fn).toHaveBeenCalledTimes(fast.maxAttempts + 1);
+    });
+
+    it('should recover when the rate limit clears', async () => {
+        const policy = createAuthRetryPolicy(fast);
+        const fn = vi.fn()
+            .mockRejectedValueOnce(rateLimitError())
+            .mockResolvedValue('client');
+
+        await expect(policy.execute(fn)).resolves.toBe('client');
+        expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not retry bad credentials', async () => {
+        const policy = createAuthRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(new BugSplatAuthenticationError('bad credentials'));
+
+        await expect(policy.execute(fn)).rejects.toThrow('bad credentials');
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not retry an unknown client id', async () => {
+        // The authorize endpoint answers an unknown client id with a 400, which no retry can fix.
+        const policy = createAuthRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(apiError('Unknown clientId', 400));
+
+        await expect(policy.execute(fn)).rejects.toThrow('Unknown clientId');
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should retry a gateway that answered with something other than json', async () => {
+        const policy = createAuthRetryPolicy(fast);
+        const fn = vi.fn().mockRejectedValue(apiError('not json', 502));
+
+        await expect(policy.execute(fn)).rejects.toThrow('not json');
+        expect(fn).toHaveBeenCalledTimes(fast.maxAttempts + 1);
+    });
+
+    it('should not share a circuit breaker with uploads', async () => {
+        // Uploads trip a breaker on 429 to coordinate parallel workers; a single sequential login has
+        // nothing to coordinate, so a rate limited login must not fast-fail the next attempt.
+        const policy = createAuthRetryPolicy(fast);
+        await policy.execute(vi.fn().mockRejectedValue(rateLimitError())).catch(() => null);
+
+        const next = vi.fn().mockResolvedValue('client');
+
+        await expect(policy.execute(next)).resolves.toBe('client');
         expect(next).toHaveBeenCalledTimes(1);
     });
 });

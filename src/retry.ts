@@ -92,3 +92,30 @@ export function createUploadRetryPolicy(options: RetryPolicyOptions = {}): IPoli
 
     return wrap(retryPolicy, breakerPolicy);
 }
+
+/**
+ * Builds the retry policy for authentication. A build that uploads symbols in more than one step can
+ * exhaust the rate limit in the first step and then be turned away at /oauth2/authorize in the second,
+ * which fails the whole step over a limit that clears on its own.
+ *
+ * No circuit breaker here: login is a single sequential request with no sibling workers to coordinate,
+ * and permanent failures — bad credentials, an unknown client id — still fail on the first attempt.
+ */
+export function createAuthRetryPolicy(
+    options: Pick<RetryPolicyOptions, 'maxAttempts' | 'initialDelay' | 'maxDelay'> = {}
+): IPolicy {
+    const { maxAttempts = 5, initialDelay = 1000, maxDelay = 30000 } = options;
+
+    const retryPolicy = retry(handleWhen(error => !isPermanent(error)), {
+        maxAttempts,
+        backoff: new ExponentialBackoff({ initialDelay, maxDelay }),
+    });
+
+    retryPolicy.onRetry(reason => {
+        const error = 'error' in reason ? reason.error : undefined;
+        const what = isRateLimitError(error) ? 'Rate limited' : 'Authentication request failed';
+        console.error(`${what}; backing off ${Math.round(reason.delay)}ms before retry...`);
+    });
+
+    return retryPolicy;
+}
