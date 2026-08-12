@@ -2,6 +2,8 @@ import { OAuthClientCredentialsClient } from '@bugsplat/js-api-client';
 import { IPolicy } from 'cockatiel';
 import { createAuthRetryPolicy } from './retry';
 
+export const defaultHost = 'https://api.bugsplat.com';
+
 export interface AuthenticationArgs {
   clientId: string;
   clientSecret: string;
@@ -9,7 +11,7 @@ export interface AuthenticationArgs {
 
 export async function createBugSplatClient(
   { clientId, clientSecret }: AuthenticationArgs,
-  host: string | undefined = process.env.BUGSPLAT_HOST,
+  host: string = process.env.BUGSPLAT_HOST ?? defaultHost,
   retryPolicy: IPolicy = createAuthRetryPolicy()
 ): Promise<OAuthClientCredentialsClient> {
   return retryPolicy.execute((): Promise<OAuthClientCredentialsClient> => {
