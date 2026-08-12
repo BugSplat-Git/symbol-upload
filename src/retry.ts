@@ -1,9 +1,13 @@
-import { BugSplatApiError, BugSplatAuthenticationError } from '@bugsplat/js-api-client';
+import { BugSplatApiError, BugSplatAuthenticationError, BugSplatRateLimitError } from '@bugsplat/js-api-client';
 import {
     BrokenCircuitError,
     ConsecutiveBreaker,
+    DelegateBackoff,
     ExponentialBackoff,
+    FailureReason,
+    IBackoff,
     IPolicy,
+    IRetryBackoffContext,
     circuitBreaker,
     handleWhen,
     retry,
@@ -93,6 +97,12 @@ export function createUploadRetryPolicy(options: RetryPolicyOptions = {}): IPoli
     return wrap(retryPolicy, breakerPolicy);
 }
 
+export interface AuthRetryPolicyOptions
+    extends Pick<RetryPolicyOptions, 'maxAttempts' | 'initialDelay' | 'maxDelay'> {
+    /** Ceiling on an honored Retry-After, so an implausible value can't stall a build. */
+    maxRetryAfterDelay?: number;
+}
+
 /**
  * Builds the retry policy for authentication. A build that uploads symbols in more than one step can
  * exhaust the rate limit in the first step and then be turned away at /oauth2/authorize in the second,
@@ -101,15 +111,30 @@ export function createUploadRetryPolicy(options: RetryPolicyOptions = {}): IPoli
  * No circuit breaker here: login is a single sequential request with no sibling workers to coordinate,
  * and permanent failures — bad credentials, an unknown client id — still fail on the first attempt.
  */
-export function createAuthRetryPolicy(
-    options: Pick<RetryPolicyOptions, 'maxAttempts' | 'initialDelay' | 'maxDelay'> = {}
-): IPolicy {
-    const { maxAttempts = 5, initialDelay = 1000, maxDelay = 30000 } = options;
+export function createAuthRetryPolicy(options: AuthRetryPolicyOptions = {}): IPolicy {
+    const {
+        maxAttempts = 5,
+        initialDelay = 1000,
+        maxDelay = 30000,
+        maxRetryAfterDelay = 120000,
+    } = options;
 
-    const retryPolicy = retry(handleWhen(error => !isPermanent(error)), {
-        maxAttempts,
-        backoff: new ExponentialBackoff({ initialDelay, maxDelay }),
-    });
+    const exponential = new ExponentialBackoff({ initialDelay, maxDelay });
+
+    // A 429 carries the server's own Retry-After, and exponential backoff alone can burn every attempt
+    // inside a window whose length the server already told us: five attempts from a 1s initial delay
+    // give up in about 30s against a 60s window, failing a build over a limit that was about to clear.
+    // Treat Retry-After as a floor rather than a replacement, and keep advancing the exponential state
+    // underneath so a transient failure that carries no header still backs off normally.
+    const backoff = new DelegateBackoff<IRetryBackoffContext<unknown>, IBackoff<unknown>>(
+        (context, state) => {
+            const next = state ? state.next(context) : exponential.next();
+            const delay = Math.max(next.duration, retryAfterDelay(context.result, maxRetryAfterDelay));
+            return { delay, state: next };
+        }
+    );
+
+    const retryPolicy = retry(handleWhen(error => !isPermanent(error)), { maxAttempts, backoff });
 
     retryPolicy.onRetry(reason => {
         const error = 'error' in reason ? reason.error : undefined;
@@ -118,4 +143,10 @@ export function createAuthRetryPolicy(
     });
 
     return retryPolicy;
+}
+
+function retryAfterDelay(result: FailureReason<unknown>, cap: number): number {
+    const error = 'error' in result ? result.error : undefined;
+    const seconds = (error as BugSplatRateLimitError | null)?.retryAfterSeconds;
+    return seconds ? Math.min(seconds * 1000, cap) : 0;
 }

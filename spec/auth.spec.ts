@@ -17,8 +17,14 @@ describe('createBugSplatClient', () => {
 
   // Retries are exercised on their own below; everywhere else they would only slow the suite down.
   const noRetry = () => createAuthRetryPolicy({ maxAttempts: 0 });
+  // maxRetryAfterDelay caps the Retry-After the stub sends, which is otherwise honored as a real 60s wait.
   const fastRetry = () =>
-    createAuthRetryPolicy({ maxAttempts: 2, initialDelay: 1, maxDelay: 1 });
+    createAuthRetryPolicy({
+      maxAttempts: 2,
+      initialDelay: 1,
+      maxDelay: 1,
+      maxRetryAfterDelay: 1,
+    });
 
   afterEach(() => vi.unstubAllGlobals());
 
