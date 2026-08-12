@@ -180,6 +180,16 @@ describe('createAuthRetryPolicy', () => {
         expect(fn).toHaveBeenCalledTimes(3);
     });
 
+    it('should default to enough attempts to outlast a rate limit window', async () => {
+        // Overrides only the delays so the default attempt count is what this pins.
+        const policy = createAuthRetryPolicy({ initialDelay: 1, maxDelay: 1 });
+        const fn = vi.fn().mockRejectedValue(rateLimitError());
+
+        await policy.execute(fn).catch(() => null);
+
+        expect(fn).toHaveBeenCalledTimes(7);
+    });
+
     it('should not share a circuit breaker with uploads', async () => {
         // Uploads trip a breaker on 429 to coordinate parallel workers; a single sequential login has
         // nothing to coordinate, so a rate limited login must not fast-fail the next attempt.

@@ -112,10 +112,16 @@ export interface AuthRetryPolicyOptions
  * and permanent failures — bad credentials, an unknown client id — still fail on the first attempt.
  */
 export function createAuthRetryPolicy(options: AuthRetryPolicyOptions = {}): IPolicy {
+    // Sized for a 429 that arrives with no Retry-After to honor, which is what an edge rate limiter
+    // (WAF, ALB) typically sends: an empty body and no header. These give a median of about 160s of
+    // total backoff and roughly 225s at worst, enough to outlast a short rate limit window, where the
+    // 1s/30s/5 this started with gave up after 12-21s. Attempts stay low on purpose — every retry is
+    // another request inside the window being measured, so longer delays clear a limit that more
+    // attempts would keep alive.
     const {
-        maxAttempts = 5,
-        initialDelay = 1000,
-        maxDelay = 30000,
+        maxAttempts = 6,
+        initialDelay = 5000,
+        maxDelay = 120000,
         maxRetryAfterDelay = 120000,
     } = options;
 
