@@ -136,7 +136,7 @@ jobs:
       run: |
         if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           MAJOR="${TAG%%.*}"
-          if gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$MAJOR" --silent >/dev/null 2>&1; then
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$MAJOR" --silent >/dev/null 2>&1; then
             gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$MAJOR" -X PATCH -f sha="$GITHUB_SHA" -F force=true >/dev/null
           else
             gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$MAJOR" -f sha="$GITHUB_SHA" >/dev/null
