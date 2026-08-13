@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
+import { createServer, Server } from 'node:http';
+import { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -10,13 +12,14 @@ const cliTimeout = 25_000;
 
 function runCli(
   args: string[],
-  nodeArgs: string[] = []
+  nodeArgs: string[] = [],
+  env: NodeJS.ProcessEnv = {}
 ): Promise<{ code: number | null; output: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
       [...nodeArgs, '-r', 'ts-node/register', 'bin/index.ts', ...args],
-      { stdio: ['ignore', 'pipe', 'pipe'] }
+      { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } }
     );
 
     // Kill the child ourselves so a hang can't outlive the spec and orphan a process.
@@ -105,6 +108,52 @@ describe('bin', () => {
     expect(output).not.toContain('FORCED_EXIT');
     expect(code).toBe(1);
   }, 30_000);
+
+  // A build reported authentication failing while the exe still returned 0, so the step passed.
+  describe('authentication failure', () => {
+    let server: Server;
+    let host: string;
+
+    const authArgs = ['-b', 'db', '-a', 'app', '-v', '1.0', '-i', 'id', '-s', 'secret'];
+
+    beforeAll(async () => {
+      server = createServer((_, response) => {
+        response.writeHead(400, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ message: 'Unknown clientId 🎫' }));
+      });
+      await new Promise<void>((resolve) => server.listen(0, resolve));
+      host = `http://localhost:${(server.address() as AddressInfo).port}`;
+    });
+
+    it('should exit non-zero when authentication fails', async () => {
+      const { code, output } = await runCli(
+        ['-d', './spec/support', '-f', '*.sym', ...authArgs],
+        [],
+        { BUGSPLAT_HOST: host }
+      );
+
+      expect(output).toContain('Unknown clientId');
+      expect(output).not.toContain('Authentication success!');
+      expect(code).toBe(1);
+    }, 30_000);
+
+    it('should drain instead of forcing an exit when authentication fails', async () => {
+      const { code, output } = await runCli(
+        ['-d', './spec/support', '-f', '*.sym', ...authArgs],
+        detectForcedExit,
+        { BUGSPLAT_HOST: host }
+      );
+
+      expect(output).not.toContain('FORCED_EXIT');
+      expect(code).toBe(1);
+    }, 30_000);
+
+    // The CLI's fetch leaves a keep-alive socket open, and close() waits on it forever.
+    afterAll(async () => {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    });
+  });
 
   afterAll(async () => await rm(localPath, { recursive: true, force: true }));
 });
