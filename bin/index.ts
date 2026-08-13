@@ -189,7 +189,7 @@ import {
   }
 })()
   .catch((error) => {
-    console.error(error.message);
+    console.error(formatErrorChain(error));
     process.exitCode = 1;
   })
   // Stop the workers before removing tmpDir. A rejected upload leaves sibling workers mid-gzip, and
@@ -198,6 +198,23 @@ import {
     await terminateWorkerPool();
     await safeRemoveTmp();
   });
+
+// fetch() reports every transport failure as "fetch failed" and hangs the real reason (DNS, TLS,
+// connection refused) off error.cause, so walk the chain or the message is useless for diagnosis.
+function formatErrorChain(error: any): string {
+  const messages: string[] = [];
+
+  for (let current = error; current; current = current.cause) {
+    const code = current.code ? `${current.code}: ` : '';
+    const message = current.message ?? `${current}`;
+
+    if (message && !messages.includes(`${code}${message}`)) {
+      messages.push(`${code}${message}`);
+    }
+  }
+
+  return messages.join('\n  caused by ');
+}
 
 async function copyFilesToLocalPath(
   symbolFileInfos: SymbolFileInfo[],
