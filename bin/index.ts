@@ -8,6 +8,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { AuthenticationArgs, createBugSplatClient } from '../src/auth';
+import { formatErrorChain } from '../src/error';
 import { fileExists } from '../src/fs';
 import {
   createSymbolFileInfos,
@@ -198,23 +199,6 @@ import {
     await terminateWorkerPool();
     await safeRemoveTmp();
   });
-
-// fetch() reports every transport failure as "fetch failed" and hangs the real reason (DNS, TLS,
-// connection refused) off error.cause, so walk the chain or the message is useless for diagnosis.
-function formatErrorChain(error: any): string {
-  const messages: string[] = [];
-
-  for (let current = error; current; current = current.cause) {
-    const code = current.code ? `${current.code}: ` : '';
-    const message = current.message ?? `${current}`;
-
-    if (message && !messages.includes(`${code}${message}`)) {
-      messages.push(`${code}${message}`);
-    }
-  }
-
-  return messages.join('\n  caused by ');
-}
 
 async function copyFilesToLocalPath(
   symbolFileInfos: SymbolFileInfo[],
