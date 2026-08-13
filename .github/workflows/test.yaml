@@ -8,7 +8,14 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # spec/bin.spec.ts spawns the real CLI, so this matrix is what covers the teardown path on the
+    # platform that reproduces #201 — a libuv assertion in src\win\async.c that loses the exit code.
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: ☑️ Checkout

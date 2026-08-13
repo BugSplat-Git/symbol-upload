@@ -6,23 +6,14 @@ branding:
   color: 'blue'
 
 inputs:
-  # Either username & password must be provided, or clientId & clientSecret.
-  username:
-    description: "BugSplat account username"
-    type: string
-    required: false
-  password:
-    description: "BugSplat account password"
-    type: string
-    required: false
   clientId:
     description: "OAuth2 Client Credentials Client ID"
     type: string
-    required: false
+    required: true
   clientSecret:
     description: "OAuth2 Client Credentials Client Secret"
     type: string
-    required: false
+    required: true
   database:
     description: "BugSplat crash database"
     type: string
@@ -91,8 +82,6 @@ runs:
         -b "${{ inputs.database }}"
         -a "${{ inputs.application }}"
         -v "${{ inputs.version }}"
-        -u "${{ inputs.username }}"
-        -p "${{ inputs.password }}"
         -i "${{ inputs.clientId }}"
         -s "${{ inputs.clientSecret }}"
         -f "${{ inputs.files }}"

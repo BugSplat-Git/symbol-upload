@@ -1,10 +1,10 @@
 {
   "name": "@bugsplat/symbol-upload",
-  "version": "10.5.1",
+  "version": "10.5.4",
   "description": "Cross platform symbol upload tool",
   "main": "./dist/index.js",
   "bin": {
-    "symbol-upload": "./dist/bin/index.js"
+    "symbol-upload": "dist/bin/index.js"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -85,7 +85,7 @@
   },
   "dependencies": {
     "@bugsplat/elfy": "^1.0.1",
-    "@bugsplat/js-api-client": "^15.2.0",
+    "@bugsplat/js-api-client": "^15.6.0",
     "archiver": "^8.0.0",
     "cockatiel": "^4.0.0",
     "command-line-args": "^5.2.0",

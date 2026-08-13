@@ -1,10 +1,5 @@
 #! /usr/bin/env node
-import {
-  ApiClient,
-  BugSplatApiClient,
-  OAuthClientCredentialsClient,
-  VersionsApiClient,
-} from '@bugsplat/js-api-client';
+import { ApiClient, VersionsApiClient } from '@bugsplat/js-api-client';
 import commandLineArgs, { CommandLineOptions } from 'command-line-args';
 import commandLineUsage from 'command-line-usage';
 import { glob } from 'glob';
@@ -12,12 +7,17 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
+import { AuthenticationArgs, createBugSplatClient } from '../src/auth';
 import { fileExists } from '../src/fs';
-import { createSymbolFileInfos, SymbolFileInfo } from '../src/info';
+import {
+  createSymbolFileInfos,
+  filterSymbolFilePaths,
+  SymbolFileInfo,
+} from '../src/info';
 import { importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { uploadSymbolFiles } from '../src/upload';
+import { terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
 import {
   argDefinitions,
   CommandLineDefinition,
@@ -30,8 +30,6 @@ import {
     database,
     application,
     version,
-    user,
-    password,
     clientId,
     clientSecret,
     remove,
@@ -42,37 +40,38 @@ import {
   } = await getCommandLineOptions(argDefinitions);
 
   if (help) {
-    logHelpAndExit();
+    logHelp();
+    return;
   }
 
   database = database ?? process.env.BUGSPLAT_DATABASE;
-  user = user ?? process.env.SYMBOL_UPLOAD_USER;
-  password = password ?? process.env.SYMBOL_UPLOAD_PASSWORD;
   clientId = clientId ?? process.env.SYMBOL_UPLOAD_CLIENT_ID;
   clientSecret = clientSecret ?? process.env.SYMBOL_UPLOAD_CLIENT_SECRET;
 
   if (!database && !localPath) {
-    logMissingArgAndExit('database');
+    logMissingArg('database');
+    return;
   }
 
   if (!application && !localPath) {
-    logMissingArgAndExit('application');
+    logMissingArg('application');
+    return;
   }
 
   if (!version && !localPath) {
-    logMissingArgAndExit('version');
+    logMissingArg('version');
+    return;
   }
 
   if (
     !localPath &&
     !validAuthenticationArguments({
-      user,
-      password,
       clientId,
       clientSecret,
     })
   ) {
-    logMissingAuthAndExit();
+    logMissingAuth();
+    return;
   }
 
   console.log(`Symbol upload working directory: ${process.cwd()}`);
@@ -83,8 +82,6 @@ import {
     console.log('About to authenticate...');
 
     bugsplat = await createBugSplatClient({
-      user,
-      password,
       clientId,
       clientSecret,
     });
@@ -105,7 +102,7 @@ import {
       console.log('Symbols deleted successfully!');
     } catch (error) {
       console.error(error);
-      process.exit(1);
+      process.exitCode = 1;
     } finally {
       return;
     }
@@ -119,7 +116,7 @@ import {
 
   const globPattern = `${directory}/${files}`;
 
-  let symbolFilePaths = await glob(globPattern);
+  let symbolFilePaths = await filterSymbolFilePaths(await glob(globPattern));
 
   if (!symbolFilePaths.length) {
     throw new Error(
@@ -190,14 +187,17 @@ import {
       symbolFileInfos
     );
   }
-
-  await safeRemoveTmp();
-  process.exit(0);
-})().catch(async (error) => {
-  await safeRemoveTmp();
-  console.error(error.message);
-  process.exit(1);
-});
+})()
+  .catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  })
+  // Stop the workers before removing tmpDir. A rejected upload leaves sibling workers mid-gzip, and
+  // deleting the directory out from under them means noisy worker failures and file locks on Windows.
+  .finally(async () => {
+    await terminateWorkerPool();
+    await safeRemoveTmp();
+  });
 
 async function copyFilesToLocalPath(
   symbolFileInfos: SymbolFileInfo[],
@@ -223,29 +223,6 @@ async function copyFilesToLocalPath(
 
   const symSrvMarkerFilePath = join(localPath, 'index.txt');
   await writeFile(symSrvMarkerFilePath, '.');
-}
-
-async function createBugSplatClient({
-  user,
-  password,
-  clientId,
-  clientSecret,
-}: AuthenticationArgs): Promise<ApiClient> {
-  const host = process.env.BUGSPLAT_HOST;
-
-  if (user && password) {
-    return BugSplatApiClient.createAuthenticatedClientForNode(
-      user,
-      password,
-      host
-    );
-  }
-
-  return OAuthClientCredentialsClient.createAuthenticatedClient(
-    clientId,
-    clientSecret,
-    host
-  );
 }
 
 async function getCommandLineOptions(
@@ -282,22 +259,23 @@ async function getCommandLineOptions(
   };
 }
 
-function logHelpAndExit(code: number = 0) {
+function logHelp(): void {
   const help = commandLineUsage(usageDefinitions);
   console.log(help);
-  process.exit(code);
 }
 
-function logMissingArgAndExit(arg: string): void {
+function logMissingArg(arg: string): void {
   console.log(`\nMissing argument: -${arg}\n`);
-  logHelpAndExit(1);
+  logHelp();
+  process.exitCode = 1;
 }
 
-function logMissingAuthAndExit(): void {
+function logMissingAuth(): void {
   console.log(
-    '\nInvalid authentication arguments: please provide either a user and password, or a clientId and clientSecret\n'
+    '\nInvalid authentication arguments: please provide a clientId and clientSecret\n'
   );
-  logHelpAndExit(1);
+  logHelp();
+  process.exitCode = 1;
 }
 
 function normalizeDirectory(directory: string): string {
@@ -305,17 +283,8 @@ function normalizeDirectory(directory: string): string {
 }
 
 function validAuthenticationArguments({
-  user,
-  password,
   clientId,
   clientSecret,
 }: AuthenticationArgs): boolean {
-  return !!(user && password) || !!(clientId && clientSecret);
-}
-
-interface AuthenticationArgs {
-  user: string;
-  password: string;
-  clientId: string;
-  clientSecret: string;
+  return !!(clientId && clientSecret);
 }
