@@ -49,4 +49,26 @@ describe('formatErrorChain', () => {
 
     expect(formatErrorChain(error)).toBe('ETIMEDOUT');
   });
+
+  it('should print a thrown primitive instead of treating it as missing', () => {
+    expect(formatErrorChain(0)).toBe('0');
+    expect(formatErrorChain(false)).toBe('false');
+    expect(formatErrorChain('network down')).toBe('network down');
+  });
+
+  it('should drop an empty Error or plain object with no code', () => {
+    expect(formatErrorChain(new Error(''))).toBe('');
+    expect(formatErrorChain({})).toBe('');
+  });
+
+  it('should still walk causes when the outer frame has no message or code', () => {
+    const cause = Object.assign(new Error('connect ETIMEDOUT'), {
+      code: 'ETIMEDOUT',
+    });
+    const error = new Error('', { cause });
+
+    expect(formatErrorChain(error)).toBe(
+      'ETIMEDOUT: connect ETIMEDOUT'
+    );
+  });
 });
