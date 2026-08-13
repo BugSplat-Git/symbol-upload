@@ -1,6 +1,6 @@
 import { OAuthClientCredentialsClient } from '@bugsplat/js-api-client';
 import { vi } from 'vitest';
-import { createBugSplatClient } from '../src/auth';
+import { createBugSplatClient, defaultHost } from '../src/auth';
 import { createAuthRetryPolicy } from '../src/retry';
 
 describe('createBugSplatClient', () => {
@@ -21,7 +21,41 @@ describe('createBugSplatClient', () => {
       maxRetryAfterDelay: 1,
     });
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  describe('default host', () => {
+    it('should send requests to api.bugsplat.com when no host is provided', async () => {
+      vi.stubEnv('BUGSPLAT_HOST', undefined);
+      const fetchMock = stubFetch(
+        jsonResponse(200, { token_type: 'Bearer', access_token: '🪙' })
+      );
+
+      await createBugSplatClient(oauthArgs);
+
+      expect(defaultHost).toBe('https://api.bugsplat.com');
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('https://api.bugsplat.com'),
+        expect.anything()
+      );
+    });
+
+    it('should prefer BUGSPLAT_HOST over the default host', async () => {
+      vi.stubEnv('BUGSPLAT_HOST', 'https://custom.bugsplat.com');
+      const fetchMock = stubFetch(
+        jsonResponse(200, { token_type: 'Bearer', access_token: '🪙' })
+      );
+
+      await createBugSplatClient(oauthArgs);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('https://custom.bugsplat.com'),
+        expect.anything()
+      );
+    });
+  });
 
   describe('oauth', () => {
     it('should return an authenticated client when an access token is returned', async () => {

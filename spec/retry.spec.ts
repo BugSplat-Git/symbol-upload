@@ -148,14 +148,22 @@ describe('createAuthRetryPolicy', () => {
     it('should wait at least the Retry-After the server asked for', async () => {
         // Exponential backoff alone gives up inside a window the server already sized, so a 429 that
         // names its own delay has to raise the floor above the 1ms schedule these options ask for.
+        // Assert the delay the policy reports rather than a wall-clock lower bound: setTimeout(50)
+        // can fire a millisecond early, which is how Ubuntu CI failed this at 49ms.
         const policy = createAuthRetryPolicy({ ...fast, maxAttempts: 1 });
         const fn = vi.fn().mockRejectedValue(new BugSplatRateLimitError('too many requests', 429, 0.05));
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        const started = Date.now();
-        await policy.execute(fn).catch(() => null);
+        try {
+            await policy.execute(fn).catch(() => null);
 
-        expect(Date.now() - started).toBeGreaterThanOrEqual(50);
-        expect(fn).toHaveBeenCalledTimes(2);
+            expect(error).toHaveBeenCalledWith(
+                'Rate limited; backing off 50ms before retry...'
+            );
+            expect(fn).toHaveBeenCalledTimes(2);
+        } finally {
+            error.mockRestore();
+        }
     });
 
     it('should cap an implausible Retry-After so it cannot stall a build', async () => {
