@@ -14,6 +14,19 @@ jobs:
     - name: ☑️ Checkout
       uses: actions/checkout@v6
 
+    - name: ⚙️ Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+
+    - name: 🛠️ Pack Local Build
+      shell: bash
+      run: |
+        npm ci
+        npm run build
+        npm pack
+        mv bugsplat-symbol-upload-*.tgz symbol-upload.tgz
+
     - name: 📦 Symbols
       uses: ./
       with:
@@ -25,3 +38,4 @@ jobs:
         directory: "spec/support"
         files: "**/*.sym"
         node-version: '24'
+        symbol-upload-version: "file:./symbol-upload.tgz"
