@@ -3,7 +3,7 @@ name: Single Executable Application
 on:
     push:
         tags:
-        - 'v*'
+        - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 
 jobs:
@@ -51,8 +51,49 @@ jobs:
         name: ${{ matrix.artifact_name }}
         path: dist/${{ matrix.file_name }} # Uploads the artifact with a platform-specific name and path
 
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: ☑️ Checkout
+      uses: actions/checkout@v6
+
+    - name: ⚙️ Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+
+    - name: 🏗️ Install Dependencies
+      run: npm ci
+
+    - name: 📦 Build
+      run: npm run build
+
+    - name: 🔍 Smoke Test
+      run: node ./dist/bin/index.js -h
+
+    - name: 🚀 Publish to npm
+      env:
+        TAG: ${{ github.ref_name }}
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        if [ "v$VERSION" != "$TAG" ]; then
+          echo "package.json version ($VERSION) does not match tag ($TAG)" >&2
+          exit 1
+        fi
+        if npm view "@bugsplat/symbol-upload@$VERSION" version >/dev/null 2>&1; then
+          echo "$VERSION already published, skipping"
+          exit 0
+        fi
+        DIST_TAG=""
+        case "$VERSION" in *-*) DIST_TAG="--tag next";; esac
+        npm publish --access public $DIST_TAG
+
   release:
-    needs: build
+    needs: [build, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -86,4 +127,19 @@ jobs:
           gh release upload "$TAG" release/* --repo "$GITHUB_REPOSITORY" --clobber
         else
           gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes $PRERELEASE
+        fi
+
+    - name: 🏷️ Update Major Tag
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          MAJOR="${TAG%%.*}"
+          if gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$MAJOR" --silent >/dev/null 2>&1; then
+            gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$MAJOR" -X PATCH -f sha="$GITHUB_SHA" -F force=true >/dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$MAJOR" -f sha="$GITHUB_SHA" >/dev/null
+          fi
+          echo "Moved $MAJOR to $GITHUB_SHA"
         fi

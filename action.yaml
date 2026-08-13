@@ -41,10 +41,10 @@ inputs:
     required: false
     default: '24'
   symbol-upload-version:
-    description: "Version of @bugsplat/symbol-upload to install from npm"
+    description: "Version of @bugsplat/symbol-upload to install from npm (defaults to the version matching the action's ref)"
     type: string
     required: false
-    default: '10.3.1'
+    default: ''
   dumpSyms:
     description: "Use dumpSyms to generate symbols"
     type: boolean
@@ -61,7 +61,19 @@ runs:
 
     - name: Install symbol-upload
       shell: pwsh
-      run: npm i -g @bugsplat/symbol-upload@${{ inputs.symbol-upload-version }}
+      env:
+        VERSION: ${{ inputs.symbol-upload-version }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        $version = $env:VERSION
+        if (-not $version) {
+          $version = if ($env:ACTION_REF -match '^v\d+(\.\d+){0,2}(-.+)?$') {
+            $env:ACTION_REF -replace '^v', ''
+          } else {
+            (Get-Content (Join-Path $env:GITHUB_ACTION_PATH 'package.json') -Raw | ConvertFrom-Json).version
+          }
+        }
+        npm i -g "@bugsplat/symbol-upload@$version"
         
     - name: Run symbol-upload
       shell: pwsh
