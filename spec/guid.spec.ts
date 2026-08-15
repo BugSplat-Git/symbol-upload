@@ -5,8 +5,10 @@ describe('tryGetGuid', () => {
         await expect(tryGetGuid('spec/support/bugsplat.pdb')).resolves.toBe('E546B55B6D214E86871B40AC35CD0D461');
     });
 
-    it('should return guid for portable pdb', async () => {
-        await expect(tryGetGuid('spec/support/portable.pdb')).resolves.toBe('153A24FA52FF4C03813A890A535486B81');
+    it('should return guid + FFFFFFFF age for portable pdb', async () => {
+        // SSQP Portable-Pdb-Signature keys use age 0xFFFFFFFF
+        // https://github.com/dotnet/symstore/blob/main/docs/specs/SSQP_Key_Conventions.md
+        await expect(tryGetGuid('spec/support/portable.pdb')).resolves.toBe('153A24FA52FF4C03813A890A535486B8FFFFFFFF');
     });
 
     it('should return guid for c++ exe', async () => {
