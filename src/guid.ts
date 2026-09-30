@@ -5,7 +5,8 @@ export async function tryGetGuid(filePath: string): Promise<string> {
         const file = await createFromFile(filePath);
         return `${file.guid}`;
     } catch (error) {
-        console.log(`Could not get UUID for ${filePath}...`);
+        const reason = error instanceof Error ? error.message : String(error);
+        console.log(`Could not get UUID for ${filePath}: ${reason}`);
     }
 
     return '';
