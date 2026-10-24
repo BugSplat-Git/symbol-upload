@@ -7,7 +7,7 @@
     "symbol-upload": "dist/bin/index.js"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": "^22.23.4 || ^24.22.1 || >=26.12.1"
   },
   "files": [
     "dist"
@@ -38,7 +38,8 @@
     "bundle:compression": "node ./scripts/bundle-compression.js",
     "bpkg:node-dump-syms": "npx bpkg ./node_modules/node-dump-syms ./dist/node-dump-syms.js",
     "prebuild:sea": "npm run clean",
-    "build:sea": "run-s ncc bundle:compression bpkg:node-dump-syms",
+    "check:node": "node ./scripts/check-node-version.js",
+    "build:sea": "run-s check:node ncc bundle:compression bpkg:node-dump-syms",
     "presea:macos": "npm run build:sea",
     "presea:windows": "npm run build:sea",
     "presea:linux": "npm run build:sea",

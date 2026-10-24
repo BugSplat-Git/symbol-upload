@@ -58,6 +58,7 @@ runs:
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
+        check-latest: true
 
     - name: Install symbol-upload
       shell: pwsh
