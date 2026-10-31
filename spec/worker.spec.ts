@@ -94,6 +94,30 @@ describe('worker', () => {
                 expect(versionsClient.postSymbols).toHaveBeenCalledTimes(1);
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
+
+            it('should zip Unity LineNumberMappings.json and use versionsClient', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'LineNumberMappings.json', moduleName: 'LineNumberMappings.json', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: 'LineNumberMappings.json.zip' }),
+                ]);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+            });
+
+            it('should still skip other .json files without dbgId', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'package.json', moduleName: 'package.json', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).not.toHaveBeenCalled();
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+            });
         });
 
         describe('symsrv', () => {
