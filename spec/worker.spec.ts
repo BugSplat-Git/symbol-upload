@@ -108,6 +108,18 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
+            it('should upload a differently cased linenumbermappings.json as LineNumberMappings.json.zip', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'linenumbermappings.json', moduleName: 'linenumbermappings.json', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: 'LineNumberMappings.json.zip' }),
+                ]);
+            });
+
             it('should still skip other .json files without dbgId', async () => {
                 const symbolFileInfos = [
                     createFakeSymbolFileInfo({ path: 'package.json', moduleName: 'package.json', dbgId: '' }),

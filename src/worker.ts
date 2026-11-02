@@ -85,7 +85,7 @@ export class UploadWorker {
             if (isZip) {
                 tmpFileName = path;
             } else {
-                name = `${name}.zip`;
+                name = isUnityLineNumberMappings ? 'LineNumberMappings.json.zip' : `${name}.zip`;
                 tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
                 await this.pool.exec('createZipFile', [path, tmpFileName]);
             }
