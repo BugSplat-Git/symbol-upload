@@ -75,8 +75,7 @@ export class UploadWorker {
         const isUnrealSym = extname(path).toLowerCase() === '.sym' && !dbgId;
 
         // Unity IL2CPP's C# line number mappings have no dbgId, fallback to legacy
-        const unityLineNumberMappingsName = getUnityLineNumberMappingsName(fileName);
-        const isUnityLineNumberMappings = !!unityLineNumberMappingsName;
+        const isUnityLineNumberMappings = /^LineNumberMappings(-\w+)?\.json$/i.test(fileName);
 
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
@@ -86,12 +85,9 @@ export class UploadWorker {
             if (isZip) {
                 tmpFileName = path;
             } else {
-                // The zip's inner entry gets the normalized name too: BugSplat's processors look for
-                // LineNumberMappings.json and LineNumberMappings-*.json by exact, case-sensitive name.
-                const entryName = unityLineNumberMappingsName || fileName;
-                name = `${entryName}.zip`;
+                name = `${name}.zip`;
                 tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
-                await this.pool.exec('createZipFile', [path, tmpFileName, entryName]);
+                await this.pool.exec('createZipFile', [path, tmpFileName]);
             }
         } else {
             console.warn(`Worker ${this.id} skipping ${name} (extension: ${extname(path)}), missing dbgId...`);
@@ -136,22 +132,6 @@ export class UploadWorker {
             size
         }
     }
-}
-
-// Unity IL2CPP writes LineNumberMappings.json (Windows, Xbox) or LineNumberMappings-<platform>.json
-// (e.g. -macos, -ios, -android) so that platforms sharing an app and version don't overwrite each other.
-const unityLineNumberMappingsPattern = /^linenumbermappings(?:-([a-z0-9_]{1,32}))?\.json$/i;
-
-// Returns the canonical name (exact LineNumberMappings prefix, lowercase platform suffix) for a Unity
-// line number mappings file, or undefined if fileName isn't one.
-export function getUnityLineNumberMappingsName(fileName: string): string | undefined {
-    const match = unityLineNumberMappingsPattern.exec(fileName);
-    if (!match) {
-        return undefined;
-    }
-
-    const suffix = match[1];
-    return suffix ? `LineNumberMappings-${suffix.toLowerCase()}.json` : 'LineNumberMappings.json';
 }
 
 function splitToChunks<T>(array: Array<T>, parts: number): Array<Array<T>> {

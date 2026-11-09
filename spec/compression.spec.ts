@@ -1,6 +1,5 @@
 import { ReadStream, createReadStream } from 'node:fs';
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { rm, writeFile } from 'node:fs/promises';
 import { ReadableStream } from 'node:stream/web';
 import { createGunzip } from 'node:zlib';
 import { join } from 'node:path';
@@ -56,35 +55,6 @@ describe('gzip', () => {
     afterEach(async () => {
       await rm(zipFilePath);
       await rm(tmpFilePath);
-    });
-  });
-
-  describe('createZipFile with an entry name', () => {
-    const tmpFileContents = '{}';
-    let workDir: string;
-    let inputFilePath: string;
-    let zipFilePath: string;
-    let extractDir: string;
-
-    beforeEach(async () => {
-      workDir = await mkdtemp(join(tmpdir(), 'symbol-upload-zip-'));
-      inputFilePath = join(workDir, 'linenumbermappings-IOS.json');
-      zipFilePath = join(workDir, 'out.zip');
-      extractDir = join(workDir, 'extracted');
-      await writeFile(inputFilePath, tmpFileContents);
-      await pool.exec('createZipFile', [inputFilePath, zipFilePath, 'LineNumberMappings-ios.json']);
-    });
-
-    it('should store the file under the entry name', async () => {
-      await extract(zipFilePath, { dir: extractDir });
-      // readdir returns the stored name, so this checks casing even on case-insensitive file systems
-      expect(await readdir(extractDir)).toEqual(['LineNumberMappings-ios.json']);
-      const stream = ReadStream.toWeb(createReadStream(join(extractDir, 'LineNumberMappings-ios.json')));
-      expect(await streamToString(stream)).toEqual(tmpFileContents);
-    });
-
-    afterEach(async () => {
-      await rm(workDir, { recursive: true, force: true });
     });
   });
 });

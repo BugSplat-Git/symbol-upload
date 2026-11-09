@@ -108,16 +108,17 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
-            it('should upload a differently cased linenumbermappings.json as LineNumberMappings.json.zip', async () => {
+            it.each(['LineNumberMappings-macos.json', 'LineNumberMappings-ios.json', 'LineNumberMappings-android.json'])('should zip Unity %s and use versionsClient', async (fileName) => {
                 const symbolFileInfos = [
-                    createFakeSymbolFileInfo({ path: 'linenumbermappings.json', moduleName: 'linenumbermappings.json', dbgId: '' }),
+                    createFakeSymbolFileInfo({ path: fileName, moduleName: fileName, dbgId: '' }),
                 ];
                 const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
                 await worker.upload(database, application, version);
 
                 expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
-                    expect.objectContaining({ name: 'LineNumberMappings.json.zip' }),
+                    expect.objectContaining({ name: `${fileName}.zip` }),
                 ]);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
             it('should still skip other .json files without dbgId', async () => {
@@ -129,106 +130,6 @@ describe('worker', () => {
 
                 expect(versionsClient.postSymbols).not.toHaveBeenCalled();
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
-            });
-
-            it('should name the zip entry LineNumberMappings.json for LineNumberMappings.json', async () => {
-                const path = 'Build/LineNumberMappings.json';
-                const workerPool = createFakeWorkerPool();
-                const worker = createUploadWorkerWithFakeReadStream(1, [
-                    createFakeSymbolFileInfo({ path, moduleName: 'LineNumberMappings.json', dbgId: '' }),
-                ], clients, createFakePolicy(), workerPool);
-                await worker.upload(database, application, version);
-
-                expect(workerPool.exec).toHaveBeenCalledWith('createZipFile', [path, expect.stringContaining('.zip'), 'LineNumberMappings.json']);
-            });
-
-            it('should name the zip entry LineNumberMappings.json for a differently cased linenumbermappings.json', async () => {
-                const path = 'Build/linenumbermappings.json';
-                const workerPool = createFakeWorkerPool();
-                const worker = createUploadWorkerWithFakeReadStream(1, [
-                    createFakeSymbolFileInfo({ path, moduleName: 'linenumbermappings.json', dbgId: '' }),
-                ], clients, createFakePolicy(), workerPool);
-                await worker.upload(database, application, version);
-
-                expect(workerPool.exec).toHaveBeenCalledWith('createZipFile', [path, expect.stringContaining('.zip'), 'LineNumberMappings.json']);
-            });
-
-            describe.each(['macos', 'ios', 'android'])('Unity LineNumberMappings-%s.json', (platform) => {
-                const fileName = `LineNumberMappings-${platform}.json`;
-                const path = `Build/${fileName}`;
-                let workerPool: WorkerPool;
-
-                beforeEach(async () => {
-                    workerPool = createFakeWorkerPool();
-                    const worker = createUploadWorkerWithFakeReadStream(1, [
-                        createFakeSymbolFileInfo({ path, moduleName: fileName, dbgId: '' }),
-                    ], clients, createFakePolicy(), workerPool);
-                    await worker.upload(database, application, version);
-                });
-
-                it(`should upload as ${fileName}.zip through versionsClient`, () => {
-                    expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
-                        expect.objectContaining({ name: `${fileName}.zip` }),
-                    ]);
-                    expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
-                });
-
-                it(`should name the zip entry ${fileName}`, () => {
-                    expect(workerPool.exec).toHaveBeenCalledWith('createZipFile', [path, expect.stringContaining('.zip'), fileName]);
-                });
-            });
-
-            it.each([
-                ['linenumbermappings-IOS.json', 'LineNumberMappings-ios.json'],
-                ['LINENUMBERMAPPINGS-MacOS.JSON', 'LineNumberMappings-macos.json'],
-                ['lineNumberMappings-Android.json', 'LineNumberMappings-android.json'],
-                ['LineNumberMappings-xbox_series.json', 'LineNumberMappings-xbox_series.json'],
-            ])('should normalize %s to %s for the upload name and zip entry', async (fileName, expected) => {
-                const path = `Build/${fileName}`;
-                const workerPool = createFakeWorkerPool();
-                const worker = createUploadWorkerWithFakeReadStream(1, [
-                    createFakeSymbolFileInfo({ path, moduleName: fileName, dbgId: '' }),
-                ], clients, createFakePolicy(), workerPool);
-                await worker.upload(database, application, version);
-
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
-                    expect.objectContaining({ name: `${expected}.zip` }),
-                ]);
-                expect(workerPool.exec).toHaveBeenCalledWith('createZipFile', [path, expect.stringContaining('.zip'), expected]);
-            });
-
-            it.each([
-                'LineNumberMappings-foo bar.json',
-                'LineNumberMappings-.json',
-                'LineNumberMappings-ios.json.bak',
-                'LineNumberMappings-ios-arm64.json',
-                'MyLineNumberMappings.json',
-                'LineNumberMappings.txt',
-                'other.json',
-            ])('should still skip %s without dbgId', async (fileName) => {
-                const symbolFileInfos = [
-                    createFakeSymbolFileInfo({ path: fileName, moduleName: fileName, dbgId: '' }),
-                ];
-                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
-                const results = await worker.upload(database, application, version);
-
-                expect(versionsClient.postSymbols).not.toHaveBeenCalled();
-                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
-                expect(results).toEqual([{ name: fileName, size: 0 }]);
-            });
-
-            it('should keep the original zip entry name for source maps', async () => {
-                const path = 'dist/app.js.map';
-                const workerPool = createFakeWorkerPool();
-                const worker = createUploadWorkerWithFakeReadStream(1, [
-                    createFakeSymbolFileInfo({ path, moduleName: 'app.js.map', dbgId: '' }),
-                ], clients, createFakePolicy(), workerPool);
-                await worker.upload(database, application, version);
-
-                expect(workerPool.exec).toHaveBeenCalledWith('createZipFile', [path, expect.stringContaining('.zip'), 'app.js.map']);
-                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
-                    expect.objectContaining({ name: 'app.js.map.zip' }),
-                ]);
             });
         });
 
@@ -316,7 +217,8 @@ function createFakeWorkerPool(): WorkerPool {
     return fakeWorkerPool;
 }
 
-function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy(), workerPool = createFakeWorkerPool()) {
+function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy()) {
+    const workerPool = createFakeWorkerPool();
     const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients, retryPolicy);
     (worker as any).stat = vi.fn().mockResolvedValue({ size: 0, mtime: 0 });
     (worker as any).createReadStream = vi.fn().mockImplementation(file => file);

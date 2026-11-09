@@ -14,8 +14,7 @@ async function createGzipFile(inputFilePath, outputFilePath) {
   );
 }
 
-// entryName overrides the name of a single file inside the zip (defaults to the input's basename).
-async function createZipFile(inputFilePath, outputFilePath, entryName) {
+async function createZipFile(inputFilePath, outputFilePath) {
   let output;
 
   try {
@@ -33,7 +32,7 @@ async function createZipFile(inputFilePath, outputFilePath, entryName) {
       if (isDirectory) {
         zip.directory(inputFilePath, basename(inputFilePath));
       } else {
-        zip.file(inputFilePath, { name: entryName || basename(inputFilePath) });
+        zip.file(inputFilePath, { name: basename(inputFilePath) });
       }
 
       zip.finalize();
