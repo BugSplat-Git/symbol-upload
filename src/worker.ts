@@ -75,7 +75,7 @@ export class UploadWorker {
         const isUnrealSym = extname(path).toLowerCase() === '.sym' && !dbgId;
 
         // Unity IL2CPP's C# line number mappings have no dbgId, fallback to legacy
-        const isUnityLineNumberMappings = fileName.toLowerCase() === 'linenumbermappings.json';
+        const isUnityLineNumberMappings = /^LineNumberMappings(-\w+)?\.json$/i.test(fileName);
 
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
@@ -85,7 +85,7 @@ export class UploadWorker {
             if (isZip) {
                 tmpFileName = path;
             } else {
-                name = isUnityLineNumberMappings ? 'LineNumberMappings.json.zip' : `${name}.zip`;
+                name = `${name}.zip`;
                 tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.zip`);
                 await this.pool.exec('createZipFile', [path, tmpFileName]);
             }

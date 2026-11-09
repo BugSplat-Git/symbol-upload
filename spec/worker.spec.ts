@@ -108,16 +108,17 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
-            it('should upload a differently cased linenumbermappings.json as LineNumberMappings.json.zip', async () => {
+            it.each(['LineNumberMappings-macos.json', 'LineNumberMappings-ios.json', 'LineNumberMappings-android.json'])('should zip Unity %s and use versionsClient', async (fileName) => {
                 const symbolFileInfos = [
-                    createFakeSymbolFileInfo({ path: 'linenumbermappings.json', moduleName: 'linenumbermappings.json', dbgId: '' }),
+                    createFakeSymbolFileInfo({ path: fileName, moduleName: fileName, dbgId: '' }),
                 ];
                 const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
                 await worker.upload(database, application, version);
 
                 expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
-                    expect.objectContaining({ name: 'LineNumberMappings.json.zip' }),
+                    expect.objectContaining({ name: `${fileName}.zip` }),
                 ]);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
             it('should still skip other .json files without dbgId', async () => {
