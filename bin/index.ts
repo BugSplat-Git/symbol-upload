@@ -38,10 +38,18 @@ import {
     directory,
     dumpSyms,
     localPath,
+    workers,
   } = await getCommandLineOptions(argDefinitions);
 
   if (help) {
     logHelp();
+    return;
+  }
+
+  if (workers !== undefined && !(Number.isInteger(workers) && workers > 0)) {
+    console.log('\nInvalid argument: -workers must be a positive integer\n');
+    logHelp();
+    process.exitCode = 1;
     return;
   }
 
@@ -185,7 +193,8 @@ import {
       database,
       application,
       version,
-      symbolFileInfos
+      symbolFileInfos,
+      workers
     );
   }
 })()

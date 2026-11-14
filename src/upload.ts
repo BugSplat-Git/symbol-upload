@@ -6,8 +6,9 @@ import { SymbolFileInfo } from './info';
 import { findCompressionWorkerPath } from "./preload";
 import { createWorkersFromSymbolFiles } from './worker';
 
-const maxWorkers = availableParallelism();
-const workerPool = pool(findCompressionWorkerPath(), { maxWorkers });
+export const defaultWorkerCount = Math.max(availableParallelism(), 8);
+
+const workerPool = pool(findCompressionWorkerPath(), { maxWorkers: availableParallelism() });
 
 // Workers hold a MessagePort open, which would keep node alive forever once we stop calling process.exit().
 // Terminate with force so a stuck compression worker can't hold the CLI open: the default waits for
@@ -21,14 +22,14 @@ export async function terminateWorkerPool(terminator = () => workerPool.terminat
     }
 }
 
-export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFileInfos: Array<SymbolFileInfo>) {
+export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFileInfos: Array<SymbolFileInfo>, workerCount = defaultWorkerCount) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
     const startTime = new Date();
     
     const symbolsApiClient = new SymbolsApiClient(bugsplat);
     const versionsApiClient = new VersionsApiClient(bugsplat);
-    const workers = createWorkersFromSymbolFiles(workerPool, maxWorkers, symbolFileInfos, [symbolsApiClient, versionsApiClient]);
+    const workers = createWorkersFromSymbolFiles(workerPool, workerCount, symbolFileInfos, [symbolsApiClient, versionsApiClient]);
     const uploads = workers.map((worker) => worker.upload(database, application, version));
     const stats = await Promise.all(uploads).then(stats => stats.flat());
 

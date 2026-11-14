@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
+import { availableParallelism } from 'node:os';
 import { vi } from 'vitest';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 
@@ -10,9 +11,15 @@ vi.mock('@bugsplat/js-api-client', () => ({
     VersionsApiClient: class { postSymbols = postSymbolsMock; },
 }));
 
-import { terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
+import { defaultWorkerCount, terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
 
 describe('upload', () => {
+    describe('defaultWorkerCount', () => {
+        it('should be the number of CPU cores or 8, whichever is larger', () => {
+            expect(defaultWorkerCount).toBe(Math.max(availableParallelism(), 8));
+        });
+    });
+
     describe('terminateWorkerPool', () => {
         it('should resolve when the pool was never used', async () => {
             await expect(terminateWorkerPool()).resolves.toBeUndefined();
