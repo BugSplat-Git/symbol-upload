@@ -238,7 +238,7 @@ const symbolFileInfos = await uploadSymbols({
 | `files` | `string \| string[]` | One or more glob patterns, relative to `directory` and written with forward slashes. |
 | `host` | `string` (optional) | Base URL that authentication and upload requests are sent to. Defaults to the `BUGSPLAT_HOST` environment variable, then `https://api.bugsplat.com`. |
 
-`uploadSymbols` uploads each file the same way the command line does, including uploading [source maps by debug ID](#source-maps). It resolves with one `{ path, moduleName, dbgId }` object per file it found, where `dbgId` is the debug ID the file was uploaded by, or an empty string if the file has none. It rejects if no files match, if authentication fails, or if an upload fails.
+`uploadSymbols` uploads each file the same way the command line does, including uploading [source maps by debug ID](#source-maps). It resolves with one `{ path, moduleName, dbgId }` object per file it found, where `dbgId` is the debug ID the file was uploaded by, or an empty string if the file has none. It rejects if no files match, if authentication fails, or if an upload fails. When an upload fails, the uploads already in progress finish and the remaining files are not started before the promise rejects.
 
 `uploadSymbols` is safe to call from a bundler plugin or a build script:
 
