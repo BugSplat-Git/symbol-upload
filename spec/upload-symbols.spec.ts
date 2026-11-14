@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, IncomingHttpHeaders, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { vi } from 'vitest';
@@ -29,6 +29,7 @@ describe('uploadSymbols', () => {
     let server: Server;
     let host: string;
     let requests: RecordedRequest[];
+    let refuseNextUploadUrl: boolean;
     let root: string;
     let directory: string;
     let options: UploadSymbolsOptions;
@@ -59,7 +60,9 @@ describe('uploadSymbols', () => {
             }
 
             if (method === 'POST' && path === '/symsrv/uploadUrl') {
-                return fields.database === 'forbidden'
+                const refuse = fields.database === 'forbidden' || refuseNextUploadUrl;
+                refuseNextUploadUrl = false;
+                return refuse
                     ? json(403, {})
                     : json(200, { url: `${host}/presigned/symsrv/${fields.dbgId}/${fields.symFileName}` });
             }
@@ -105,6 +108,7 @@ describe('uploadSymbols', () => {
 
     beforeEach(async () => {
         requests = [];
+        refuseNextUploadUrl = false;
         options = await createBuildOutput();
         directory = options.directory;
 
@@ -376,23 +380,46 @@ describe('uploadSymbols', () => {
         // A bundler that calls uploadSymbols must be able to finish on its own afterwards, so run it in
         // a process that fails the spec if it has to be killed or calls process.exit().
         it('should let the calling process exit on its own', async () => {
-            const script = `
-                const { uploadSymbols } = require('./src/upload-symbols.ts');
-                uploadSymbols(JSON.parse(process.env.UPLOAD_SYMBOLS_OPTIONS)).then(
-                    (symbolFileInfos) => console.log('UPLOADED ' + symbolFileInfos.map(({ dbgId }) => dbgId).join(',')),
-                    (error) => { console.error(error); process.exitCode = 1; }
-                );
-            `;
-
-            const { code, output } = await run(
-                ['-r', './spec/support/detect-forced-exit.js', '-r', 'ts-node/register', '-e', script],
-                { UPLOAD_SYMBOLS_OPTIONS: JSON.stringify(options) }
-            );
+            const { code, output } = await uploadInChildProcess(options);
 
             expect(output).toContain(`UPLOADED ${dbgId}`);
             expect(output).not.toContain('FORCED_EXIT');
             expect(code).toBe(0);
         }, 30_000);
+
+        // Each upload worker gets two files, and the first upload URL any of them asks for is refused.
+        // That worker fails at once, while the others are still part way through their first file.
+        describe('when one upload fails while others are in progress', () => {
+            const fileCount = availableParallelism() * 2;
+
+            beforeEach(async () => {
+                await rm(join(directory, 'assets', 'index-BX3k2a9f.js.map'));
+                await Promise.all(
+                    Array.from({ length: fileCount }, (_, i) => {
+                        const debugId = `${i.toString(16).padStart(8, '0')}-0000-4000-8000-000000000000`;
+                        return writeFile(join(directory, 'assets', `chunk-${i}.js.map`), JSON.stringify({ version: 3, mappings: 'AAAA', debugId }));
+                    })
+                );
+                refuseNextUploadUrl = true;
+            });
+
+            it('should reject once the uploads in progress have finished', async () => {
+                await expect(uploadSymbols(options)).rejects.toThrow('Not authorized to upload symbols to db');
+
+                const accepted = requestsTo('POST', '/symsrv/uploadUrl').length - 1;
+                expect(requestsTo('PUT', '/presigned/')).toHaveLength(accepted);
+                expect(requestsTo('POST', '/symsrv/uploadComplete')).toHaveLength(accepted);
+                expectCleanedUp();
+            }, 30_000);
+
+            it('should let the calling process exit on its own', async () => {
+                const { code, output } = await uploadInChildProcess(options);
+
+                expect(output).toContain('REJECTED Not authorized to upload symbols to db');
+                expect(output).not.toContain('FORCED_EXIT');
+                expect(code).toBe(1);
+            }, 30_000);
+        });
     });
 
     describe('options', () => {
@@ -416,6 +443,22 @@ async function readFormFields(headers: IncomingHttpHeaders, body: Buffer): Promi
     const fields: Record<string, string> = {};
     formData.forEach((value, name) => (fields[name] = `${value}`));
     return fields;
+}
+
+// Calls uploadSymbols in a process of its own, which then has to finish without being told to.
+function uploadInChildProcess(options: UploadSymbolsOptions): Promise<{ code: number | null; output: string }> {
+    const script = `
+        const { uploadSymbols } = require('./src/upload-symbols.ts');
+        uploadSymbols(JSON.parse(process.env.UPLOAD_SYMBOLS_OPTIONS)).then(
+            (symbolFileInfos) => console.log('UPLOADED ' + symbolFileInfos.map(({ dbgId }) => dbgId).join(',')),
+            (error) => { console.log('REJECTED ' + error.message); process.exitCode = 1; }
+        );
+    `;
+
+    return run(
+        ['-r', './spec/support/detect-forced-exit.js', '-r', 'ts-node/register', '-e', script],
+        { UPLOAD_SYMBOLS_OPTIONS: JSON.stringify(options) }
+    );
 }
 
 function run(nodeArgs: string[], env: NodeJS.ProcessEnv): Promise<{ code: number | null; output: string }> {

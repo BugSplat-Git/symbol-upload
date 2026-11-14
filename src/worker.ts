@@ -18,12 +18,17 @@ export function createWorkersFromSymbolFiles(workerPool: WorkerPool, workerCount
     // trips the breaker and all workers back off, since they all upload from the same IP.
     const retryPolicy = createUploadRetryPolicy();
 
+    // Shared across every worker in this run so a failed upload stops the others at their next file.
+    // The run is reported as failed either way, and a worker that carried on would compress its next
+    // file after the caller had terminated the pool, starting a compression worker that nothing stops.
+    const failed = new AbortController();
+
     if (workerCount >= numberOfSymbols) {
-        return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, [symbolFile], workerPool, ...clients, retryPolicy));
+        return symbolFiles.map((symbolFile, i) => new UploadWorker(i + 1, [symbolFile], workerPool, ...clients, retryPolicy, failed));
     }
 
     const symbolFilesChunks = splitToChunks(symbolFiles, workerCount);
-    return symbolFilesChunks.map((chunk, i) => new UploadWorker(i + 1, chunk, workerPool, ...clients, retryPolicy));
+    return symbolFilesChunks.map((chunk, i) => new UploadWorker(i + 1, chunk, workerPool, ...clients, retryPolicy, failed));
 }
 
 export class UploadWorker {
@@ -38,6 +43,7 @@ export class UploadWorker {
         private readonly symbolsClient: SymbolsApiClient,
         private readonly versionsClient: VersionsApiClient,
         private readonly retryPolicy: IPolicy,
+        private readonly failed: AbortController = new AbortController(),
     ) { }
 
     async upload(database: string, application: string, version: string): Promise<UploadStats[]> {
@@ -46,9 +52,15 @@ export class UploadWorker {
         const results = [] as UploadStats[];
 
         for (const symbolFileInfo of this.symbolFileInfos) {
+            if (this.failed.signal.aborted) {
+                console.log(`Worker ${this.id} stopping, another worker failed to upload...`);
+                break;
+            }
+
             try {
                 results.push(await this.uploadSingle(database, application, version, symbolFileInfo));
             } catch (error) {
+                this.failed.abort();
                 console.error(`Worker ${this.id} failed to upload ${symbolFileInfo.path}: ${(error as Error).message}`);
                 throw error;
             }

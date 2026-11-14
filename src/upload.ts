@@ -4,7 +4,7 @@ import prettyBytes from "pretty-bytes";
 import { pool } from "workerpool";
 import { SymbolFileInfo } from './info';
 import { findCompressionWorkerPath } from "./preload";
-import { createWorkersFromSymbolFiles } from './worker';
+import { createWorkersFromSymbolFiles, UploadStats } from './worker';
 
 const maxWorkers = availableParallelism();
 const workerPool = pool(findCompressionWorkerPath(), { maxWorkers });
@@ -30,7 +30,17 @@ export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, a
     const versionsApiClient = new VersionsApiClient(bugsplat);
     const workers = createWorkersFromSymbolFiles(workerPool, maxWorkers, symbolFileInfos, [symbolsApiClient, versionsApiClient]);
     const uploads = workers.map((worker) => worker.upload(database, application, version));
-    const stats = await Promise.all(uploads).then(stats => stats.flat());
+
+    // Wait for every worker to stop before reporting a failure. Callers terminate the worker pool and
+    // remove tmpDir as soon as this settles, which has to happen after the last worker is done with both.
+    const results = await Promise.allSettled(uploads);
+    const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+
+    if (failure) {
+        throw failure.reason;
+    }
+
+    const stats = results.flatMap((result) => (result as PromiseFulfilledResult<UploadStats[]>).value);
 
     const endTime = new Date();
     const size = stats.reduce((acc, curr) => acc + curr.size, 0);

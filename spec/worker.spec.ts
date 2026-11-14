@@ -217,6 +217,45 @@ describe('worker', () => {
             expect(retryPolicy.execute).toHaveBeenCalledTimes(symbolFiles.length);
         });
 
+        describe('when an upload fails', () => {
+            it('should not start its remaining files', async () => {
+                const symbolFiles = createFakeSymbolFileInfos(3);
+                const worker = withDestroyableReadStream(createUploadWorkerWithFakeReadStream(1, symbolFiles, clients));
+                vi.mocked(symbolsClient.postSymbols).mockRejectedValue(new Error('Failed to upload!'));
+
+                await expect(worker.upload(database, application, version)).rejects.toThrow('Failed to upload!');
+
+                expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(1);
+            });
+
+            it('should share one failure signal between the workers of a run', () => {
+                const workers = createWorkersFromSymbolFiles(createFakeWorkerPool(), 2, createFakeSymbolFileInfos(4), clients);
+
+                expect((workers[0] as any).failed).toBeInstanceOf(AbortController);
+                expect((workers[1] as any).failed).toBe((workers[0] as any).failed);
+            });
+
+            // A worker that carried on would use the worker pool and the temp folder after the caller,
+            // told that the run failed, had already terminated one and removed the other.
+            it('should stop the other workers before their next file', async () => {
+                const failed = new AbortController();
+                const failing = withDestroyableReadStream(createUploadWorkerWithFakeReadStream(1, createFakeSymbolFileInfos(2), clients, createFakePolicy(), failed));
+                const other = withDestroyableReadStream(createUploadWorkerWithFakeReadStream(2, createFakeSymbolFileInfos(2), clients, createFakePolicy(), failed));
+                let finishInProgressUpload = () => {};
+                vi.mocked(symbolsClient.postSymbols)
+                    .mockRejectedValueOnce(new Error('Failed to upload!'))
+                    .mockImplementationOnce(() => new Promise((resolve) => (finishInProgressUpload = () => resolve([]))));
+
+                const failure = failing.upload(database, application, version);
+                const stopped = other.upload(database, application, version);
+                await expect(failure).rejects.toThrow('Failed to upload!');
+                finishInProgressUpload();
+
+                await expect(stopped).resolves.toHaveLength(1);
+                expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(2);
+            });
+        });
+
         it('should destroy file stream on error', async () => {
             const readStream = {
                 destroy: vi.fn(),
@@ -263,12 +302,20 @@ function createFakeWorkerPool(): WorkerPool {
     return fakeWorkerPool;
 }
 
-function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy()) {
+function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy(), failed = new AbortController()) {
     const workerPool = createFakeWorkerPool();
-    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients, retryPolicy);
+    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients, retryPolicy, failed);
     (worker as any).stat = vi.fn().mockResolvedValue({ size: 0, mtime: 0 });
     (worker as any).createReadStream = vi.fn().mockImplementation(file => file);
     (worker as any).toWeb = vi.fn().mockImplementation(file => file);
+    return worker;
+}
+
+// A failed upload destroys its read stream, which the fake above, a file name, can't do.
+function withDestroyableReadStream(worker: UploadWorker): UploadWorker {
+    const readStream = { destroy: vi.fn() };
+    (worker as any).createReadStream = () => readStream;
+    (worker as any).toWeb = () => readStream;
     return worker;
 }
 
