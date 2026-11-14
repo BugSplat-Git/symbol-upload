@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -152,6 +152,46 @@ describe('bin', () => {
     afterAll(async () => {
       server.closeAllConnections();
       await new Promise<void>((resolve) => server.close(() => resolve()));
+    });
+  });
+
+  // -l copies every file that has a debug ID into <localPath>/<file name>/<debug ID>/<file name>.
+  describe('source maps copied to a local path', () => {
+    const debugId = '9F2C1A7E-3B4D-4C5E-8F60-112233445566';
+    const normalizedDebugId = '9f2c1a7e3b4d4c5e8f60112233445566';
+    const mapWithDebugId = JSON.stringify({ version: 3, mappings: 'AAAA', debugId });
+    const mapWithoutDebugId = JSON.stringify({ version: 3, mappings: 'AAAA' });
+    const directory = join(tmpdir(), `symbol-upload-spec-maps-${randomUUID()}`);
+    const mapsLocalPath = join(tmpdir(), `symbol-upload-spec-maps-local-${randomUUID()}`);
+    let code: number | null;
+    let output: string;
+
+    beforeAll(async () => {
+      await mkdir(directory, { recursive: true });
+      await writeFile(join(directory, 'index-BX3k2a9f.js.map'), mapWithDebugId);
+      await writeFile(join(directory, 'legacy.js.map'), mapWithoutDebugId);
+
+      ({ code, output } = await runCli(['-d', directory, '-f', '*.js.map', '-l', mapsLocalPath]));
+    }, 30_000);
+
+    it('should exit zero', () => {
+      expect(code).toBe(0);
+    });
+
+    it('should copy a source map that has a debug ID under its file name and normalized debug ID', async () => {
+      const copy = join(mapsLocalPath, 'index-BX3k2a9f.js.map', normalizedDebugId, 'index-BX3k2a9f.js.map');
+
+      await expect(readFile(copy, 'utf8')).resolves.toBe(mapWithDebugId);
+    });
+
+    it('should skip a source map that has no debug ID', async () => {
+      expect(output).toContain(`Failed to parse UUID for ${join(directory, 'legacy.js.map')}, skipping...`);
+      await expect(readdir(mapsLocalPath)).resolves.toEqual(['index-BX3k2a9f.js.map', 'index.txt']);
+    });
+
+    afterAll(async () => {
+      await rm(directory, { recursive: true, force: true });
+      await rm(mapsLocalPath, { recursive: true, force: true });
     });
   });
 

@@ -95,6 +95,19 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
+            it('should zip source maps without dbgId', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'dist/app.js.map', moduleName: 'app.js.map', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect((worker as any).pool.exec).toHaveBeenCalledWith('createZipFile', ['dist/app.js.map', expect.stringMatching(/\.zip$/)]);
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: 'app.js.map.zip', dbgId: '' }),
+                ]);
+            });
+
             it('should zip Unity LineNumberMappings.json and use versionsClient', async () => {
                 const symbolFileInfos = [
                     createFakeSymbolFileInfo({ path: 'LineNumberMappings.json', moduleName: 'LineNumberMappings.json', dbgId: '' }),
@@ -158,6 +171,39 @@ describe('worker', () => {
 
             it('should call symbolsClient.postSymbols for each symbol file', () => {
                 expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(symbolFileInfos.length);
+            });
+        });
+
+        describe('source maps with a dbgId', () => {
+            const dbgId = '9f2c1a7e3b4d4c5e8f60112233445566';
+            const path = 'dist/assets/index-BX3k2a9f.js.map';
+            const fileName = 'index-BX3k2a9f.js.map';
+            let worker: UploadWorker;
+
+            beforeEach(async () => {
+                worker = createUploadWorkerWithFakeReadStream(1, [{ path, moduleName: fileName, dbgId }], clients);
+                await worker.upload(database, application, version);
+            });
+
+            it('should use symbolsClient with the base file name as both name and moduleName', () => {
+                expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(1);
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: fileName, moduleName: fileName, dbgId }),
+                ]);
+            });
+
+            it('should gzip the map rather than zip it', () => {
+                const exec = vi.mocked((worker as any).pool.exec);
+
+                expect(exec).toHaveBeenCalledTimes(1);
+                expect(exec).toHaveBeenCalledWith('createGzipFile', [path, expect.stringMatching(/\.gz$/)]);
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ file: expect.stringMatching(/\.gz$/) }),
+                ]);
+            });
+
+            it('should not use versionsClient', () => {
+                expect(versionsClient.postSymbols).not.toHaveBeenCalled();
             });
         });
 

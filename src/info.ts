@@ -3,6 +3,7 @@ import { basename, extname } from "node:path";
 import { getDSymFileInfos } from "./dsym";
 import { tryGetElfUUID } from "./elf";
 import { tryGetGuid } from "./guid";
+import { tryGetSourceMapDebugId } from "./source-map";
 import { getSymFileInfo } from "./sym";
 
 export type SymbolFileInfo = {
@@ -29,6 +30,7 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
     const isPeOrPdbFile = (extLowerCase.includes('.pdb') || extLowerCase.includes('.exe') || extLowerCase.includes('.dll')) && !isFolder;
     const isDsymBundle = isDsymBundlePath(path);
     const isElfFile = elfExtensions.includes(extLowerCase) && !isFolder;
+    const isSourceMap = extLowerCase === '.map' && !isFolder;
 
     if (isPeOrPdbFile) {
         const dbgId = await tryGetGuid(path);
@@ -55,6 +57,18 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
 
     if (isElfFile) {
         const dbgId = await tryGetElfUUID(path);
+        const moduleName = basename(path);
+        return [{
+            path,
+            dbgId,
+            moduleName,
+        } as SymbolFileInfo];
+    }
+
+    if (isSourceMap) {
+        // A source map with a debug ID is uploaded by that ID, like any other symbol file.
+        // Without one dbgId stays empty and the map is uploaded by file name and version.
+        const dbgId = await tryGetSourceMapDebugId(path);
         const moduleName = basename(path);
         return [{
             path,
