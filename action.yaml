@@ -49,7 +49,11 @@ inputs:
     description: "Use dumpSyms to generate symbols"
     type: boolean
     required: false
-    default: false    
+    default: false
+  workers:
+    description: "Number of concurrent upload workers (defaults to the number of CPU cores or 8, whichever is larger)"
+    type: number
+    required: false
 
 runs:
   using: composite
@@ -88,3 +92,4 @@ runs:
         -f "${{ inputs.files }}"
         -d "${{ inputs.directory }}"
         ${{ inputs.dumpSyms == 'true' && '-m' || '' }}
+        ${{ inputs.workers && format('-w "{0}"', inputs.workers) || '' }}
