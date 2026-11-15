@@ -30,11 +30,9 @@ export async function tryGetSourceMapDebugId(path: string): Promise<string> {
         // Bundlers that build maps with magic-string (Rollup, Vite) write debugId as the last key, so
         // reading only the head of the file would miss it. Streaming the whole file for the key is
         // cheap and keeps maps without an ID, which is most of them, from being parsed at all.
-        if (!(await containsDebugIdKey(path))) {
-            return '';
-        }
-
-        const debugId = await parseOneAtATime(() => readTopLevelDebugId(path));
+        const debugId = await readOneAtATime(async () =>
+            (await containsDebugIdKey(path)) ? readTopLevelDebugId(path) : undefined
+        );
         if (debugId === undefined) {
             return '';
         }
@@ -81,10 +79,12 @@ async function readTopLevelDebugId(path: string): Promise<unknown> {
 
 // Source maps can be tens of megabytes and symbol file infos are created for every file at once.
 // Parsing a single map at a time bounds memory by the largest map instead of the sum of all of them.
-let parsing: Promise<unknown> = Promise.resolve();
+// Scanning one at a time as well keeps a single map open, where opening every map in a big build at
+// once runs out of file descriptors (EMFILE) and each map that fails to open loses its debug ID.
+let reading: Promise<unknown> = Promise.resolve();
 
-function parseOneAtATime<T>(task: () => Promise<T>): Promise<T> {
-    const result = parsing.then(task);
-    parsing = result.catch(() => undefined);
+function readOneAtATime<T>(task: () => Promise<T>): Promise<T> {
+    const result = reading.then(task);
+    reading = result.catch(() => undefined);
     return result;
 }

@@ -1,7 +1,24 @@
+import type { ReadStream } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { vi } from 'vitest';
+
+// Counts the files source-map.ts has open for scanning, so a spec can tell how many it opens at once.
+const scans = vi.hoisted(() => ({ open: [] as ReadStream[], mostOpen: 0 }));
+
+vi.mock('node:fs', async (importOriginal) => {
+    const fs = await importOriginal<typeof import('node:fs')>();
+    const createReadStream = (...args: Parameters<typeof fs.createReadStream>) => {
+        const stream = fs.createReadStream(...args);
+        scans.open = [...scans.open.filter((open) => !open.destroyed), stream];
+        scans.mostOpen = Math.max(scans.mostOpen, scans.open.length);
+        return stream;
+    };
+
+    return { ...fs, createReadStream };
+});
+
 import { normalizeDebugId, tryGetSourceMapDebugId } from '../src/source-map';
 
 const debugId = '9f2c1a7e-3b4d-4c5e-8f60-112233445566';
@@ -202,6 +219,20 @@ describe('source-map', () => {
             const results = await Promise.all([malformed, ...paths].map((path) => tryGetSourceMapDebugId(path)));
 
             expect(results).toEqual(['', ...ids.map((id) => id.replace(/-/g, ''))]);
+        });
+
+        // Symbol file infos are created for every file at once. Opening every map at once runs a big
+        // build out of file descriptors (EMFILE), and a map that can't be read is uploaded without its ID.
+        it('should have one map open at a time when many are read at once', async () => {
+            const ids = Array.from({ length: 50 }, (_, i) => `${i.toString(16).padStart(8, '0')}-0000-4000-8000-000000000000`);
+            const paths = await Promise.all(ids.map((id, i) => writeMap(`open-${i}.js.map`, { version: 3, debugId: id })));
+            const without = await writeMap('open-without.js.map', { version: 3, mappings: 'AAAA' });
+            scans.mostOpen = 0;
+
+            const results = await Promise.all([without, ...paths].map((path) => tryGetSourceMapDebugId(path)));
+
+            expect(results).toEqual(['', ...ids.map((id) => id.replace(/-/g, ''))]);
+            expect(scans.mostOpen).toBe(1);
         });
     });
 });
