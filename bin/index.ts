@@ -18,7 +18,7 @@ import {
 import { importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
+import { isValidWorkerCount, terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
 import {
   argDefinitions,
   CommandLineDefinition,
@@ -46,7 +46,7 @@ import {
     return;
   }
 
-  if (workers !== undefined && !(Number.isInteger(workers) && workers > 0)) {
+  if (workers !== undefined && !isValidWorkerCount(workers)) {
     console.log('\nInvalid argument: -workers must be a positive integer\n');
     logHelp();
     process.exitCode = 1;

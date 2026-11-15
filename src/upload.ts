@@ -8,6 +8,10 @@ import { createWorkersFromSymbolFiles } from './worker';
 
 export const defaultWorkerCount = Math.max(availableParallelism(), 8);
 
+export function isValidWorkerCount(workerCount: number): boolean {
+    return Number.isInteger(workerCount) && workerCount > 0;
+}
+
 const workerPool = pool(findCompressionWorkerPath(), { maxWorkers: availableParallelism() });
 
 // Workers hold a MessagePort open, which would keep node alive forever once we stop calling process.exit().
@@ -23,6 +27,10 @@ export async function terminateWorkerPool(terminator = () => workerPool.terminat
 }
 
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFileInfos: Array<SymbolFileInfo>, workerCount = defaultWorkerCount) {
+    if (!isValidWorkerCount(workerCount)) {
+        throw new Error(`Invalid workerCount ${workerCount}, expected a positive integer`);
+    }
+
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
     const startTime = new Date();

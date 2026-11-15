@@ -20,6 +20,12 @@ describe('upload', () => {
         });
     });
 
+    describe('uploadSymbolFiles', () => {
+        it.each([0, -1, 1.5, NaN])('should reject a workerCount of %s', async (workerCount) => {
+            await expect(uploadSymbolFiles({} as never, 'db', 'app', '1.0', [], workerCount)).rejects.toThrow('expected a positive integer');
+        });
+    });
+
     describe('terminateWorkerPool', () => {
         it('should resolve when the pool was never used', async () => {
             await expect(terminateWorkerPool()).resolves.toBeUndefined();
