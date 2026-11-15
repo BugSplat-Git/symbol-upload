@@ -65,13 +65,19 @@ async function findAndUploadSymbols(options: UploadSymbolsOptions): Promise<Symb
 
     const bugsplat = await createBugSplatClient({ clientId, clientSecret }, host || undefined);
 
-    const symbolFileInfos = await Promise.all(
-        symbolFilePaths.map((symbolFilePath) => createSymbolFileInfos(symbolFilePath))
-    ).then((array) => array.flat());
-
     try {
         await mkdir(tmpDir, { recursive: true });
+
+        // Creating the info for a dSYM writes its Mach-O slices to tmpDir, so this belongs in here.
+        // Wait for every file, even once one has failed, so that none is still being written when
+        // tmpDir is removed.
+        const creatingSymbolFileInfos = symbolFilePaths.map((symbolFilePath) => createSymbolFileInfos(symbolFilePath));
+        await Promise.allSettled(creatingSymbolFileInfos);
+        const symbolFileInfos = await Promise.all(creatingSymbolFileInfos).then((array) => array.flat());
+
         await uploadSymbolFiles(bugsplat, database, application, version, symbolFileInfos);
+
+        return symbolFileInfos;
     } finally {
         // Stop the workers before removing tmpDir. A rejected upload leaves sibling workers mid-gzip,
         // and deleting the directory out from under them means noisy worker failures and file locks
@@ -79,8 +85,6 @@ async function findAndUploadSymbols(options: UploadSymbolsOptions): Promise<Symb
         await terminateWorkerPool();
         await safeRemoveTmp();
     }
-
-    return symbolFileInfos;
 }
 
 function validate(options: UploadSymbolsOptions): UploadSymbolsOptions {

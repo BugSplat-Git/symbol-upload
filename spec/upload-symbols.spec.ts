@@ -4,10 +4,11 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, IncomingHttpHeaders, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { availableParallelism, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { vi } from 'vitest';
 import * as api from '../index';
+import * as info from '../src/info';
 import { SymbolFileInfo } from '../src/info';
 import { tmpDir } from '../src/tmp';
 import { uploadSymbols, UploadSymbolsOptions } from '../src/upload-symbols';
@@ -349,6 +350,43 @@ describe('uploadSymbols', () => {
             await uploadSymbols(options);
 
             expect(requestsTo('PUT', '/presigned/')).toHaveLength(2);
+            expectCleanedUp();
+        }, 30_000);
+
+        // A dSYM's Mach-O slices are written to the temp folder while the symbol file infos are created,
+        // which is before anything is uploaded. Here one slice can't be written and the other can.
+        it('should remove its temp folder when a symbol file info cannot be created', async () => {
+            const sliceThatFails = join(tmpDir, '2dd1bd2706fa384da5a3a8265921cf9a', 'BugsplatTester');
+            await mkdir(sliceThatFails, { recursive: true });
+
+            await expect(
+                uploadSymbols({ ...options, directory: resolve('spec/support'), files: 'bugsplat.app.dSYM' })
+            ).rejects.toThrow(/EISDIR/);
+
+            expect(requestsTo('POST', '/symsrv/')).toHaveLength(0);
+            expectCleanedUp();
+        }, 30_000);
+
+        // Removing the temp folder while another file's info is still being created would let that
+        // file be written afterwards, into a folder nothing removes.
+        it('should wait for every symbol file info before removing its temp folder when one cannot be created', async () => {
+            await writeFile(join(directory, 'assets', 'slow.js.map'), mapWithDebugId);
+            let slowInfoCreated = false;
+            vi.spyOn(info, 'createSymbolFileInfos').mockImplementation(async (path) => {
+                if (!path.endsWith('slow.js.map')) {
+                    throw new Error(`Could not read ${basename(path)}`);
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                await mkdir(tmpDir, { recursive: true });
+                await writeFile(join(tmpDir, 'slow'), '');
+                slowInfoCreated = true;
+                return [];
+            });
+
+            await expect(uploadSymbols(options)).rejects.toThrow('Could not read index-BX3k2a9f.js.map');
+
+            expect(slowInfoCreated).toBe(true);
             expectCleanedUp();
         }, 30_000);
 
