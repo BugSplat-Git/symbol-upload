@@ -8,9 +8,11 @@ import { basename, join, resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { vi } from 'vitest';
 import * as api from '../index';
+import { createBugSplatClient } from '../src/auth';
 import * as info from '../src/info';
 import { SymbolFileInfo } from '../src/info';
 import { tmpDir } from '../src/tmp';
+import { uploadSymbolFiles } from '../src/upload';
 import { uploadSymbols, UploadSymbolsOptions } from '../src/upload-symbols';
 
 const debugId = '9F2C1A7E-3B4D-4C5E-8F60-112233445566';
@@ -31,6 +33,9 @@ describe('uploadSymbols', () => {
     let host: string;
     let requests: RecordedRequest[];
     let refuseNextUploadUrl: boolean;
+    let uploadUrlsOnHold: number;
+    let uploadUrlsReleased: Promise<void>;
+    let releaseUploadUrls: () => void;
     let root: string;
     let directory: string;
     let options: UploadSymbolsOptions;
@@ -61,6 +66,11 @@ describe('uploadSymbols', () => {
             }
 
             if (method === 'POST' && path === '/symsrv/uploadUrl') {
+                if (fields.database === 'on-hold') {
+                    uploadUrlsOnHold++;
+                    await uploadUrlsReleased;
+                }
+
                 const refuse = fields.database === 'forbidden' || refuseNextUploadUrl;
                 refuseNextUploadUrl = false;
                 return refuse
@@ -110,6 +120,8 @@ describe('uploadSymbols', () => {
     beforeEach(async () => {
         requests = [];
         refuseNextUploadUrl = false;
+        uploadUrlsOnHold = 0;
+        uploadUrlsReleased = new Promise((resolve) => (releaseUploadUrls = resolve));
         options = await createBuildOutput();
         directory = options.directory;
 
@@ -413,6 +425,52 @@ describe('uploadSymbols', () => {
                 'POST /symsrv/uploadComplete',
             ]);
             expectCleanedUp();
+        }, 30_000);
+
+        // uploadSymbolFiles is still exported, and an upload made with it uses the same temp folder and
+        // workers. Each of its upload workers gets two files here, and the fake holds back the upload URL
+        // for the first, so every worker still has a file to compress when uploadSymbols is done uploading.
+        it('should wait for an upload made with uploadSymbolFiles before removing the temp folder and stopping the workers', async () => {
+            const otherDirectory = await mkdtemp(join(root, 'other-'));
+            const fileCount = availableParallelism() + 1;
+            const symbolFileInfos = await Promise.all(
+                Array.from({ length: fileCount }, async (_, i) => {
+                    const moduleName = `other-${i}.js.map`;
+                    const path = join(otherDirectory, moduleName);
+                    await writeFile(path, mapWithoutDebugId);
+                    return { path, moduleName, dbgId: i.toString(16).padStart(32, '0') };
+                })
+            );
+            const bugsplat = await createBugSplatClient({ clientId: 'id', clientSecret: 'secret' }, host);
+            await mkdir(tmpDir, { recursive: true });
+
+            const otherUpload = uploadSymbolFiles(bugsplat, 'on-hold', 'app', '1.0.0', symbolFileInfos);
+            const otherUploadSettled = otherUpload.then(() => 'uploaded', (error) => `rejected: ${error.message}`);
+
+            try {
+                await vi.waitFor(() => expect(uploadUrlsOnHold).toBe(Math.ceil(fileCount / 2)));
+
+                const upload = uploadSymbols(options);
+                const uploadSettled = upload.then(() => 'uploaded', (error) => `rejected: ${error.message}`);
+
+                // Once its own file is uploaded all uploadSymbols has left to do is clean up. Give it
+                // time to, which it must not use while the other upload is still running.
+                await vi.waitFor(() => expect(requestsTo('POST', '/symsrv/uploadComplete')).toHaveLength(1));
+                await Promise.race([uploadSettled, new Promise((resolve) => setTimeout(resolve, 250))]);
+
+                expect(existsSync(tmpDir)).toBe(true);
+                expect(process.getActiveResourcesInfo()).toContain('MessagePort');
+
+                releaseUploadUrls();
+
+                await expect(otherUploadSettled).resolves.toBe('uploaded');
+                await expect(uploadSettled).resolves.toBe('uploaded');
+                expect(requestsTo('POST', '/symsrv/uploadComplete')).toHaveLength(1 + fileCount);
+                expectCleanedUp();
+            } finally {
+                releaseUploadUrls();
+                await otherUploadSettled;
+            }
         }, 30_000);
 
         // A bundler that calls uploadSymbols must be able to finish on its own afterwards, so run it in

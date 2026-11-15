@@ -21,6 +21,23 @@ export async function terminateWorkerPool(terminator = () => workerPool.terminat
     }
 }
 
+// The uploadSymbolFiles calls that are still uploading. They all share the pool and tmpDir.
+const uploadsInProgress = new Set<Promise<unknown>>();
+
+// For a caller that can't know whether it is the only one uploading. uploadSymbols stops the workers
+// and removes tmpDir when it is done, which must not happen under an upload that someone else started
+// with uploadSymbolFiles, so this waits for every upload in progress before it terminates the pool.
+// An upload that starts while the pool is terminating gets new workers, so wait for it and go again.
+export async function terminateWorkerPoolWhenIdle(terminator?: Parameters<typeof terminateWorkerPool>[0]): Promise<void> {
+    do {
+        while (uploadsInProgress.size) {
+            await Promise.allSettled(uploadsInProgress);
+        }
+
+        await terminateWorkerPool(terminator);
+    } while (uploadsInProgress.size);
+}
+
 export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, application: string, version: string, symbolFileInfos: Array<SymbolFileInfo>) {
     console.log(`About to upload symbols for ${database}-${application}-${version}...`);
 
@@ -33,7 +50,9 @@ export async function uploadSymbolFiles(bugsplat: ApiClient, database: string, a
 
     // Wait for every worker to stop before reporting a failure. Callers terminate the worker pool and
     // remove tmpDir as soon as this settles, which has to happen after the last worker is done with both.
-    const results = await Promise.allSettled(uploads);
+    const settled = Promise.allSettled(uploads);
+    uploadsInProgress.add(settled);
+    const results = await settled.finally(() => uploadsInProgress.delete(settled));
     const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
 
     if (failure) {

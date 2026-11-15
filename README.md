@@ -245,6 +245,7 @@ const symbolFileInfos = await uploadSymbols({
 - It creates a `tmp-<uuid>` folder in the current working directory for compressed files and removes it before the returned promise settles.
 - It stops its compression workers before the returned promise settles, so it does not keep the calling process running.
 - Calls made while another call is in progress run one after another.
+- If an upload started with `uploadSymbolFiles` is still running when a call finishes, the call waits for that upload before it removes the folder and stops the workers.
 - Progress is written with `console.log`.
 
 The lower-level `uploadSymbolFiles(bugsplat, database, application, version, symbolFileInfos)` function is still exported. It uploads a list of `SymbolFileInfo` objects with a client you have already authenticated, and it does not create the temp folder or stop the compression workers, so prefer `uploadSymbols`.

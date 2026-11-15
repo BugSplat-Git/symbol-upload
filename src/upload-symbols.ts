@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { createBugSplatClient } from './auth';
 import { createSymbolFileInfos, filterSymbolFilePaths, SymbolFileInfo } from './info';
 import { safeRemoveTmp, tmpDir } from './tmp';
-import { terminateWorkerPool, uploadSymbolFiles } from './upload';
+import { terminateWorkerPoolWhenIdle, uploadSymbolFiles } from './upload';
 
 export interface UploadSymbolsOptions {
     /** BugSplat database name. Must match the database crash reports are posted to. */
@@ -81,8 +81,9 @@ async function findAndUploadSymbols(options: UploadSymbolsOptions): Promise<Symb
     } finally {
         // Stop the workers before removing tmpDir. A rejected upload leaves sibling workers mid-gzip,
         // and deleting the directory out from under them means noisy worker failures and file locks
-        // on Windows.
-        await terminateWorkerPool();
+        // on Windows. An upload that another caller started with uploadSymbolFiles uses the same
+        // workers and tmpDir, so wait for it to finish before doing either.
+        await terminateWorkerPoolWhenIdle();
         await safeRemoveTmp();
     }
 }
