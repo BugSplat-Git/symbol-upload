@@ -87,6 +87,13 @@ export const argDefinitions: Array<CommandLineDefinition> = [
         defaultValue: '',
         typeLabel: '{underline string} (optional)',
         description: 'Path to a directory to copy symbols to. If provided, the files will be copied to the provided path instead of being uploaded to BugSplat. Useful for creating a self-hosted symbol server.',
+    },
+    {
+        name: 'workers',
+        alias: 'w',
+        type: Number,
+        typeLabel: '{underline number} (optional)',
+        description: 'Number of concurrent upload workers. Defaults to the number of CPU cores or 8, whichever is larger. Set this when CPU count and network bandwidth are mismatched, e.g. raise it on a 4 CPU VM with a 10 Gbps connection, or lower it on a many-core machine with a slow connection.',
     }
 ];
 

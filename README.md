@@ -36,6 +36,8 @@ Use the `symbol-upload` action in your [GitHub Actions](https://github.com/featu
     dumpSyms: false
 ```
 
+Set `workers` to change the number of concurrent uploads (see `--workers` below).
+
 Be sure to use [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) so that you don't expose the values for `clientId`, `clientSecret`, and `database`.
 
 Pin `@v11` to track the latest 11.x release, or an exact tag like `@v11.0.0`. The action installs the `@bugsplat/symbol-upload` npm package version matching the pinned ref; SHA and branch refs install the version recorded in that commit's `package.json`. Set `symbol-upload-version` to override.
@@ -124,6 +126,14 @@ Usage
                                       the provided path instead of being        
                                       uploaded to BugSplat. Useful for creating 
                                       a self-hosted symbol server.              
+  -w, --workers number (optional)     Number of concurrent upload workers.      
+                                      Defaults to the number of CPU cores or 8, 
+                                      whichever is larger. Set this when CPU    
+                                      count and network bandwidth are           
+                                      mismatched, e.g. raise it on a 4 CPU VM   
+                                      with a 10 Gbps connection, or lower it on 
+                                      a many-core machine with a slow           
+                                      connection.                               
 
   The -i and -s arguments are not required if you set the environment variables 
   SYMBOL_UPLOAD_CLIENT_ID and SYMBOL_UPLOAD_CLIENT_SECRET.                      

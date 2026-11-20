@@ -75,6 +75,26 @@ describe('bin', () => {
     expect(output).toContain('Missing argument');
   }, 30_000);
 
+  it.each([['0'], ['-1'], ['1.5'], ['abc']])('should exit non-zero when workers is %s', async (workers) => {
+    const { code, output } = await runCli(['-d', './spec/support', '-f', '*.sym', '-l', localPath, '-w', workers]);
+
+    expect(code).toBe(1);
+    expect(output).toContain('-workers must be a positive integer');
+  }, 30_000);
+
+  it('should exit non-zero when workers is missing a value', async () => {
+    const { code, output } = await runCli(['-d', './spec/support', '-f', '*.sym', '-l', localPath, '-w']);
+
+    expect(code).toBe(1);
+    expect(output).toContain('-workers must be a positive integer');
+  }, 30_000);
+
+  it('should exit zero when workers is a positive integer', async () => {
+    const { code } = await runCli(['-d', './spec/support', '-f', '*.sym', '-l', localPath, '-w', '20']);
+
+    expect(code).toBe(0);
+  }, 30_000);
+
   // process.exit() tears the event loop down while libuv still has work in flight, which trips an
   // assertion in src/win/async.c on Windows and loses the exit code. Draining is what makes the
   // code reliable, so the absence of a forced exit is the behavior worth pinning.

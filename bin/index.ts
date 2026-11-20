@@ -18,7 +18,7 @@ import {
 import { dumpSymsImportError, importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
-import { terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
+import { isValidWorkerCount, terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
 import {
   argDefinitions,
   CommandLineDefinition,
@@ -38,10 +38,18 @@ import {
     directory,
     dumpSyms,
     localPath,
+    workers,
   } = await getCommandLineOptions(argDefinitions);
 
   if (help) {
     logHelp();
+    return;
+  }
+
+  if (workers !== undefined && !isValidWorkerCount(workers)) {
+    console.log('\nInvalid argument: -workers must be a positive integer\n');
+    logHelp();
+    process.exitCode = 1;
     return;
   }
 
@@ -182,7 +190,8 @@ import {
       database,
       application,
       version,
-      symbolFileInfos
+      symbolFileInfos,
+      workers
     );
   }
 })()
