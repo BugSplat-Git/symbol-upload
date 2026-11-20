@@ -15,7 +15,7 @@ import {
   filterSymbolFilePaths,
   SymbolFileInfo,
 } from '../src/info';
-import { importNodeDumpSyms } from '../src/preload';
+import { dumpSymsImportError, importNodeDumpSyms } from '../src/preload';
 import { getNormalizedSymFileName } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
@@ -133,10 +133,7 @@ import {
     try {
       nodeDumpSyms = (await importNodeDumpSyms()).dumpSyms;
     } catch (cause) {
-      throw new Error(
-        "Can't import dump_syms! Please ensure node-dump-syms is installed https://github.com/BugSplat-Git/node-dump-syms",
-        { cause }
-      );
+      throw dumpSymsImportError(cause);
     }
 
     const newSymbolFilePaths: string[] = [];
