@@ -11,3 +11,7 @@ export {
 } from '@bugsplat/js-api-client';
 
 export { uploadSymbolFiles } from './src/upload.js';
+
+export { uploadSymbols } from './src/upload-symbols.js';
+export type { UploadSymbolsOptions } from './src/upload-symbols.js';
+export type { SymbolFileInfo } from './src/info.js';

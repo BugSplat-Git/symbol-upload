@@ -1,3 +1,5 @@
+import { existsSync, statSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 import { getDSymFileInfos } from '../src/dsym';
 import { safeRemoveTmp } from '../src/tmp';
 
@@ -30,6 +32,21 @@ describe('dsym', () => {
           },
         ])
       );
+    });
+
+    // Callers remove the temp folder when this rejects, which mustn't happen under a slice that is
+    // still being written. Here the first slice can't be written and the second can.
+    it('should wait for every slice before rejecting when one cannot be written', async () => {
+      const [sliceThatFails, otherSlice] = await getDSymFileInfos('spec/support/bugsplat.app.dSYM');
+      const { size } = statSync(otherSlice.path);
+      await safeRemoveTmp();
+      await mkdir(sliceThatFails.path, { recursive: true });
+
+      await expect(
+        getDSymFileInfos('spec/support/bugsplat.app.dSYM')
+      ).rejects.toThrow(/EISDIR/);
+
+      expect(existsSync(otherSlice.path) && statSync(otherSlice.path).size).toBe(size);
     });
 
     afterEach(async () => await safeRemoveTmp());

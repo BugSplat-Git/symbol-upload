@@ -26,25 +26,27 @@ export async function getDSymFileInfos(path: string): Promise<SymbolFileInfo[]> 
             throw new Error(`${path} is not a valid Mach-O file`);
         }
 
-        return Promise.all(
-            machoFiles.map(async (macho) => {
-                const sourcePath = macho.path;
-                if (!sourcePath) {
-                    throw new Error('Mach-O file is missing a source path');
-                }
-                const dbgId = await macho.getUUID();
-                const moduleName = basename(sourcePath);
-                const relativePath = join(await macho.getUUID(), moduleName)
-                const path = join(tmpDir, relativePath);
-                await mkdir(dirname(path), { recursive: true });
-                await writeMachoSlice(macho, path);
-                return {
-                    path,
-                    dbgId,
-                    moduleName,
-                }
-            })
-        );
+        const slices = machoFiles.map(async (macho) => {
+            const sourcePath = macho.path;
+            if (!sourcePath) {
+                throw new Error('Mach-O file is missing a source path');
+            }
+            const dbgId = await macho.getUUID();
+            const moduleName = basename(sourcePath);
+            const relativePath = join(await macho.getUUID(), moduleName)
+            const path = join(tmpDir, relativePath);
+            await mkdir(dirname(path), { recursive: true });
+            await writeMachoSlice(macho, path);
+            return {
+                path,
+                dbgId,
+                moduleName,
+            }
+        });
+
+        // Wait for every slice, even once one has failed. Callers remove tmpDir when this rejects,
+        // which has to happen after the last slice is done being written.
+        return Promise.allSettled(slices).then(() => Promise.all(slices));
     } catch {
         console.log(`Could not create macho files for ${path}, skipping...`);
         return [];

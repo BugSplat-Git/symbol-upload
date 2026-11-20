@@ -95,6 +95,19 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
+            it('should zip source maps without dbgId', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'dist/app.js.map', moduleName: 'app.js.map', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect((worker as any).pool.exec).toHaveBeenCalledWith('createZipFile', ['dist/app.js.map', expect.stringMatching(/\.zip$/)]);
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: 'app.js.map.zip', dbgId: '' }),
+                ]);
+            });
+
             it('should zip Unity LineNumberMappings.json and use versionsClient', async () => {
                 const symbolFileInfos = [
                     createFakeSymbolFileInfo({ path: 'LineNumberMappings.json', moduleName: 'LineNumberMappings.json', dbgId: '' }),
@@ -161,6 +174,39 @@ describe('worker', () => {
             });
         });
 
+        describe('source maps with a dbgId', () => {
+            const dbgId = '9f2c1a7e3b4d4c5e8f60112233445566';
+            const path = 'dist/assets/index-BX3k2a9f.js.map';
+            const fileName = 'index-BX3k2a9f.js.map';
+            let worker: UploadWorker;
+
+            beforeEach(async () => {
+                worker = createUploadWorkerWithFakeReadStream(1, [{ path, moduleName: fileName, dbgId }], clients);
+                await worker.upload(database, application, version);
+            });
+
+            it('should use symbolsClient with the base file name as both name and moduleName', () => {
+                expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(1);
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: fileName, moduleName: fileName, dbgId }),
+                ]);
+            });
+
+            it('should gzip the map rather than zip it', () => {
+                const exec = vi.mocked((worker as any).pool.exec);
+
+                expect(exec).toHaveBeenCalledTimes(1);
+                expect(exec).toHaveBeenCalledWith('createGzipFile', [path, expect.stringMatching(/\.gz$/)]);
+                expect(symbolsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ file: expect.stringMatching(/\.gz$/) }),
+                ]);
+            });
+
+            it('should not use versionsClient', () => {
+                expect(versionsClient.postSymbols).not.toHaveBeenCalled();
+            });
+        });
+
         it('should run each upload through the retry policy', async () => {
             const retryPolicy = createFakePolicy();
             const symbolFiles = createFakeSymbolFileInfos(2);
@@ -169,6 +215,45 @@ describe('worker', () => {
             await worker.upload(database, application, version);
 
             expect(retryPolicy.execute).toHaveBeenCalledTimes(symbolFiles.length);
+        });
+
+        describe('when an upload fails', () => {
+            it('should not start its remaining files', async () => {
+                const symbolFiles = createFakeSymbolFileInfos(3);
+                const worker = withDestroyableReadStream(createUploadWorkerWithFakeReadStream(1, symbolFiles, clients));
+                vi.mocked(symbolsClient.postSymbols).mockRejectedValue(new Error('Failed to upload!'));
+
+                await expect(worker.upload(database, application, version)).rejects.toThrow('Failed to upload!');
+
+                expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(1);
+            });
+
+            it('should share one failure signal between the workers of a run', () => {
+                const workers = createWorkersFromSymbolFiles(createFakeWorkerPool(), 2, createFakeSymbolFileInfos(4), clients);
+
+                expect((workers[0] as any).failed).toBeInstanceOf(AbortController);
+                expect((workers[1] as any).failed).toBe((workers[0] as any).failed);
+            });
+
+            // A worker that carried on would use the worker pool and the temp folder after the caller,
+            // told that the run failed, had already terminated one and removed the other.
+            it('should stop the other workers before their next file', async () => {
+                const failed = new AbortController();
+                const failing = withDestroyableReadStream(createUploadWorkerWithFakeReadStream(1, createFakeSymbolFileInfos(2), clients, createFakePolicy(), failed));
+                const other = withDestroyableReadStream(createUploadWorkerWithFakeReadStream(2, createFakeSymbolFileInfos(2), clients, createFakePolicy(), failed));
+                let finishInProgressUpload = () => {};
+                vi.mocked(symbolsClient.postSymbols)
+                    .mockRejectedValueOnce(new Error('Failed to upload!'))
+                    .mockImplementationOnce(() => new Promise((resolve) => (finishInProgressUpload = () => resolve([]))));
+
+                const failure = failing.upload(database, application, version);
+                const stopped = other.upload(database, application, version);
+                await expect(failure).rejects.toThrow('Failed to upload!');
+                finishInProgressUpload();
+
+                await expect(stopped).resolves.toHaveLength(1);
+                expect(symbolsClient.postSymbols).toHaveBeenCalledTimes(2);
+            });
         });
 
         it('should destroy file stream on error', async () => {
@@ -217,12 +302,20 @@ function createFakeWorkerPool(): WorkerPool {
     return fakeWorkerPool;
 }
 
-function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy()) {
+function createUploadWorkerWithFakeReadStream(id: number, symbolFileInfos: any[], clients: [SymbolsApiClient, VersionsApiClient], retryPolicy = createFakePolicy(), failed = new AbortController()) {
     const workerPool = createFakeWorkerPool();
-    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients, retryPolicy);
+    const worker = new UploadWorker(id, symbolFileInfos, workerPool, ...clients, retryPolicy, failed);
     (worker as any).stat = vi.fn().mockResolvedValue({ size: 0, mtime: 0 });
     (worker as any).createReadStream = vi.fn().mockImplementation(file => file);
     (worker as any).toWeb = vi.fn().mockImplementation(file => file);
+    return worker;
+}
+
+// A failed upload destroys its read stream, which the fake above, a file name, can't do.
+function withDestroyableReadStream(worker: UploadWorker): UploadWorker {
+    const readStream = { destroy: vi.fn() };
+    (worker as any).createReadStream = () => readStream;
+    (worker as any).toWeb = () => readStream;
     return worker;
 }
 
