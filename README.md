@@ -155,7 +155,7 @@ Links
 
 Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-primer) pattern for `-f` and a path with forward slashes for `-d`. Multiple file types can be specified in curly brackets separated by a comma, and wildcards can be used to search directories recursively. For example, `**/*.{pdb,exe,dll}` will search for all `.pdb`, `.exe`, and `.dll` files in the current directory and all subdirectories. Optionally, you can specify the `-m` flag to run [dump_syms](https://github.com/BugSplat-Git/node-dump-syms) against the specified binaries and upload the resulting `.sym` files.
 
-For Windows, convert the `.exe` or `.dll` with its `.pdb` next to it rather than the `.pdb` alone: the x64 unwind data is in the binary, and a `.sym` made without it has no `STACK CFI` records. The resulting `.sym` is named after the `.pdb` on its `MODULE` line (`my-app.exe` with `my_app.pdb` gives `my_app.sym`), which is the name BugSplat looks for when it symbolicates a crash.
+For Windows, convert the `.exe` or `.dll` with its `.pdb` next to it, not the `.pdb` alone, so the `.sym` includes unwind data (`STACK CFI`).
 
 ### Self-Hosted Symbol Servers
 

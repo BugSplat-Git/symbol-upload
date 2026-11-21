@@ -84,23 +84,14 @@ export function getNormalizedSymFileName(path: string): string {
   return `${normalizedFileName}.sym`;
 }
 
-// A Breakpad processor finds a Windows module's symbols by its debug file, the .pdb:
-// <pdb name>/<debug id>/<pdb name, with .pdb swapped for .sym>. dump_syms writes that name on the
-// MODULE line, and it can differ from the name of the file that was converted: Cargo ships
-// my-app.exe with my_app.pdb, and a .sym uploaded as my-app.sym is never found.
-// Other platforms' MODULE lines name the binary itself, so those keep the name they were given.
+// Symbols for a Windows module are looked up as <pdb name>/<debug id>/<pdb name, .pdb -> .sym>,
+// and the .pdb's name can differ from the binary's (Cargo: my-app.exe, my_app.pdb).
 export function getSymFileNameForDebugFile(debugFileName: string): string | undefined {
-  // The name comes from the file being converted; keep only its last path segment.
   const name = win32.basename(debugFileName);
-  const extension = '.pdb';
-  if (name.length <= extension.length || !name.toLowerCase().endsWith(extension)) {
-    return undefined;
-  }
-  return `${name.slice(0, -extension.length)}.sym`;
+  return /.\.pdb$/i.test(name) ? `${name.slice(0, -4)}.sym` : undefined;
 }
 
-// Renames a .sym that dump_syms just wrote to the name its MODULE line calls for, and returns
-// the path to upload.
+// Renames a .sym written by dump_syms to the name its MODULE line calls for.
 export async function nameSymFileAfterDebugFile(symFilePath: string): Promise<string> {
   const { moduleName } = await getSymFileInfo(symFilePath);
   const symFileName = getSymFileNameForDebugFile(moduleName);

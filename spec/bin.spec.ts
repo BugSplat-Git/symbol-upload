@@ -68,8 +68,6 @@ describe('bin', () => {
     expect(code).toBe(0);
   }, 30_000);
 
-  // A Breakpad processor asks for <pdb name>/<debug id>/<pdb name, .pdb swapped for .sym>, so the
-  // file has to take the .pdb's name (BsSndRpt.pdb here), not the name of the .exe it was made from.
   it('should name a converted sym file after the .pdb on its MODULE line', async () => {
     const convertedPath = join(tmpdir(), `symbol-upload-spec-${randomUUID()}`);
 

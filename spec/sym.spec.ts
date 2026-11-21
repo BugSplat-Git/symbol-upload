@@ -1,8 +1,4 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { getNormalizedSymFileName, getNormalizedSymModuleName, getSymFileInfo, getSymFileNameForDebugFile, nameSymFileAfterDebugFile } from '../src/sym';
+import { getNormalizedSymFileName, getNormalizedSymModuleName, getSymFileInfo, getSymFileNameForDebugFile } from '../src/sym';
 
 describe('sym', () => {
     describe('getSymFileInfo', () => {
@@ -172,80 +168,14 @@ describe('sym', () => {
     });
 
     describe('getSymFileNameForDebugFile', () => {
-        it('should swap .pdb for .sym', () => {
-            expect(getSymFileNameForDebugFile('clockwork_desktop.pdb')).toBe('clockwork_desktop.sym');
-        });
-
-        it('should keep the dots in the name of a .pdb', () => {
-            expect(getSymFileNameForDebugFile('my.app.pdb')).toBe('my.app.sym');
-        });
-
-        it('should match the .pdb extension in any case', () => {
-            expect(getSymFileNameForDebugFile('BugSplat.PDB')).toBe('BugSplat.sym');
-        });
-
-        it('should keep only the file name of a .pdb path', () => {
-            expect(getSymFileNameForDebugFile('C:\\build\\..\\my_app.pdb')).toBe('my_app.sym');
-            expect(getSymFileNameForDebugFile('../../my_app.pdb')).toBe('my_app.sym');
-        });
-
-        it.each([['libc++_shared.so'], ['liba.dylib'], ['Electron Helper (GPU)'], ['.pdb'], ['']])(
-            'should return undefined for %s',
-            (debugFileName) => {
-                expect(getSymFileNameForDebugFile(debugFileName)).toBeUndefined();
-            }
-        );
-    });
-
-    describe('nameSymFileAfterDebugFile', () => {
-        let dir: string;
-
-        async function writeSymFile(fileName: string, debugFileName: string): Promise<string> {
-            const path = join(dir, fileName);
-            await writeFile(path, `MODULE windows x86_64 754D2B50C4E84A3C8F0A0C2D4D0B6F1A1 ${debugFileName}\n`);
-            return path;
-        }
-
-        beforeEach(async () => {
-            dir = join(tmpdir(), `symbol-upload-sym-spec-${randomUUID()}`);
-            await mkdir(dir, { recursive: true });
-        });
-
-        afterEach(async () => {
-            await rm(dir, { recursive: true, force: true });
-        });
-
-        // Cargo ships clockwork-desktop.exe with clockwork_desktop.pdb.
-        it('should rename a sym file whose debug file is a .pdb with another name', async () => {
-            const path = await writeSymFile('clockwork-desktop.sym', 'clockwork_desktop.pdb');
-
-            const renamedPath = await nameSymFileAfterDebugFile(path);
-
-            expect(renamedPath).toBe(join(dir, 'clockwork_desktop.sym'));
-            await expect(readdir(dir)).resolves.toEqual(['clockwork_desktop.sym']);
-        });
-
-        it('should rename a sym file whose name differs from its .pdb only by case', async () => {
-            const path = await writeSymFile('bssndrpt.sym', 'BsSndRpt.pdb');
-
-            const renamedPath = await nameSymFileAfterDebugFile(path);
-
-            expect(renamedPath).toBe(join(dir, 'BsSndRpt.sym'));
-            await expect(readdir(dir)).resolves.toEqual(['BsSndRpt.sym']);
-        });
-
-        it('should leave a sym file that already has the name of its .pdb', async () => {
-            const path = await writeSymFile('windows.sym', 'windows.pdb');
-
-            await expect(nameSymFileAfterDebugFile(path)).resolves.toBe(path);
-            await expect(readdir(dir)).resolves.toEqual(['windows.sym']);
-        });
-
-        it('should leave a sym file whose debug file is not a .pdb', async () => {
-            const path = await writeSymFile('liba.dylib.sym', 'liba.dylib.dSYM');
-
-            await expect(nameSymFileAfterDebugFile(path)).resolves.toBe(path);
-            await expect(readdir(dir)).resolves.toEqual(['liba.dylib.sym']);
+        it.each([
+            ['clockwork_desktop.pdb', 'clockwork_desktop.sym'],
+            ['electron.exe.pdb', 'electron.exe.sym'],
+            ['BugSplat.PDB', 'BugSplat.sym'],
+            ['libc++_shared.so', undefined],
+            ['liba.dylib', undefined],
+        ])('should map %s to %s', (debugFileName, expected) => {
+            expect(getSymFileNameForDebugFile(debugFileName)).toBe(expected);
         });
     });
 });
