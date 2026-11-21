@@ -16,7 +16,7 @@ import {
   SymbolFileInfo,
 } from '../src/info';
 import { dumpSymsImportError, importNodeDumpSyms } from '../src/preload';
-import { getNormalizedSymFileName } from '../src/sym';
+import { getNormalizedSymFileName, nameSymFileAfterDebugFile } from '../src/sym';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 import { isValidWorkerCount, terminateWorkerPool, uploadSymbolFiles } from '../src/upload';
 import {
@@ -164,7 +164,7 @@ import {
         continue;
       }
 
-      newSymbolFilePaths.push(symFile);
+      newSymbolFilePaths.push(await nameSymFileAfterDebugFile(symFile));
     }
 
     symbolFilePaths = newSymbolFilePaths;
