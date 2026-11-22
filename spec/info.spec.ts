@@ -1,6 +1,6 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { filterSymbolFilePaths } from '../src/info';
+import { createSymbolFileInfos, filterSymbolFilePaths } from '../src/info';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 
 describe('info', () => {
@@ -52,6 +52,22 @@ describe('info', () => {
       await expect(
         filterSymbolFilePaths(['spec/support/does-not-exist.sym'])
       ).rejects.toThrow('ENOENT');
+    });
+  });
+
+  describe('createSymbolFileInfos', () => {
+    it.each(['MyGame.symbols.json', 'MyGame.wasm.map'])('should return %s without a dbgId', async (fileName) => {
+      const path = join(tmpDir, fileName);
+      await mkdir(tmpDir, { recursive: true });
+      await writeFile(path, '{}');
+
+      try {
+        await expect(createSymbolFileInfos(path)).resolves.toEqual([
+          { path, dbgId: '', moduleName: fileName },
+        ]);
+      } finally {
+        await safeRemoveTmp();
+      }
     });
   });
 });

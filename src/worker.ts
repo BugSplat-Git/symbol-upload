@@ -77,11 +77,14 @@ export class UploadWorker {
         // Unity IL2CPP's C# line number mappings have no dbgId, fallback to legacy
         const isUnityLineNumberMappings = /^LineNumberMappings(-\w+)?\.json$/i.test(fileName);
 
+        // Unity WebGL's wasm function-name maps have no dbgId, fallback to legacy
+        const isUnityWebGLSymbols = /^.+\.symbols\.json$/i.test(fileName);
+
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
-        } else if (isSourceMap || isUnrealSym || isUnityLineNumberMappings || isZip) {
+        } else if (isSourceMap || isUnrealSym || isUnityLineNumberMappings || isUnityWebGLSymbols || isZip) {
             if (isZip) {
                 tmpFileName = path;
             } else {
