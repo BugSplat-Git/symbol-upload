@@ -121,6 +121,19 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
+            it.each(['game.symbols.json', 'game.js.symbols', 'game.symbols'])('should zip WebAssembly name map %s and use versionsClient', async (fileName) => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: fileName, moduleName: fileName, dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: `${fileName}.zip` }),
+                ]);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+            });
+
             it('should still skip other .json files without dbgId', async () => {
                 const symbolFileInfos = [
                     createFakeSymbolFileInfo({ path: 'package.json', moduleName: 'package.json', dbgId: '' }),

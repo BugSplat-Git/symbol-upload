@@ -1,6 +1,6 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { filterSymbolFilePaths } from '../src/info';
+import { createSymbolFileInfos, filterSymbolFilePaths, isWasmNameMapFile } from '../src/info';
 import { safeRemoveTmp, tmpDir } from '../src/tmp';
 
 describe('info', () => {
@@ -52,6 +52,30 @@ describe('info', () => {
       await expect(
         filterSymbolFilePaths(['spec/support/does-not-exist.sym'])
       ).rejects.toThrow('ENOENT');
+    });
+  });
+
+  describe('isWasmNameMapFile', () => {
+    it.each(['game.symbols.json', 'Build/game.js.symbols', 'game.symbols', 'GAME.SYMBOLS'])('should match %s', (path) => {
+      expect(isWasmNameMapFile(path)).toBe(true);
+    });
+
+    it.each(['windows.sym', 'game.json', 'LineNumberMappings-webgl.json', 'game.wasm.map', 'symbols'])('should not match %s', (path) => {
+      expect(isWasmNameMapFile(path)).toBe(false);
+    });
+  });
+
+  describe('createSymbolFileInfos', () => {
+    it('should not read an Emscripten .js.symbols map as a Breakpad .sym file', async () => {
+      const path = join(tmpDir, 'game.js.symbols');
+      await mkdir(tmpDir, { recursive: true });
+      await writeFile(path, '0:__wasi_fd_write\n1:main\n');
+
+      try {
+        await expect(createSymbolFileInfos(path)).resolves.toEqual([{ path, dbgId: '', moduleName: 'game.js.symbols' }]);
+      } finally {
+        await safeRemoveTmp();
+      }
     });
   });
 });
