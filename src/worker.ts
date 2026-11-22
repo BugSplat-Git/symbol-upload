@@ -5,7 +5,7 @@ import { stat } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import prettyBytes from 'pretty-bytes';
 import { WorkerPool } from 'workerpool';
-import { SymbolFileInfo } from './info';
+import { SymbolFileInfo, isWasmNameMapFile } from './info';
 import { createUploadRetryPolicy } from './retry';
 import { tmpDir } from './tmp';
 
@@ -77,11 +77,14 @@ export class UploadWorker {
         // Unity IL2CPP's C# line number mappings have no dbgId, fallback to legacy
         const isUnityLineNumberMappings = /^LineNumberMappings(-\w+)?\.json$/i.test(fileName);
 
+        // WebAssembly function-index name maps (Unity's .symbols.json, Emscripten's --emit-symbol-map) have no dbgId, fallback to legacy
+        const isWasmNameMap = isWasmNameMapFile(fileName);
+
         if (dbgId && !isZip) {
             tmpFileName = join(tmpDir, `${fileName}-${dbgId}-${uuid}.gz`);
             client = this.symbolsClient;
             await this.pool.exec('createGzipFile', [path, tmpFileName]);
-        } else if (isSourceMap || isUnrealSym || isUnityLineNumberMappings || isZip) {
+        } else if (isSourceMap || isUnrealSym || isUnityLineNumberMappings || isWasmNameMap || isZip) {
             if (isZip) {
                 tmpFileName = path;
             } else {

@@ -25,7 +25,7 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
     const path = symbolFilePath;
     const isFolder = await stat(path).then((stats) => stats.isDirectory());
     const extLowerCase = extname(path).toLowerCase();
-    const isSymFile = extLowerCase.includes('.sym') && !isFolder;
+    const isSymFile = extLowerCase.includes('.sym') && !isWasmNameMapFile(path) && !isFolder;
     const isPeOrPdbFile = (extLowerCase.includes('.pdb') || extLowerCase.includes('.exe') || extLowerCase.includes('.dll')) && !isFolder;
     const isDsymBundle = isDsymBundlePath(path);
     const isElfFile = elfExtensions.includes(extLowerCase) && !isFolder;
@@ -70,6 +70,11 @@ export async function createSymbolFileInfos(symbolFilePath: string): Promise<Sym
         dbgId,
         moduleName,
     } as SymbolFileInfo];
+}
+
+// <name>.symbols.json (Unity WebGL), <name>.js.symbols and <name>.symbols (Emscripten --emit-symbol-map)
+export function isWasmNameMapFile(path: string): boolean {
+    return /\.(symbols\.json|js\.symbols|symbols)$/i.test(basename(path));
 }
 
 function isDsymBundlePath(path: string): boolean {
