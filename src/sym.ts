@@ -1,5 +1,6 @@
 import firstline from 'firstline';
-import { basename } from 'node:path';
+import { rename } from 'node:fs/promises';
+import { basename, dirname, join, win32 } from 'node:path';
 
 export async function getSymFileInfo(
   path: string
@@ -81,4 +82,23 @@ export function getNormalizedSymFileName(path: string): string {
   }
 
   return `${normalizedFileName}.sym`;
+}
+
+// Symbols for a Windows module are looked up as <pdb name>/<debug id>/<pdb name, .pdb -> .sym>,
+// and the .pdb's name can differ from the binary's (Cargo: my-app.exe, my_app.pdb).
+export function getSymFileNameForDebugFile(debugFileName: string): string | undefined {
+  const name = win32.basename(debugFileName);
+  return /.\.pdb$/i.test(name) ? `${name.slice(0, -4)}.sym` : undefined;
+}
+
+// Renames a .sym written by dump_syms to the name its MODULE line calls for.
+export async function nameSymFileAfterDebugFile(symFilePath: string): Promise<string> {
+  const { moduleName } = await getSymFileInfo(symFilePath);
+  const symFileName = getSymFileNameForDebugFile(moduleName);
+  if (!symFileName || symFileName === basename(symFilePath)) {
+    return symFilePath;
+  }
+  const renamedPath = join(dirname(symFilePath), symFileName);
+  await rename(symFilePath, renamedPath);
+  return renamedPath;
 }

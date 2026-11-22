@@ -1,4 +1,4 @@
-import { getNormalizedSymFileName, getNormalizedSymModuleName, getSymFileInfo } from '../src/sym';
+import { getNormalizedSymFileName, getNormalizedSymModuleName, getSymFileInfo, getSymFileNameForDebugFile } from '../src/sym';
 
 describe('sym', () => {
     describe('getSymFileInfo', () => {
@@ -164,6 +164,18 @@ describe('sym', () => {
             const normalizedSymFileName = getNormalizedSymFileName('linux.debug');
 
             expect(normalizedSymFileName).toBe(expected);
+        });
+    });
+
+    describe('getSymFileNameForDebugFile', () => {
+        it.each([
+            ['clockwork_desktop.pdb', 'clockwork_desktop.sym'],
+            ['electron.exe.pdb', 'electron.exe.sym'],
+            ['BugSplat.PDB', 'BugSplat.sym'],
+            ['libc++_shared.so', undefined],
+            ['liba.dylib', undefined],
+        ])('should map %s to %s', (debugFileName, expected) => {
+            expect(getSymFileNameForDebugFile(debugFileName)).toBe(expected);
         });
     });
 });

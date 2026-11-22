@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
+import { readdir, rm } from 'node:fs/promises';
 import { createServer, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -66,6 +66,27 @@ describe('bin', () => {
     ]);
 
     expect(code).toBe(0);
+  }, 30_000);
+
+  it('should name a converted sym file after the .pdb on its MODULE line', async () => {
+    const convertedPath = join(tmpdir(), `symbol-upload-spec-${randomUUID()}`);
+
+    try {
+      const { code, output } = await runCli([
+        '-d', './spec/support',
+        '-f', 'bssndrpt.exe',
+        '-m',
+        '-l', convertedPath,
+      ]);
+
+      expect(output).toContain('Dumping syms for');
+      expect(code).toBe(0);
+      const moduleDir = join(convertedPath, 'BsSndRpt.pdb');
+      const [dbgId] = await readdir(moduleDir);
+      await expect(readdir(join(moduleDir, dbgId))).resolves.toEqual(['BsSndRpt.sym']);
+    } finally {
+      await rm(convertedPath, { recursive: true, force: true });
+    }
   }, 30_000);
 
   it('should exit non-zero when a required argument is missing', async () => {
