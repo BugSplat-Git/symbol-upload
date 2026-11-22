@@ -157,6 +157,8 @@ Run symbol-upload specifying a [glob](https://www.npmjs.com/package/glob#glob-pr
 
 For Windows, convert the `.exe` or `.dll` with its `.pdb` next to it, not the `.pdb` alone, so the `.sym` includes unwind data (`STACK CFI`).
 
+Files without a debug identifier are zipped and uploaded as `<name>.zip`: source maps (`*.map`, including Unity WebGL's `*.wasm.map`), `.sym` files without a module ID, Unity IL2CPP's C# line number mappings (`LineNumberMappings.json` or `LineNumberMappings-<platform>.json`), and Unity WebGL's function-name map (`<product>.symbols.json`, written by Publishing Settings > Debug Symbols = External). Other files without a debug identifier are skipped.
+
 ### Self-Hosted Symbol Servers
 
 The symbol-upload tool can be used to create a [SymSrv](https://learn.microsoft.com/en-us/windows/win32/debug/symbol-servers-and-symbol-stores) directory structure for Windows symbols that is compatible with both BugSplat and [Microsoft Visual Studio](https://learn.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger?view=vs-2022#configure-location-of-symbol-files-and-loading-options). Additionally, symbol-upload can also create a SymSrv directory structure for macOS and Crashpad symbols that is compatible with BugSplat.

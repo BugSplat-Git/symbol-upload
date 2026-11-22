@@ -121,9 +121,37 @@ describe('worker', () => {
                 expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
             });
 
+            it.each(['MyGame.symbols.json', 'mygame.SYMBOLS.JSON'])('should zip Unity WebGL %s and use versionsClient', async (fileName) => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: `Build/${fileName}`, moduleName: fileName, dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: `${fileName}.zip` }),
+                ]);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+            });
+
+            it('should zip a Unity WebGL .wasm.map source map and use versionsClient', async () => {
+                const symbolFileInfos = [
+                    createFakeSymbolFileInfo({ path: 'Build/MyGame.wasm.map', moduleName: 'MyGame.wasm.map', dbgId: '' }),
+                ];
+                const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
+                await worker.upload(database, application, version);
+
+                expect(versionsClient.postSymbols).toHaveBeenCalledWith(database, application, version, [
+                    expect.objectContaining({ name: 'MyGame.wasm.map.zip' }),
+                ]);
+                expect(symbolsClient.postSymbols).not.toHaveBeenCalled();
+            });
+
             it('should still skip other .json files without dbgId', async () => {
                 const symbolFileInfos = [
                     createFakeSymbolFileInfo({ path: 'package.json', moduleName: 'package.json', dbgId: '' }),
+                    createFakeSymbolFileInfo({ path: '.symbols.json', moduleName: '.symbols.json', dbgId: '' }),
+                    createFakeSymbolFileInfo({ path: 'symbols.json', moduleName: 'symbols.json', dbgId: '' }),
                 ];
                 const worker = createUploadWorkerWithFakeReadStream(1, symbolFileInfos, clients);
                 await worker.upload(database, application, version);
